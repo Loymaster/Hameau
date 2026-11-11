@@ -1,0 +1,12 @@
+<!DOCTYPE html><meta charset="utf-8"><body style="margin:0;background:#8B9A55"><canvas id="c" width="1500" height="900"></canvas>
+<script src="../src/sim.js"></script><script src="../src/art.js"></script><script>
+const g=document.getElementById('c').getContext('2d'); g.fillStyle='#8B9A55'; g.fillRect(0,0,1500,900);
+const P=(v,o,d,x,y,s)=>{ g.save(); g.translate(x,y); g.scale(s,s); ART.drawPawn(g,v,o,d); g.restore(); };
+const C=SIM.cast(4242,16); C.forEach((v,i)=>{ P(v,'civil','f',6+i*92,0,0.9); P(v,i%2?'bucheron':'civil','b',6+i*92,116,0.9); P(v,'civil',i%2?'l':'r',6+i*92,232,0.9); });
+const F=['long','ponytail','curly','bun','short','braid','bob','fringe','braids2'], M=['short','sidepart','spiky','bald','curly','receding','mop','tied'];
+F.forEach((h,i)=>{ const v={morph:['f_mince','f_moyenne','f_forte','f_sablier'][i%4],skin:i%5,hs:h,hc:(i*2+1)%6,face:i%4,eyes:i%4,nose:i%3,char:SIM.cast(1,5)[i%5].char,blush:i%2}; P(v,'civil','f',6+i*92,352,0.9); P(v,'civil','b',6+i*92,468,0.9); });
+const B=[null,'full','goatee','moustache','long','collier','favoris','handlebar','stubble'];
+M.concat(['short']).forEach((h,i)=>{ const v={sex:'m',morph:['h_mince','h_moyen','h_costaud','h_fort'][i%4],skin:(i+2)%5,hs:h,hc:i%6,beard:B[i],face:(i+2)%4,eyes:(i+1)%4,nose:(i+1)%3,char:SIM.cast(1,5)[(i+2)%5].char}; P(v,'civil','f',6+i*92,584,0.9); P(v,'civil','b',840+i*72,584,0.7); });
+C.forEach((v,i)=>{ P(v,['civil','paysan','pecheur','boulanger','cueilleur','carrier'][i%6],'f',10+i*40,720,0.3); P(v,'civil',i%2?'l':'b',10+i*40,770,0.3); });
+C.slice(0,8).forEach((v,i)=>{ g.save(); g.beginPath(); g.arc(700+i*56,750,20,0,7); g.fillStyle='#E2D5B8'; g.fill(); g.clip(); P(v,'civil','f',700+i*56-30,750-28,0.6); g.restore(); });
+</script>

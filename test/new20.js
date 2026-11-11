@@ -1,0 +1,4 @@
+(() => { const c = SIM.CHALLENGES.c7; c.food = 40; c.wood = 40; c.stone = 24; c.joy = true;
+  c.start = [{ type: 'cabane' }, { type: 'grange' }, { type: 'tente' }, { type: 'auberge' }, { type: 'verger' }, { type: 'bergerie', workers: [0] }, { type: 'fumoir' }, { type: 'pecheur', workers: [1] }, { type: 'puits' }, { type: 'potager', workers: [2] }, { type: 'etal' }, { type: 'gardemanger' }];
+  c.draws = [['scierie', 'menuiserie', 'taillerie'], ['bucher', 'digue', 'brasero'], ['rubans', 'bains', 'pressoir'], ['cellier', 'chaumiere', 'tente'], ['pressoir', 'bains', 'taillerie'], ['brasero', 'rubans', 'cellier']];
+  c.deck = [...new Set(c.draws.flat())]; c.events = [{ day: 2, type: 'storm' }, { day: 3, type: 'arrivals', villagers: [0] }, { day: 4, type: 'frost' }, { day: 5, type: 'fog' }]; })()

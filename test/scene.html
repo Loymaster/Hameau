@@ -1,0 +1,15 @@
+<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:#111}canvas{display:block}</style></head><body>
+<canvas id="cv" style="width:390px;height:844px"></canvas>
+<script src="../src/sim.js"></script><script src="../src/art.js"></script><script src="../src/render.js"></script><script src="../src/game.js"></script>
+<script>
+window.errs=[];window.onerror=(m,s,l,c,e)=>{errs.push(m+' @'+l+':'+c)};
+R.init(document.getElementById('cv'),GAME.map);R.resize(innerWidth,innerHeight,2);
+window.shot=function(picks,hour){GAME.start('c1');let time=10;
+  for(let i=0;i<picks.length;i++){GAME.choose(picks[i]);const last=i===picks.length-1;const target=last?hour:30;
+    let n=0;while(GAME.t<target-0.001&&GAME.phase==='day'&&n++<20000){GAME.tick(0.1,time);time+=0.1}
+    if(!last)GAME.next()}
+  const t0=performance.now();
+  for(let k=0;k<40;k++){time+=0.05;const v=GAME.view(time,0.05);R.frame(v.v,v.hour,time)}
+  window.ms=(performance.now()-t0)/40;
+  return GAME.t};
+</script></body></html>

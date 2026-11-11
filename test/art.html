@@ -1,0 +1,9 @@
+<!DOCTYPE html><meta charset="utf-8"><body style="margin:0;background:#8C9A5C"><canvas id="c" width="1500" height="560"></canvas>
+<script>window.module=undefined;</script><script src="../src/sim.js"></script><script src="../src/art.js"></script>
+<script>
+const g=document.getElementById('c').getContext('2d'), T=['grange','chaumiere','tente','auberge','verger','bergerie','fumoir','puits','etal','gardemanger','scierie','menuiserie','taillerie','bucher','digue','brasero','rubans','bains','pressoir','cellier'];
+g.scale(1.42,1.42); let x=6;
+for (const t of T){ const d=SIM.BT[t]; g.save(); g.translate(x,10); ART.drawExterior(g,t,d.w,d.h); if(t==='moulin'){g.save();g.translate(d.w/2,(d.h-ART.FH)/2);ART.drawSails(g,0.5);g.restore();} g.translate(0,62); ART.drawInterior(g,t,d.w,d.h); g.restore(); x+=d.w+9; }
+// tenues
+let px=10; for (const o of ['berger','scieur','cidrier']) { g.save(); g.translate(px,150); g.scale(0.5,0.5); ART.drawPawn(g,{morph:'h_moyen',skin:1,hs:'short',hc:1},o,'f'); g.translate(110,0); ART.drawPawn(g,{morph:'f_moyenne',skin:3,hs:'bun',hc:3},o,'f'); g.restore(); px+=120; }
+</script>
