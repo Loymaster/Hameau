@@ -429,6 +429,8 @@ h2.big{font-size:54px!important}.center{text-align:center}
 .dk.lock{opacity:.6;font-family:Barlow,sans-serif;font-weight:500;font-size:12px;color:var(--sec)}.dk .q{width:100%;height:54px;border-radius:7px;border:1.5px dashed var(--line);display:grid;place-items:center;font-family:var(--title);font-size:26px;color:var(--sec)}
 /* un enfant : un portrait plus petit */
 .vb.kid canvas{transform:scale(.78);transform-origin:50% 100%}
+/* les pastilles empilées restent dans leur page : elles ne passent plus au travers de la feuille qui tourne */
+.page{isolation:isolate}
 
 </style>
 </head>
@@ -3874,7 +3876,7 @@ const UI = (() => {
             return cap(d.name.toLowerCase()) + ' : ' + (d.out ? d.per + ' ' + RESN[d.out].toLowerCase() + ' par jour et par personne' : d.play ? 'de la joie chaque soir' : 'un poste') + (d.posts > 1 ? ', ' + d.posts + ' postes' : '') + '.' + (st.length ? ' Arrêté par ' + names(st) + '.' : ''); }).join(' ')); }).join('') + '</div>'; },
     options: () => back + '<h2>Options</h2><div class="h3">Son</div>' + volsHtml() +
       '<div class="h3">Bulles des villageois</div><div class="segs">' + BUBS.map(b => '<button class="seg" data-bub="' + b[0] + '" aria-pressed="' + (save.bub === b[0]) + '">' + b[1] + '</button>').join('') + '</div>' +
-      '<div class="h3">Progression</div><p class="note">' + Object.values(save.stars).reduce((a, b) => a + b, 0) + ' étoiles sur ' + ORDER.length * 3 + '</p><div class="pfoot">Prototype 0.19</div>'
+      '<div class="h3">Progression</div><p class="note">' + Object.values(save.stars).reduce((a, b) => a + b, 0) + ' étoiles sur ' + ORDER.length * 3 + '</p><div class="pfoot">Prototype 0.20</div>'
   };
   function bindPage(name, arg) {
     paint(pageEl);
