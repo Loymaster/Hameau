@@ -312,7 +312,7 @@ const ART = (() => {
   const BDEF = {
     cabane: { beds: [[7, 7], [29, 7]], win: [8], lights: [[12, 37], [24, 40]] },
     foyer: { beds: [[5, 8], [19, 8], [35, 8], [49, 8]], win: [8, 46], lights: [[12, 41], [52, 41], [32, 44]] }, longere: { beds: [[6, 7], [28, 7], [50, 7]], win: [8, 48], lights: [[12, 35], [54, 35], [33, 38]] },
-    ferme: { beds: [[5, 8], [21, 8], [37, 8]], win: [8, 46], lights: [[12, 41], [52, 41]] }, ecole: { win: [8, 38], lights: [[12, 39], [44, 39], [28, 42]] }, bibliotheque: { win: [6, 32], lights: [[10, 37], [38, 37]] },
+    ferme: { beds: [[5, 8], [21, 8], [37, 8]], win: [8, 46], lights: [[12, 41], [52, 41]] }, ecole: { win: [8, 38], lights: [[12, 39], [44, 39], [28, 42]], seats: [[14, 24], [28, 24], [42, 24]] }, bibliotheque: { win: [6, 32], lights: [[10, 37], [38, 37]] },
     cantine: { win: [8, 36], lights: [[12, 37], [42, 37], [27, 40]] }, chevre: { win: [], lights: [[22, 35]] }, bassecour: { win: [], lights: [[24, 37]] }, marionnettes: { win: [], lights: [[22, 37]], lamp: true }, jeux: { win: [], lights: [] },
     cabanon: { beds: [[5, 6]], win: [4], lights: [[8, 33], [18, 36]] },
     maison: { beds: [[7, 8], [29, 8]], win: [8, 32], lights: [[12, 39], [36, 39], [24, 42]] },
@@ -492,7 +492,9 @@ const ART = (() => {
     const H0 = HOUSE[type]; if (!H0) return false;
     planks(g, 0, 0, w, h, type === 'cellier' || type === 'bains' ? '#B9B1A0' : type === 'fumoir' ? '#8A7A62' : type === 'grange' || type === 'bergerie' ? '#D8C48E' : '#CDAA7C', 5.5);
     if (BDEF[type].beds) for (const b of BDEF[type].beds) { if (type === 'grange') { rr(g, b[0], b[1], 10, 21, 3); FS(g, '#C9B79A', 0.900); rr(g, b[0] + 1, b[1] + 1, 8, 6, 2); FS(g, '#EFE6D2', 0.700); } else bed(g, b[0], b[1]); }
-    if (type === 'grange') { for (const x of [10, w - 16]) { circ(g, x, h - 11, 5.500); FS(g, '#E3C46B', 1); } }
+    if (type === 'ecole') { rr(g, w / 2 - 14, 5, 28, 5, 1); FS(g, '#3A4854', 1); g.strokeStyle = '#F4EEDC'; g.lineWidth = 0.7; g.beginPath(); g.moveTo(w / 2 - 10, 7.5); g.lineTo(w / 2 + 2, 7.5); g.stroke(); for (const q of BDEF.ecole.seats) { rr(g, q[0] - 5.5, q[1] - 8, 11, 5, 1); FS(g, '#A87A4A', 0.9); rr(g, q[0] - 3, q[1] - 7, 6, 3, 0.6); FS(g, '#EFE6D2', 0.5); } }
+    else if (type === 'bibliotheque') { for (const y of [7, 16, 25]) { rr(g, 5, y, w - 10, 5, 1); FS(g, '#8A6038', 1); for (let x = 7; x < w - 8; x += 3) { g.fillStyle = ['#C8384A', '#D9A441', '#4E6E80', '#7FA65A', '#8C3B4A'][(x | 0) % 5]; g.fillRect(x, y + 0.6, 2.2, 3.8); } } }
+    else if (type === 'grange') { for (const x of [10, w - 16]) { circ(g, x, h - 11, 5.500); FS(g, '#E3C46B', 1); } }
     else if (type === 'chaumiere') { rr(g, 18, h - 16, 24, 9, 3); FS(g, '#4E6E80', 1); rr(g, w - 13, h - 15, 8, 8, 1.500); FS(g, '#8A6038', 1.1); }
     else if (type === 'auberge') { rr(g, w - 22, 8, 15, 22, 2); FS(g, '#A87A4A', 1.1); for (const y of [12, 19, 26]) { circ(g, w - 18, y, 1.800); FS(g, '#EFE6D2', 0.600); circ(g, w - 11, y, 1.800); FS(g, '#EFE6D2', 0.600); } rr(g, 8, h - 15, 14, 8, 2); FS(g, '#8E877B', 1.1); g.fillStyle = '#FF9A3C'; g.fillRect(11, h - 12.500, 8, 3.500); }
     else if (type === 'bergerie') { const r = SIM.rngOf(43); g.strokeStyle = 'rgba(160,130,60,.7)'; g.lineWidth = 0.700; for (let i = 0; i < 44; i++) { const x = 4 + r() * (w - 8), y = 4 + r() * (h - 8); g.beginPath(); g.moveTo(x, y); g.lineTo(x + 3, y + (r() - 0.5) * 3); g.stroke(); } for (const q of [[12, 11], [26, 9], [38, 14], [17, 24], [34, 26]]) { ell(g, q[0], q[1], 4.600, 3.500); FS(g, '#F4EEDC', 0.900); circ(g, q[0] + 4, q[1] - 1, 1.800); FS(g, '#4A3A2C', 0.500); } }

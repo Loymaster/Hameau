@@ -506,6 +506,7 @@ const SIM = (() => {
     const kids = alive.filter(v => v.child), pupils = {}, schools = st.buildings.filter(b => BT[b.type].school && !b.gone);
     kids.slice().sort((a, b) => (b.school || 0) - (a.school || 0) || a.id - b.id).forEach((v, k) => { const sb = schools[Math.floor(k / BT.ecole.school)]; if (sb) pupils[v.id] = sb; });
     const kidsFree = kids.filter(v => !pupils[v.id]);
+    { const l = kids.filter(v => pupils[v.id]).map(v => v.name); if (l.length) E(T.WORK + 0.06, 'msg', { msg: names(l) + (l.length > 1 ? ' partent à l’école.' : ' part à l’école.') }); }
     if (st.arrived && st.arrived.length) { const l = st.arrived.map(id => st.villagers[id].name); log.push({ k: 'new', text: names(l) + (l.length > 1 ? ' ont rejoint' : ' a rejoint') + ' le village.' }); }
     const sum = { day: st.day, built: null, got: { food: 0, wood: 0, stone: 0 }, v: {}, deaths: [], jobs: [], homes: [] };
     const gain = (t, res, n, x, y) => { E(t, 'res', { [res]: n, x, y }); st[res] += n; sum.got[res] += n; };

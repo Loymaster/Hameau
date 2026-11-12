@@ -27,6 +27,10 @@ const MIND = (() => {
     chantier_toit: L('roof', 'espoir', ['Ce toit-là sera le mien, je le sens.'], ['Ce toit sera-t-il pour moi ?'], ['Un toit. Bien.'], ['Un toit de plus. Au plus fatigué de le prendre.'], ['Un toit. Il était temps.']),
     chantier: L('work', 'espoir', ['Ça prend forme. On avance !'], ['Pourvu que ça suffise.'], ['On bâtit.'], ['Chaque planche est pour tous.'], ['Encore des planches à porter.']),
     metier: L('work', 'content', ['{M}. Ça me va très bien.'], ['{M}… Saurai-je faire ?'], ['{M}. Bon.'], ['{M}. Tant mieux si ça sert.'], ['{M}. On ne m’a pas demandé mon avis.']),
+    ecole_jour: L('work', 'espoir', ['J’apprends vite. Bientôt, je travaillerai aussi.', 'À l’école ! J’ai tant de questions.', 'Aujourd’hui, on compte les sacs de la réserve.'], ['Et si je n’y arrive pas, à l’école ?', 'J’ai peur de ne pas savoir répondre.', 'Les autres apprennent plus vite que moi.'], ['École.', 'J’y vais.', 'Encore l’école.'], ['J’apprends, pour aider plus tard.', 'Ce que j’apprends servira à tous.', 'Un jour, je l’apprendrai aux plus petits.'], ['Rester assis toute la journée…', 'Dehors, il fait beau, et nous dedans.', 'Encore des chiffres. J’aimerais mieux courir.']),
+    ecole_fin: L('work', 'content', ['Fini l’école ! Demain, je travaille.'], ['Demain je travaille. Saurai-je ?'], ['Fini.'], ['Demain, je pourrai enfin aider.'], ['Fini l’école. Maintenant, le travail.']),
+    ecole_batie: L('village', 'espoir', ['Une école ! J’y vais dès demain.'], ['Une école… Demain, déjà ?'], ['Demain, école.'], ['Une école pour nous. Merci.'], ['Une école. Finies, les journées à jouer.']),
+    jeu: L('village', 'content', ['On joue à qui bâtira le plus haut !'], ['Je reste près du feu, on ne sait jamais.'], ['Je joue.'], ['Je surveille le feu pendant que vous travaillez.'], ['Rien à faire, pour nous les petits.']),
     oisif: L('work', 'peine', ['Du bois mort, c’est déjà ça.', 'Pas de poste ? Je me rends utile.'], ['Je ne sers à rien, sans poste.'], ['Rien à faire.'], ['Je ramasse du bois, pour le feu de tous.'], ['Ramasser des branches. Quelle carrière.']),
     pont_coupe: L('storm', 'peine', ['Rien à rapporter aujourd’hui. Demain, double !'], ['Le pont est sous l’eau. Rien à rapporter.'], ['Pont coupé.'], ['Rien à rapporter. Je m’en veux.'], ['Une journée perdue à regarder la pluie.']),
     gel_perdu: L('frost', 'peine', ['Rien ne pousse. Le printemps reviendra.'], ['Tout a gelé. Rien à rapporter.'], ['Tout gelé.'], ['Les mains vides. Je m’en veux.'], ['Gratter la glace. Belle occupation.']),
@@ -151,15 +155,24 @@ const MIND = (() => {
     const V = st.villagers.filter(v => v.alive), n = V.length, d = S.day, out = [], w = SIM.weather(S), ev = plan.events, cnt = {};
     const tOf = (type, vid) => { const e = ev.find(x => x.type === type && x.vid === vid); return e ? e.t : null; };
     const add = (v, sit, force, o, moment, t0, t1) => { const th = push(out, mk(m, st, v, sit, force, o, moment, t0, t1)); if (th) cnt[v.id] = (cnt[v.id] || 0) + 1; return th; };
-    const turn = k => V.slice().sort((a, b) => (cnt[a.id] || 0) - (cnt[b.id] || 0) || ((a.id + d) % n) - ((b.id + d) % n)).slice(0, k);
+    const turn = k => V.filter(v => !v.child).sort((a, b) => (cnt[a.id] || 0) - (cnt[b.id] || 0) || ((a.id + d) % n) - ((b.id + d) % n)).slice(0, k);
     if (plan.nb) {
-      if (SIM.BT[plan.nb.type].beds) { const c = V.filter(v => v.roofless > 0 && v.home == null); (c.length ? c.slice(0, 2) : turn(1)).forEach(v => add(v, 'chantier_toit', c.length ? 2 : 1, null, 'au chantier', 6.8, 8.8)); }
+      if (SIM.BT[plan.nb.type].beds) { const c = V.filter(v => v.roofless > 0 && v.home == null && !v.child); (c.length ? c.slice(0, 2) : turn(1)).forEach(v => add(v, 'chantier_toit', c.length ? 2 : 1, null, 'au chantier', 6.8, 8.8)); }
       else turn(2).forEach(v => add(v, 'chantier', 1, null, 'au chantier', 6.9, 8.8));
     }
     for (const e of ev) if (e.type === 'job' && e.job) add(st.villagers[e.vid], 'metier', 1, null, 'au travail', 9.1, 11.6);
     for (const e of ev) if (e.type === 'home') add(st.villagers[e.vid], 'maison_joie', 2, null, 'dans la journée', 9.2, 12.5);
     let idle = 0; const anti = k => E.buildings.some(b => SIM.BT[b.type].anti === k);
+    /* les enfants : l'école quand ils y vont, le jeu sinon ; le jour où on la bâtit, ils en parlent ; le dernier jour d'école aussi */
+    const grown = plan.sum.grown || [], kid = v => st.villagers[v.id] && st.villagers[v.id].child, atSchool = v => plan.tracks[v.id] && plan.tracks[v.id].s.some(q => q.label === 'Est à l’école'); let kt = 0;
+    for (const v of V.slice(d % Math.max(1, V.length)).concat(V.slice(0, d % Math.max(1, V.length)))) if (kid(v)) {
+      if (grown.includes(v.id)) add(v, 'ecole_fin', 2, null, 'en sortant de l’école', 16.1, 17.5);
+      else if (plan.nb && SIM.BT[plan.nb.type].school) { if (kt++ < 2) add(v, 'ecole_batie', 1, null, 'dans la journée', 9.3, 13); }
+      else if (atSchool(v)) { if (kt++ < 2) add(v, 'ecole_jour', 1, null, 'à l’école', 9.1, 9.7); }
+      else if (kt++ < 1 && !cnt[v.id]) add(v, 'jeu', 1, null, 'dans la journée', 9.8, 16);
+    }
     for (const v of V) {
+      if (kid(v)) continue;
       const b = v.job && E.buildings.find(x => x.workers.includes(v.id)), bt = b && SIM.BT[b.type];
       if (!v.job) { if (idle++ < 2 && !cnt[v.id]) add(v, w.fog && !anti('fog') ? 'brume_perdue' : 'oisif', 1, null, 'dans la journée', 9.8, 16); }
       else if (w.storm && bt && bt.storm && !anti('storm')) add(v, 'pont_coupe', 2, null, 'dans la journée', 9.4, 16);

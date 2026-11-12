@@ -245,9 +245,11 @@ const R = (() => {
     }
     blit(ctx, sInt, b.x, b.y);
     const D = ART.BDEF[b.type], beds = D.beds || [];
+    let seatK = 0;
     for (const o of b.occ || []) {
       let hx, hy;
-      if (o.bed == null) { /* au travail, vu de dessus */
+      if (o.bed == null && D.seats) { const q = D.seats[seatK++ % D.seats.length]; hx = b.x + q[0]; hy = b.y + q[1] + Math.sin(time * 1.3 + o.v.id) * 0.3; ell(ctx, hx, hy + 3, 4.4, 3); ART.FS(ctx, ART.OUT[o.outfit || 'civil'].main, 0.9); } /* à l'école, chacun à son pupitre */
+      else if (o.bed == null) { /* au travail, vu de dessus */
         if (!D.work) continue; hx = b.x + D.work[0] + Math.sin(time * 1.1 + o.v.id) * 2.5; hy = b.y + D.work[1] + Math.sin(time * 3 + o.v.id) * 0.4;
         ell(ctx, hx, hy + 3.4, 5.2, 3.6); ART.FS(ctx, ART.OUT[o.outfit || 'civil'].main, 0.9);
       } else { const bd = beds[o.bed]; if (!bd) continue; hx = b.x + bd[0] + 6; hy = b.y + bd[1] + 5 + Math.sin(time * 1.5 + o.v.id) * 0.25; }

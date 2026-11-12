@@ -966,6 +966,7 @@ const SIM = (() => {
     const kids = alive.filter(v => v.child), pupils = {}, schools = st.buildings.filter(b => BT[b.type].school && !b.gone);
     kids.slice().sort((a, b) => (b.school || 0) - (a.school || 0) || a.id - b.id).forEach((v, k) => { const sb = schools[Math.floor(k / BT.ecole.school)]; if (sb) pupils[v.id] = sb; });
     const kidsFree = kids.filter(v => !pupils[v.id]);
+    { const l = kids.filter(v => pupils[v.id]).map(v => v.name); if (l.length) E(T.WORK + 0.06, 'msg', { msg: names(l) + (l.length > 1 ? ' partent à l’école.' : ' part à l’école.') }); }
     if (st.arrived && st.arrived.length) { const l = st.arrived.map(id => st.villagers[id].name); log.push({ k: 'new', text: names(l) + (l.length > 1 ? ' ont rejoint' : ' a rejoint') + ' le village.' }); }
     const sum = { day: st.day, built: null, got: { food: 0, wood: 0, stone: 0 }, v: {}, deaths: [], jobs: [], homes: [] };
     const gain = (t, res, n, x, y) => { E(t, 'res', { [res]: n, x, y }); st[res] += n; sum.got[res] += n; };
@@ -1610,6 +1611,10 @@ const MIND = (() => {
     chantier_toit: L('roof', 'espoir', ['Ce toit-là sera le mien, je le sens.'], ['Ce toit sera-t-il pour moi ?'], ['Un toit. Bien.'], ['Un toit de plus. Au plus fatigué de le prendre.'], ['Un toit. Il était temps.']),
     chantier: L('work', 'espoir', ['Ça prend forme. On avance !'], ['Pourvu que ça suffise.'], ['On bâtit.'], ['Chaque planche est pour tous.'], ['Encore des planches à porter.']),
     metier: L('work', 'content', ['{M}. Ça me va très bien.'], ['{M}… Saurai-je faire ?'], ['{M}. Bon.'], ['{M}. Tant mieux si ça sert.'], ['{M}. On ne m’a pas demandé mon avis.']),
+    ecole_jour: L('work', 'espoir', ['J’apprends vite. Bientôt, je travaillerai aussi.', 'À l’école ! J’ai tant de questions.', 'Aujourd’hui, on compte les sacs de la réserve.'], ['Et si je n’y arrive pas, à l’école ?', 'J’ai peur de ne pas savoir répondre.', 'Les autres apprennent plus vite que moi.'], ['École.', 'J’y vais.', 'Encore l’école.'], ['J’apprends, pour aider plus tard.', 'Ce que j’apprends servira à tous.', 'Un jour, je l’apprendrai aux plus petits.'], ['Rester assis toute la journée…', 'Dehors, il fait beau, et nous dedans.', 'Encore des chiffres. J’aimerais mieux courir.']),
+    ecole_fin: L('work', 'content', ['Fini l’école ! Demain, je travaille.'], ['Demain je travaille. Saurai-je ?'], ['Fini.'], ['Demain, je pourrai enfin aider.'], ['Fini l’école. Maintenant, le travail.']),
+    ecole_batie: L('village', 'espoir', ['Une école ! J’y vais dès demain.'], ['Une école… Demain, déjà ?'], ['Demain, école.'], ['Une école pour nous. Merci.'], ['Une école. Finies, les journées à jouer.']),
+    jeu: L('village', 'content', ['On joue à qui bâtira le plus haut !'], ['Je reste près du feu, on ne sait jamais.'], ['Je joue.'], ['Je surveille le feu pendant que vous travaillez.'], ['Rien à faire, pour nous les petits.']),
     oisif: L('work', 'peine', ['Du bois mort, c’est déjà ça.', 'Pas de poste ? Je me rends utile.'], ['Je ne sers à rien, sans poste.'], ['Rien à faire.'], ['Je ramasse du bois, pour le feu de tous.'], ['Ramasser des branches. Quelle carrière.']),
     pont_coupe: L('storm', 'peine', ['Rien à rapporter aujourd’hui. Demain, double !'], ['Le pont est sous l’eau. Rien à rapporter.'], ['Pont coupé.'], ['Rien à rapporter. Je m’en veux.'], ['Une journée perdue à regarder la pluie.']),
     gel_perdu: L('frost', 'peine', ['Rien ne pousse. Le printemps reviendra.'], ['Tout a gelé. Rien à rapporter.'], ['Tout gelé.'], ['Les mains vides. Je m’en veux.'], ['Gratter la glace. Belle occupation.']),
@@ -1734,15 +1739,24 @@ const MIND = (() => {
     const V = st.villagers.filter(v => v.alive), n = V.length, d = S.day, out = [], w = SIM.weather(S), ev = plan.events, cnt = {};
     const tOf = (type, vid) => { const e = ev.find(x => x.type === type && x.vid === vid); return e ? e.t : null; };
     const add = (v, sit, force, o, moment, t0, t1) => { const th = push(out, mk(m, st, v, sit, force, o, moment, t0, t1)); if (th) cnt[v.id] = (cnt[v.id] || 0) + 1; return th; };
-    const turn = k => V.slice().sort((a, b) => (cnt[a.id] || 0) - (cnt[b.id] || 0) || ((a.id + d) % n) - ((b.id + d) % n)).slice(0, k);
+    const turn = k => V.filter(v => !v.child).sort((a, b) => (cnt[a.id] || 0) - (cnt[b.id] || 0) || ((a.id + d) % n) - ((b.id + d) % n)).slice(0, k);
     if (plan.nb) {
-      if (SIM.BT[plan.nb.type].beds) { const c = V.filter(v => v.roofless > 0 && v.home == null); (c.length ? c.slice(0, 2) : turn(1)).forEach(v => add(v, 'chantier_toit', c.length ? 2 : 1, null, 'au chantier', 6.8, 8.8)); }
+      if (SIM.BT[plan.nb.type].beds) { const c = V.filter(v => v.roofless > 0 && v.home == null && !v.child); (c.length ? c.slice(0, 2) : turn(1)).forEach(v => add(v, 'chantier_toit', c.length ? 2 : 1, null, 'au chantier', 6.8, 8.8)); }
       else turn(2).forEach(v => add(v, 'chantier', 1, null, 'au chantier', 6.9, 8.8));
     }
     for (const e of ev) if (e.type === 'job' && e.job) add(st.villagers[e.vid], 'metier', 1, null, 'au travail', 9.1, 11.6);
     for (const e of ev) if (e.type === 'home') add(st.villagers[e.vid], 'maison_joie', 2, null, 'dans la journée', 9.2, 12.5);
     let idle = 0; const anti = k => E.buildings.some(b => SIM.BT[b.type].anti === k);
+    /* les enfants : l'école quand ils y vont, le jeu sinon ; le jour où on la bâtit, ils en parlent ; le dernier jour d'école aussi */
+    const grown = plan.sum.grown || [], kid = v => st.villagers[v.id] && st.villagers[v.id].child, atSchool = v => plan.tracks[v.id] && plan.tracks[v.id].s.some(q => q.label === 'Est à l’école'); let kt = 0;
+    for (const v of V.slice(d % Math.max(1, V.length)).concat(V.slice(0, d % Math.max(1, V.length)))) if (kid(v)) {
+      if (grown.includes(v.id)) add(v, 'ecole_fin', 2, null, 'en sortant de l’école', 16.1, 17.5);
+      else if (plan.nb && SIM.BT[plan.nb.type].school) { if (kt++ < 2) add(v, 'ecole_batie', 1, null, 'dans la journée', 9.3, 13); }
+      else if (atSchool(v)) { if (kt++ < 2) add(v, 'ecole_jour', 1, null, 'à l’école', 9.1, 9.7); }
+      else if (kt++ < 1 && !cnt[v.id]) add(v, 'jeu', 1, null, 'dans la journée', 9.8, 16);
+    }
     for (const v of V) {
+      if (kid(v)) continue;
       const b = v.job && E.buildings.find(x => x.workers.includes(v.id)), bt = b && SIM.BT[b.type];
       if (!v.job) { if (idle++ < 2 && !cnt[v.id]) add(v, w.fog && !anti('fog') ? 'brume_perdue' : 'oisif', 1, null, 'dans la journée', 9.8, 16); }
       else if (w.storm && bt && bt.storm && !anti('storm')) add(v, 'pont_coupe', 2, null, 'dans la journée', 9.4, 16);
@@ -2121,7 +2135,7 @@ const ART = (() => {
   const BDEF = {
     cabane: { beds: [[7, 7], [29, 7]], win: [8], lights: [[12, 37], [24, 40]] },
     foyer: { beds: [[5, 8], [19, 8], [35, 8], [49, 8]], win: [8, 46], lights: [[12, 41], [52, 41], [32, 44]] }, longere: { beds: [[6, 7], [28, 7], [50, 7]], win: [8, 48], lights: [[12, 35], [54, 35], [33, 38]] },
-    ferme: { beds: [[5, 8], [21, 8], [37, 8]], win: [8, 46], lights: [[12, 41], [52, 41]] }, ecole: { win: [8, 38], lights: [[12, 39], [44, 39], [28, 42]] }, bibliotheque: { win: [6, 32], lights: [[10, 37], [38, 37]] },
+    ferme: { beds: [[5, 8], [21, 8], [37, 8]], win: [8, 46], lights: [[12, 41], [52, 41]] }, ecole: { win: [8, 38], lights: [[12, 39], [44, 39], [28, 42]], seats: [[14, 24], [28, 24], [42, 24]] }, bibliotheque: { win: [6, 32], lights: [[10, 37], [38, 37]] },
     cantine: { win: [8, 36], lights: [[12, 37], [42, 37], [27, 40]] }, chevre: { win: [], lights: [[22, 35]] }, bassecour: { win: [], lights: [[24, 37]] }, marionnettes: { win: [], lights: [[22, 37]], lamp: true }, jeux: { win: [], lights: [] },
     cabanon: { beds: [[5, 6]], win: [4], lights: [[8, 33], [18, 36]] },
     maison: { beds: [[7, 8], [29, 8]], win: [8, 32], lights: [[12, 39], [36, 39], [24, 42]] },
@@ -2301,7 +2315,9 @@ const ART = (() => {
     const H0 = HOUSE[type]; if (!H0) return false;
     planks(g, 0, 0, w, h, type === 'cellier' || type === 'bains' ? '#B9B1A0' : type === 'fumoir' ? '#8A7A62' : type === 'grange' || type === 'bergerie' ? '#D8C48E' : '#CDAA7C', 5.5);
     if (BDEF[type].beds) for (const b of BDEF[type].beds) { if (type === 'grange') { rr(g, b[0], b[1], 10, 21, 3); FS(g, '#C9B79A', 0.900); rr(g, b[0] + 1, b[1] + 1, 8, 6, 2); FS(g, '#EFE6D2', 0.700); } else bed(g, b[0], b[1]); }
-    if (type === 'grange') { for (const x of [10, w - 16]) { circ(g, x, h - 11, 5.500); FS(g, '#E3C46B', 1); } }
+    if (type === 'ecole') { rr(g, w / 2 - 14, 5, 28, 5, 1); FS(g, '#3A4854', 1); g.strokeStyle = '#F4EEDC'; g.lineWidth = 0.7; g.beginPath(); g.moveTo(w / 2 - 10, 7.5); g.lineTo(w / 2 + 2, 7.5); g.stroke(); for (const q of BDEF.ecole.seats) { rr(g, q[0] - 5.5, q[1] - 8, 11, 5, 1); FS(g, '#A87A4A', 0.9); rr(g, q[0] - 3, q[1] - 7, 6, 3, 0.6); FS(g, '#EFE6D2', 0.5); } }
+    else if (type === 'bibliotheque') { for (const y of [7, 16, 25]) { rr(g, 5, y, w - 10, 5, 1); FS(g, '#8A6038', 1); for (let x = 7; x < w - 8; x += 3) { g.fillStyle = ['#C8384A', '#D9A441', '#4E6E80', '#7FA65A', '#8C3B4A'][(x | 0) % 5]; g.fillRect(x, y + 0.6, 2.2, 3.8); } } }
+    else if (type === 'grange') { for (const x of [10, w - 16]) { circ(g, x, h - 11, 5.500); FS(g, '#E3C46B', 1); } }
     else if (type === 'chaumiere') { rr(g, 18, h - 16, 24, 9, 3); FS(g, '#4E6E80', 1); rr(g, w - 13, h - 15, 8, 8, 1.500); FS(g, '#8A6038', 1.1); }
     else if (type === 'auberge') { rr(g, w - 22, 8, 15, 22, 2); FS(g, '#A87A4A', 1.1); for (const y of [12, 19, 26]) { circ(g, w - 18, y, 1.800); FS(g, '#EFE6D2', 0.600); circ(g, w - 11, y, 1.800); FS(g, '#EFE6D2', 0.600); } rr(g, 8, h - 15, 14, 8, 2); FS(g, '#8E877B', 1.1); g.fillStyle = '#FF9A3C'; g.fillRect(11, h - 12.500, 8, 3.500); }
     else if (type === 'bergerie') { const r = SIM.rngOf(43); g.strokeStyle = 'rgba(160,130,60,.7)'; g.lineWidth = 0.700; for (let i = 0; i < 44; i++) { const x = 4 + r() * (w - 8), y = 4 + r() * (h - 8); g.beginPath(); g.moveTo(x, y); g.lineTo(x + 3, y + (r() - 0.5) * 3); g.stroke(); } for (const q of [[12, 11], [26, 9], [38, 14], [17, 24], [34, 26]]) { ell(g, q[0], q[1], 4.600, 3.500); FS(g, '#F4EEDC', 0.900); circ(g, q[0] + 4, q[1] - 1, 1.800); FS(g, '#4A3A2C', 0.500); } }
@@ -3149,9 +3165,11 @@ const R = (() => {
     }
     blit(ctx, sInt, b.x, b.y);
     const D = ART.BDEF[b.type], beds = D.beds || [];
+    let seatK = 0;
     for (const o of b.occ || []) {
       let hx, hy;
-      if (o.bed == null) { /* au travail, vu de dessus */
+      if (o.bed == null && D.seats) { const q = D.seats[seatK++ % D.seats.length]; hx = b.x + q[0]; hy = b.y + q[1] + Math.sin(time * 1.3 + o.v.id) * 0.3; ell(ctx, hx, hy + 3, 4.4, 3); ART.FS(ctx, ART.OUT[o.outfit || 'civil'].main, 0.9); } /* à l'école, chacun à son pupitre */
+      else if (o.bed == null) { /* au travail, vu de dessus */
         if (!D.work) continue; hx = b.x + D.work[0] + Math.sin(time * 1.1 + o.v.id) * 2.5; hy = b.y + D.work[1] + Math.sin(time * 3 + o.v.id) * 0.4;
         ell(ctx, hx, hy + 3.4, 5.2, 3.6); ART.FS(ctx, ART.OUT[o.outfit || 'civil'].main, 0.9);
       } else { const bd = beds[o.bed]; if (!bd) continue; hx = b.x + bd[0] + 6; hy = b.y + bd[1] + 5 + Math.sin(time * 1.5 + o.v.id) * 0.25; }
@@ -3880,7 +3898,7 @@ const UI = (() => {
             return cap(d.name.toLowerCase()) + ' : ' + (d.out ? d.per + ' ' + RESN[d.out].toLowerCase() + ' par jour et par personne' : d.play ? 'de la joie chaque soir' : 'un poste') + (d.posts > 1 ? ', ' + d.posts + ' postes' : '') + '.' + (st.length ? ' Arrêté par ' + names(st) + '.' : ''); }).join(' ')); }).join('') + '</div>'; },
     options: () => back + '<h2>Options</h2><div class="h3">Son</div>' + volsHtml() +
       '<div class="h3">Bulles des villageois</div><div class="segs">' + BUBS.map(b => '<button class="seg" data-bub="' + b[0] + '" aria-pressed="' + (save.bub === b[0]) + '">' + b[1] + '</button>').join('') + '</div>' +
-      '<div class="h3">Progression</div><p class="note">' + Object.values(save.stars).reduce((a, b) => a + b, 0) + ' étoiles sur ' + ORDER.length * 3 + '</p><div class="pfoot">Prototype 0.21</div>'
+      '<div class="h3">Progression</div><p class="note">' + Object.values(save.stars).reduce((a, b) => a + b, 0) + ' étoiles sur ' + ORDER.length * 3 + '</p><div class="pfoot">Prototype 0.22</div>'
   };
   function bindPage(name, arg) {
     paint(pageEl);
