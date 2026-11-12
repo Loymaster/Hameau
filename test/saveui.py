@@ -12,7 +12,7 @@ with sync_playwright() as p:
         pg.add_init_script(f'window.HQ_LOCK=1;window.SEED={SEED};'); return pg
     def boot(pg):
         pg.goto('file://'+OUT+'index.html'); (os.path.exists('/tmp/fonts/fonts.css') and pg.add_style_tag(path='/tmp/fonts/fonts.css')); pg.wait_for_timeout(1500)
-        pg.click('#bstart'); pg.wait_for_timeout(3200); pg.click('[data-go=survival]'); pg.wait_for_timeout(1100)
+        pg.click('#bstart'); pg.wait_for_timeout(3200); pg.click('[data-go=play]'); pg.wait_for_timeout(900); pg.click('[data-go=survival]'); pg.wait_for_timeout(1100)
     def pin(pg):  # le premier villageois au bois mort
         pg.click('#bjobs'); pg.wait_for_timeout(400); pg.locator('.jrow').nth(0).click(); pg.wait_for_timeout(300); pg.click('.jopt[data-k="-1"]'); pg.wait_for_timeout(300); pg.click('#jok'); pg.wait_for_timeout(200)
     def choose(pg):

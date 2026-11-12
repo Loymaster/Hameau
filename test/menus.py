@@ -16,7 +16,7 @@ with sync_playwright() as p:
     pg.click('#bstart'); pg.wait_for_timeout(2600); S('sommaire_herbier')
     pg.click('[data-go=cards]'); pg.wait_for_timeout(900); S('cartes'); pg.click('[data-back]'); pg.wait_for_timeout(900)
     pg.click('[data-go=sandbox]'); pg.wait_for_timeout(900); S('bac'); pg.click('[data-back]'); pg.wait_for_timeout(900)
-    pg.click('[data-go=levels]'); pg.wait_for_timeout(900); pg.click('[data-level="1"]'); pg.wait_for_timeout(900); S('niveau2')
+    pg.click('[data-go=play]'); pg.wait_for_timeout(900); pg.click('[data-go=levels]'); pg.wait_for_timeout(900); pg.click('[data-level="1"]'); pg.wait_for_timeout(900); S('niveau2')
     pg.click('[data-ch=c6]'); pg.wait_for_timeout(900); pg.click('[data-tab=cards]'); pg.wait_for_timeout(300); S('fiche6')
     pg.click('#bgo'); pg.wait_for_timeout(3200); S('jeu_herbier')
     pg.click('#btnPause'); pg.wait_for_timeout(500); pg.click('.sheet .fd.ev >> nth=0'); pg.wait_for_timeout(200); S('carnet'); pg.click('#pquit'); pg.wait_for_timeout(800); S('quitte')

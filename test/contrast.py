@@ -11,7 +11,7 @@ with sync_playwright() as p:
     b=p.chromium.launch(executable_path='/usr/bin/google-chrome',args=['--no-sandbox','--allow-file-access-from-files'])
     pg=b.new_page(viewport={'width':390,'height':844}); pg.add_init_script('window.HQ_LOCK=1;window.SEED=7;')
     pg.goto('file://'+ROOT+'out/index.html'); pg.wait_for_timeout(1200); pg.click('#bstart'); pg.wait_for_timeout(2600)
-    pg.click('[data-go=levels]'); pg.wait_for_timeout(900); pg.click('[data-level="2"]'); pg.wait_for_timeout(900); pg.click('[data-ch=c9]'); pg.wait_for_timeout(900); pg.click('#bgo'); pg.wait_for_timeout(1500)
+    pg.click('[data-go=play]'); pg.wait_for_timeout(900); pg.click('[data-go=levels]'); pg.wait_for_timeout(900); pg.click('[data-level="2"]'); pg.wait_for_timeout(900); pg.click('[data-ch=c9]'); pg.wait_for_timeout(900); pg.click('#bgo'); pg.wait_for_timeout(1500)
     pg.click('#bskip'); pg.wait_for_timeout(300); pg.click('#sp4')
     worst={}
     for hour in (7.2, 13, 18.5, 23):

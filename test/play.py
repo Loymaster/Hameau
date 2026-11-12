@@ -22,7 +22,7 @@ with sync_playwright() as p:
     if os.environ.get('PATCH'): pg.evaluate(open(os.environ['PATCH']).read())
     shot('titre')
     pg.click('#bstart'); pg.wait_for_timeout(900); shot('goutte'); pg.wait_for_timeout(1900); shot('sommaire')
-    pg.click('[data-go=levels]'); pg.wait_for_timeout(300); shot('page_tourne'); pg.wait_for_timeout(700); shot('niveaux')
+    pg.click('[data-go=play]'); pg.wait_for_timeout(900); pg.click('[data-go=levels]'); pg.wait_for_timeout(300); shot('page_tourne'); pg.wait_for_timeout(700); shot('niveaux')
     lvl=pg.evaluate("(id)=>SIM.LEVELS.findIndex(l=>l.ch.includes(id))",cid)
     pg.click(f'[data-level="{lvl}"]'); pg.wait_for_timeout(900); shot('niveau')
     pg.click(f'[data-ch={cid}]'); pg.wait_for_timeout(900); shot('fiche')

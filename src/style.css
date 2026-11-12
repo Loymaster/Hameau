@@ -368,3 +368,51 @@ h2.big{font-size:54px!important}.center{text-align:center}
 
 .tlink.warn{color:var(--red)}
 .mhead h2{white-space:nowrap}.mhead em{min-width:0}
+
+/* ---------- 0.17 ---------- */
+/* l'écran : une colonne de téléphone, calée sur ce que le navigateur montre vraiment, centrée et jamais plus haute qu'un grand téléphone */
+#app{position:fixed;inset:0;margin:auto;height:auto;max-height:1040px}
+.title{padding-bottom:calc(clamp(34px,9vh,96px) + env(safe-area-inset-bottom))}
+/* sommaire : de grandes entrées lisibles */
+.toc.menu{gap:0;margin-top:18px}
+.tl.big{align-items:center;gap:14px;padding:16px 4px;min-height:86px;border-bottom:1px solid var(--line)}
+.tl.big:last-child{border-bottom:0}
+.tl.big .ti{width:52px;height:52px;border-radius:50%;background:var(--page2);display:grid;place-items:center;flex:none}
+.tl.big .ti svg{width:30px;height:30px}
+.tl.big .tb{flex:1;min-width:0;gap:4px}
+.tl.big b{font-size:28px}
+.tl.big em{font-family:Barlow,sans-serif;font-size:15px;line-height:1.25;color:var(--sec)}
+.tl.big .chev{font-family:var(--title);font-size:32px;color:var(--accent);line-height:1}
+.tl.big.soon .chev{visibility:hidden}
+.plain{font-family:Barlow,sans-serif;font-size:15px;line-height:1.35;color:var(--sec);margin:0}
+/* annonces : une pastille par événement, qui se chevauchent quand le jour en compte plusieurs */
+.pile{display:flex;align-items:center}
+.evc{flex:none;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;position:relative;border:1.5px solid var(--accent);background:var(--page2)}
+.pile .evc+.evc{margin-left:-8px}
+.evc svg.i,.fd .evc svg.i{width:22px;height:22px}
+.fd.ev{border:0;background:none;width:auto;display:flex}
+.fd.ev:after{right:-5px;bottom:-6px;z-index:10}
+.fd.now.ev{border:0}.fd.now.ev .evc{border-width:2.5px}
+.fd[disabled]{cursor:default}
+.evl{display:flex;flex-direction:column;margin-top:-4px}
+.evn{display:flex;gap:10px;align-items:baseline;text-align:left;padding:5px 0;min-height:32px;font-family:Barlow,sans-serif;font-weight:600;font-size:16px;color:var(--ink)}
+.evn i{font-style:normal;font-weight:500;color:var(--sec);min-width:50px;font-size:14px}
+.evn small{font-weight:400;color:var(--sec);font-size:13px}
+.evn.past{opacity:.45}
+.evn:after{content:"›";margin-left:auto;color:var(--accent);font-size:19px;line-height:1}
+.evbox{display:flex;flex-direction:column;gap:12px;padding:12px 14px;border-radius:12px;background:rgba(47,59,44,.07)}
+.evbox[hidden]{display:none}
+.evbox .evj{font-family:Barlow,sans-serif;font-weight:600;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--sec)}
+.evd{display:flex;gap:12px;align-items:flex-start;text-align:left}
+.evd b{font-family:var(--title);font-weight:600;font-size:21px;line-height:1.1}
+.evd small{font-family:Barlow,sans-serif;font-size:13px;color:var(--accent);margin-left:8px;font-weight:600}
+.evd p{margin:3px 0 0;font-family:Barlow,sans-serif;font-size:15px;line-height:1.35;color:var(--ink)}
+.evd.lock{opacity:.5;align-items:center}.evd.lock .evc{border-style:dashed;border-color:var(--line);font-family:var(--title);font-size:20px;color:var(--sec)}
+.evbox.reg{background:none;padding:0;gap:16px}
+.sheet .evbox{background:none;padding:0}
+.evb{width:auto;height:auto;display:flex;align-items:center;gap:8px;background:none;box-shadow:none;border-radius:0;min-width:0;flex:0 1 auto;color:inherit}
+.evb .evc{width:34px;height:34px;border:0;background:rgba(251,243,226,.92);box-shadow:0 1px 5px rgba(0,0,0,.4)}
+.evb .pile .evc+.evc{margin-left:-8px}
+.evb .evnm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:Barlow,sans-serif;font-style:normal;font-weight:600;font-size:15px;opacity:1;text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px}
+.dayline .evnm{display:none}
+.dk.lock{opacity:.6;font-family:Barlow,sans-serif;font-weight:500;font-size:12px;color:var(--sec)}.dk .q{width:100%;height:54px;border-radius:7px;border:1.5px dashed var(--line);display:grid;place-items:center;font-family:var(--title);font-size:26px;color:var(--sec)}

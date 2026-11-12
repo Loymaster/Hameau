@@ -11,7 +11,7 @@ with sync_playwright() as p:
     pg.add_init_script('window.HQ_LOCK=1;'+(f'window.SEED={seed};' if seed else ''))
     pg.goto('file://'+OUT+'index.html'); (os.path.exists('/tmp/fonts/fonts.css') and pg.add_style_tag(path='/tmp/fonts/fonts.css')); pg.wait_for_timeout(1500)
     pg.click('#bstart'); pg.wait_for_timeout(3200)
-    pg.click('[data-go=survival]'); pg.wait_for_timeout(1100); pg.screenshot(path=f'{OUT}{pre}_page.png')
+    pg.click('[data-go=play]'); pg.wait_for_timeout(900); pg.click('[data-go=survival]'); pg.wait_for_timeout(1100); pg.screenshot(path=f'{OUT}{pre}_page.png')
     print('page :', pg.inner_text('.note >> nth=0')[:140])
     pg.click('#bsurv'); pg.wait_for_timeout(1500)
     for d in range(1, N + 1):

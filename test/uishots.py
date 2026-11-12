@@ -9,7 +9,7 @@ with sync_playwright() as p:
     pg.add_init_script('window.HQ_LOCK=1;window.SEED=11;')
     pg.goto('file://'+OUT+'index.html'); (os.path.exists('/tmp/fonts/fonts.css') and pg.add_style_tag(path='/tmp/fonts/fonts.css')); pg.wait_for_timeout(1200); pg.click('#bstart'); pg.wait_for_timeout(2700)
     pg.click('[data-go=options]'); pg.wait_for_timeout(1100); pg.screenshot(path=OUT+'u_options.png'); pg.click('[data-back]'); pg.wait_for_timeout(1100)
-    pg.click('[data-go=levels]'); pg.wait_for_timeout(1100); pg.screenshot(path=OUT+'u_niveaux.png'); pg.click('[data-level="2"]'); pg.wait_for_timeout(1000); pg.click('[data-ch=c7]'); pg.wait_for_timeout(1000); pg.screenshot(path=OUT+'u_fiche.png'); pg.click('#bgo'); pg.wait_for_timeout(1500)
+    pg.click('[data-go=play]'); pg.wait_for_timeout(900); pg.click('[data-go=levels]'); pg.wait_for_timeout(1100); pg.screenshot(path=OUT+'u_niveaux.png'); pg.click('[data-level="2"]'); pg.wait_for_timeout(1000); pg.click('[data-ch=c7]'); pg.wait_for_timeout(1000); pg.screenshot(path=OUT+'u_fiche.png'); pg.click('#bgo'); pg.wait_for_timeout(1500)
     def day(d, shots=()):
         pg.click('#bskip'); pg.wait_for_timeout(300); pg.click('#sp4')
         for i in range(900):

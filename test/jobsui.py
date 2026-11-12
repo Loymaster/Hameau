@@ -10,7 +10,7 @@ with sync_playwright() as p:
     pg.on('pageerror',lambda e: logs.append(str(e))); pg.on('console',lambda m: logs.append(m.text) if m.type=='error' and 'ERR_' not in m.text else None)
     pg.add_init_script('window.HQ_LOCK=1;'+(f'window.SEED={seed};' if seed else ''))
     pg.goto('file://'+OUT+'index.html'); (os.path.exists('/tmp/fonts/fonts.css') and pg.add_style_tag(path='/tmp/fonts/fonts.css')); pg.wait_for_timeout(1500)
-    pg.click('#bstart'); pg.wait_for_timeout(3200); pg.click('[data-go=survival]'); pg.wait_for_timeout(1100); pg.click('#bsurv'); pg.wait_for_timeout(2600)
+    pg.click('#bstart'); pg.wait_for_timeout(3200); pg.click('[data-go=play]'); pg.wait_for_timeout(900); pg.click('[data-go=survival]'); pg.wait_for_timeout(1100); pg.click('#bsurv'); pg.wait_for_timeout(2600)
     def day(pick_first=True):
         ok=pg.locator('.card:not(.off)')
         if pick_first and ok.count(): ok.first.click(); pg.wait_for_timeout(350); pg.click('#bbuild')

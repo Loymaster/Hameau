@@ -5,6 +5,7 @@ const UI = (() => {
   const hud = $('#hud'), bottom = $('#bottom'), insp = $('#insp'), titleEl = $('#title'), book = $('#book'), pageEl = $('#page'), modal = $('#modal'), coachEl = $('#coach');
   const T = SIM.T;
   /* Les icônes : dessins de l’auteur (ICONS), d'une seule couleur. La classe k-… donne la teinte, choisie par le fond (papier ou image) dans la feuille de style. */
+  ICONS['collection'] = { d: ICONS['cartes'].d.split(/(?=M)/).slice(0, 4).join('') }; // les cartes de la planche, sans le pique du milieu
   const P = (n, cls, sz) => { const o = ICONS[n]; return '<svg' + (cls ? ' class="' + cls + '"' : '') + ' viewBox="0 0 ' + (o.w || 24) + ' 24"' + (sz ? ' width="' + sz + '" height="' + sz + '"' : '') + ' aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="' + o.d + '"/></svg>'; };
   /* trois icônes manquent à la planche (bois, pierre, deuil) : tracés provisoires, au même trait */
   const S = (body, cls) => '<svg class="' + cls + '" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.650" stroke-linecap="round" stroke-linejoin="round">' + body + '</svg>';
@@ -27,7 +28,7 @@ const UI = (() => {
     storm: P('orage', 'i k-storm'), frost: P('gel', 'i k-frost'), fog: P('brume', 'i k-fog'), sun: P('soleil', 'i k-sun'), moon: P('lune', 'i k-moon'),
     chantier: P('chantier', 'i'), work: P('travail', 'i k-work'), repas: P('repas', 'i'), coucher: P('coucher', 'i'), nuit: P('nuit', 'i'),
     faim: P('faim', 'i k-bad'), dehors: P('dehors', 'i k-bad'), dort: P('dort', 'i k-moon'),
-    defis: P('defis'), sandbox: P('bac-a-sable'), cards: P('cartes'), options: P('options'), music: P('musique'), nature: P('nature'), sonvillage: P('village'), ui: P('interface'),
+    defis: P('defis'), sandbox: P('bac-a-sable'), cards: P('collection'), options: P('options'), music: P('musique'), nature: P('nature'), sonvillage: P('village'), ui: P('interface'),
     leaf: P('feuille'), drop: P('goutte'), hameau: P('hameau'),
     cueilleur: P('cueilleur', 'i k-work'), bucheron: P('bucheron', 'i k-work'), paysan: P('jardinier', 'i k-work'), pecheur: P('pecheur', 'i k-work'), carrier: P('tailleur', 'i k-work'), boulanger: P('boulanger', 'i k-work'), none: P('sans-poste', 'i k-sad'),
     espoir: P('espoir', 'i k-hope'), crainte: P('crainte', 'i k-fear'), content: P('contentement', 'i k-calm'), peine: P('peine', 'i k-sad'), amitie: P('amitie', 'i k-friend'), heart: P('amour', 'i k-love'), amour: P('amour', 'i k-love'), rancoeur: P('rancoeur', 'i k-grudge'),
@@ -47,13 +48,35 @@ const UI = (() => {
     rats: { icon: 'rats', name: () => 'Rats', tip: 'ils pillent la réserve cette nuit, sauf garde-manger ou cellier' },
     fog: { icon: 'fog', name: () => 'Brume', tip: 'ni forêt, ni rochers, ni bois mort' }
   };
-  const evLab = e => e.cont ? EV[e.type].name({}) + ', jour ' + e.cont + ' sur ' + e.len + (EV[e.type].tip ? ' : ' + EV[e.type].tip : '') : EV[e.type].name(e) + (EV[e.type].tip ? ' : ' + EV[e.type].tip : '');
+  /* la définition d'un événement : ce qu'il fait, ce qui l'empêche — dite sans détour. Les listes de bâtiments viennent des règles elles-mêmes. */
+  const BLD = f => names(Object.keys(SIM.BT).filter(t => f(SIM.BT[t])).map(t => SIM.BT[t].name.toLowerCase()));
+  const EVD = {
+    arrivals: () => 'Ils arrivent le matin. Il leur faut une place sous un toit et de quoi manger dès ce soir.',
+    storm: () => 'La rivière ne se traverse pas. À l’arrêt : ' + BLD(d => d.storm && d.posts) + '. Une digue annule ces effets. En survie, un orage fort peut aussi foudroyer un bâtiment, sauf s’il y a un puits.',
+    frost: () => 'Ne donnent plus rien : ' + BLD(d => d.frost) + '. Une serre protège potagers, ruches et jardins. Qui dort dehors meurt dans la nuit, sauf s’il y a un braséro.',
+    fog: () => 'À l’arrêt : ' + BLD(d => d.fog && d.posts) + '. On ne ramasse plus de bois mort. Un fanal annule ces effets.',
+    drought: () => 'À l’arrêt : ' + BLD(d => d.dryStop) + '. Les potagers donnent moitié moins, sauf s’il y a un puits.',
+    wind: () => 'Le soir, il détruit les constructions légères — toutes dans les défis, quelques-unes en survie : ' + names(SIM.LIGHT.map(t => SIM.BT[t].name.toLowerCase())) + '.',
+    flood: () => 'Le soir, elle détruit les bâtiments les plus proches de la rivière. Une digue l’empêche.',
+    fire: () => 'Le soir, un bâtiment en bois brûle. Un puits l’empêche.',
+    rats: () => 'La nuit, ils mangent une partie de la réserve. Un garde-manger ou un cellier l’empêche.',
+    wolves: () => 'La nuit, ils tuent quelqu’un qui dort dehors. Si tout le monde est à l’abri, ils volent de la nourriture. Un braséro les éloigne.',
+    sick: () => 'Des villageois sont malades deux jours et ne travaillent pas. La maladie passe à ceux qui dorment sous le même toit ; des bains la freinent. Un malade qui a faim ou dort dehors meurt, et la fièvre peut tuer.'
+  };
+  const EVG = { arrivals: 'Nouveaux venus', storm: 'Orage', frost: 'Gel', fog: 'Brume', drought: 'Sécheresse', wind: 'Grand vent', flood: 'Crue', fire: 'Incendie', rats: 'Rats', wolves: 'Loups', sick: 'Maladie' };
+  const evName = e => e.type === 'arrivals' && !e.gen ? EV.arrivals.name(e) : EVG[e.type];
+  const evIcon = e => EV[e.type].ic ? EV[e.type].ic(e) : I[EV[e.type].icon];
+  const evDur = (e, c) => e.cont ? 'jour ' + e.cont + (e.len ? ' sur ' + e.len : '') : e.len > 1 ? 'dure ' + e.len + ' jours' : e.type === 'frost' && e.len == null && !c.survival ? 'jusqu’à la fin du défi' : '';
+  const evDefs = (ev, c) => ev.map(e => '<div class="evd"><span class="evc">' + evIcon(e) + '</span><div><b>' + evName(e) + '</b>' + (evDur(e, c) ? '<small>' + evDur(e, c) + '</small>' : '') + '<p>' + EVD[e.type]() + '</p></div></div>').join('');
+  const pile = ev => '<span class="pile">' + ev.map((e, k) => '<span class="evc" style="z-index:' + (9 - k) + '">' + evIcon(e) + '</span>').join('') + '</span>';
   const INFO = { cabane: 'Deux places, à qui en a besoin.', cabanon: 'Une place, à qui en a besoin.', maison: 'Deux places, pour de bon.', cueillette: 'Baies de l’autre rive.', potager: 'Légumes du village.', bucheron: 'Arbres de la lisière.', pecheur: 'Poisson de la rivière.', carriere: 'Pierre des rochers.', four: 'Pain cuit sur place.', table: 'Si tous mangent, la joie monte.', abri: 'Quatre places, pour deux nuits seulement.', dortoir: 'Quatre places, à qui en a besoin.', poulailler: 'Des œufs, par tous les temps.', champi: 'Peu de chose, sauf dans la brume ou après la pluie.', rucher: 'Du miel, sans personne. Craint le gel.', serre: 'Garde du gel potagers, ruches et fleurs.', fanal: 'Dans la brume, il guide vers la forêt et les rochers.', jardin: 'Un peu de joie chaque jour. Craint le gel.', kiosque: 'De la musique, et de la joie chaque soir.', moulin: 'Chaque four donne deux pains de plus.', cloche: 'On la sonne : dans deux jours, quelqu’un l’aura entendue.',
     grange: 'Six places dans le foin, à qui en a besoin.', chaumiere: 'Trois places, pour de bon.', tente: 'Deux places, pour trois nuits seulement.', auberge: 'Deux places. Chaque nouveau venu y laisse deux provisions.',
     verger: 'Deux fruits par jour, à partir du surlendemain. Craint le gel.', bergerie: 'Du lait et du fromage, par tous les temps.', fumoir: 'Chaque pêcheur rapporte un poisson de plus.', puits: 'Chaque potager donne un légume de plus.',
     etal: 'Chaque jour, deux bois contre deux nourritures.', gardemanger: 'Quand la réserve est vide, il reste un repas.', scierie: 'Trois bois par jour, même dans la brume.', menuiserie: 'Chaque chantier coûte un bois de moins.',
     taillerie: 'Chaque chantier coûte une pierre de moins.', bucher: 'Qui glane rapporte un bois de plus.', digue: 'Sous l’orage, le pont tient et la rivière se laisse approcher.', brasero: 'Une nuit de gel dehors n’est plus mortelle.',
     rubans: 'Un peu de joie chaque jour, même sous le gel.', bains: 'Chaque jour, un bois contre deux joies.', pressoir: 'Du cidre, et de la joie chaque soir.', cellier: 'Une joie par soir, tant que la réserve est pleine.' };
+  const RESD = [[I.food, 'Nourriture', 'Chaque villageois en mange 1 chaque soir. Deux soirs de suite sans manger, il meurt.'], [I.wood, 'Bois', 'Sert à payer les bâtiments. Un villageois sans poste en ramasse 1 par jour.'], [I.stone, 'Pierre', 'Sert à payer certains bâtiments. Elle vient de la carrière.'],
+    [I.roof, 'Toits', 'Une place par villageois. Deux nuits de suite dehors, il meurt ; par gel, une seule nuit suffit.'], [I.joy, 'Bonheur', 'Ne compte que dans certains défis, où il sert d’objectif. Les bâtiments de la famille « Se réjouir » en donnent.'], [I.ppl, 'Villageois', 'Ils agissent seuls. Un bâtiment à postes ne produit que s’il a quelqu’un pour y travailler.']];
   const RESN = { food: 'Nourriture', wood: 'Bois', stone: 'Pierre' }, LACK = { food: 'Nourriture insuffisante', wood: 'Bois insuffisant', stone: 'Pierre insuffisante' };
   const VOLS = [['music', 'Musique', 'note'], ['nature', 'Nature', 'splash'], ['village', 'Village', 'hammer'], ['ui', 'Interface', 'card']];
   const ORDER = SIM.LEVELS.reduce((a, l) => a.concat(l.ch), []);
@@ -61,6 +84,9 @@ const UI = (() => {
 
   let save = { stars: {}, tuto: {}, vol: {}, theme: 'carnet', bub: 'phrases' };
   try { Object.assign(save, JSON.parse(localStorage.getItem('hameau.v2') || '{}')); } catch (e) { /* stockage indisponible */ }
+  /* la collection : ce que l'on a rencontré en jouant. Pour qui a déjà des étoiles, on part des défis réussis. */
+  if (!save.seen) { save.seen = {}; save.sev = {}; for (const id in save.stars) { const c = SIM.CHALLENGES[id]; if (!c || !save.stars[id]) continue; (c.deck || []).concat(c.start.map(b => b.type)).forEach(t => { save.seen[t] = 1; }); (c.events || []).forEach(e => { save.sev[e.type] = 1; }); } }
+  if (!save.sev) save.sev = {};
   const persist = () => { try { localStorage.setItem('hameau.v2', JSON.stringify(save)); } catch (e) { /* idem */ } };
   for (const v of VOLS) if (save.vol[v[0]] != null) SFX.setVol(v[0], save.vol[v[0]]);
 
@@ -108,6 +134,12 @@ const UI = (() => {
     if (small) return m[0] + m[1];
     return '<span class="ce">' + (m[0] ? '<b>' + m[0] + '</b>' : '') + m[1] + (m[2] ? '<small>' + m[2] + '</small>' : '') + '</span>' + (d.posts ? '<span class="cw">' + I.ppl + '<span>× ' + d.posts + '</span></span>' : '') + (d.own && jy ? '<span class="cw">' + I.joy + '<span>+1 par habitant</span></span>' : '') + (d.welcome ? '<span class="cw">' + I.food + '<span>+' + d.welcome + ' par nouveau venu</span></span>' : '');
   }
+  /* le sommaire : de grandes entrées, un titre et une ligne claire */
+  const big = (go, title, desc, ic, soon) => '<button class="tl big' + (soon ? ' soon' : '') + '" data-go="' + go + '"><span class="ti">' + ic + '</span><span class="tb"><b>' + title + '</b><em>' + desc + '</em></span><span class="chev" aria-hidden="true">›</span></button>';
+  /* le registre : une ligne par chose connue, un « ? » pour le reste */
+  const regRow = (ic, name, def) => '<div class="evd"><span class="evc">' + ic + '</span><div><b>' + name + '</b><p>' + def + '</p></div></div>';
+  const LOCK = '<div class="evd lock"><span class="evc">?</span><div><b>À découvrir</b></div></div>';
+  const galHtml = list => '<div class="gal">' + list.map(t => save.seen[t] ? '<span class="dk"><canvas data-t="' + t + '" aria-hidden="true"></canvas>' + SIM.BT[t].name + '<small><span>' + Object.keys(SIM.BT[t].cost).map(k => SIM.BT[t].cost[k] + I[k]).join(' ') + '</span><span>→ ' + effect(t, true) + '</span></small></span>' : '<span class="dk lock"><span class="q">?</span>À découvrir</span>').join('') + '</div>';
   const deckHtml = (list, cls) => '<div class="' + cls + '">' + list.map(t => '<span class="dk"><canvas data-t="' + t + '" aria-hidden="true"></canvas>' + SIM.BT[t].name + '<small><span>' + Object.keys(SIM.BT[t].cost).map(k => SIM.BT[t].cost[k] + I[k]).join(' ') + '</span><span>→ ' + effect(t, true) + '</span></small></span>').join('') + '</div>';
   const goalsHtml = (c, ok) => '<ul class="goals">' + c.goals.map((g, i) => '<li class="' + (ok && !ok[i] ? 'ko' : '') + '"><span class="st">' + (ok ? (ok[i] ? I.star : I.star0) : I.star.repeat(i + 1)) + '</span>' + g.t + '</li>').join('') + '</ul>';
   const nextSeed = {}, seedFor = id => nextSeed[id] != null ? nextSeed[id] : (nextSeed[id] = (Math.random() * 4294967296) >>> 0);
@@ -115,19 +147,29 @@ const UI = (() => {
   const volsHtml = () => VOLS.map(v => '<div class="opt-row"><label for="v_' + v[0] + '">' + I[v[0] === 'village' ? 'sonvillage' : v[0]] + v[1] + '</label><input type="range" id="v_' + v[0] + '" min="0" max="100" step="5" value="' + Math.round(SFX.vol[v[0]] * 100) + '"></div>').join('');
   function bindVols(root) { for (const v of VOLS) { const e = root.querySelector('#v_' + v[0]); if (!e) continue; e.oninput = () => { save.vol[v[0]] = e.value / 100; SFX.setVol(v[0], e.value / 100); }; e.onchange = () => { persist(); SFX.play(v[2]); }; } }
 
-  /* la frise d'un défi : ses jours, et ce qui y est annoncé (on touche une pastille pour le lire) */
+  /* la frise d'un défi : ses jours, et ce qui y est annoncé. Plusieurs annonces le même jour : des pastilles qui se chevauchent.
+     Dessous, les annonces par leur nom ; on touche un jour ou un nom pour lire ce que cela veut dire. */
+  /* ce qui dure se rappelle chaque jour : une sécheresse ou un gel de plusieurs jours, et dans les défis un gel sans durée, qui tient jusqu'au bout */
+  const contOn = (c, st, d) => (c.survival ? (st && st.ev) || [] : c.events || []).filter(x => d > x.day && (x.len > 1 ? d < x.day + x.len : !c.survival && x.type === 'frost' && x.len == null) && !(x.sudden && st && x.day > st.day));
+  const dayEv = (c, st, d) => (c.survival ? SIM.eventsOn(st, d) : (c.events || []).filter(x => x.day === d)).concat(contOn(c, st, d).map(x => Object.assign({}, x, { cont: d - x.day + 1 })));
+  let friseEv = {}, friseC = null;
   function frise(c, day) {
-    let h = '<div class="frise" role="group" aria-label="Les ' + c.days + ' jours du défi">';
+    let h = '<div class="frise" role="group" aria-label="Les jours et ce qui est annoncé">', l = ''; friseEv = {}; friseC = c;
     for (let d = c.survival ? day : 1; d <= (c.survival ? day + 2 : c.days); d++) {
-      const e = (c.survival ? SIM.eventsOn(GAME.st, d) : (c.events || []).filter(x => x.day === d)).concat(contOn(c, c.survival ? GAME.st : null, d).map(x => Object.assign({}, x, { cont: d - x.day + 1 }))), lab = 'Jour ' + d + (e.length ? ' · ' + e.map(evLab).join(' ; ') : '');
-      h += '<button class="fd' + (d < day ? ' past' : d === day ? ' now' : '') + (e.length ? ' ev' : '') + '" data-d="' + d + '" data-lab="' + lab + '" aria-label="' + lab + '">' + (e.length ? e.map(x => (EV[x.type].ic ? EV[x.type].ic(x) : I[EV[x.type].icon])).join('') : d) + '</button>';
+      const e = dayEv(c, c.survival ? GAME.st : null, d), nm = e.map(evName).join(', '); friseEv[d] = e;
+      h += '<button class="fd' + (d < day ? ' past' : d === day ? ' now' : '') + (e.length ? ' ev' : '') + '" data-d="' + d + '" aria-label="Jour ' + d + (e.length ? ' : ' + nm : '') + '"' + (e.length ? '' : ' disabled') + '>' + (e.length ? pile(e) : d) + '</button>';
+      if (e.length && !e.every(x => x.cont)) l += '<button class="evn' + (d < day ? ' past' : '') + '" data-d="' + d + '"><i>Jour ' + d + '</i><span>' + e.filter(x => !x.cont).map(x => evName(x) + (evDur(x, c) ? ' <small>(' + evDur(x, c).replace('dure ', '') + ')</small>' : '')).join(', ') + '</span></button>';
     }
-    return h + '</div><div class="flab" aria-live="polite"></div>';
+    return h + '</div>' + (l ? '<div class="evl">' + l + '</div>' : '') + '<div class="evbox" aria-live="polite" hidden></div>';
   }
-  function bindFrise(root) { const l = root.querySelector('.flab'); root.querySelectorAll('.fd').forEach(b => { b.onclick = () => { l.textContent = b.dataset.lab; }; }); }
-  /* ce qui dure : une sécheresse ou un gel de plusieurs jours se rappelle chaque matin qu'il tient encore */
-  const contOn = (c, st, d) => (c.survival ? (st && st.ev) || [] : c.events || []).filter(x => x.len > 1 && d > x.day && d < x.day + x.len && !(x.sudden && st && x.day > st.day));
-  const evBtns = st => SIM.eventsOn(st).concat(contOn(SIM.CHALLENGES[st.ch], st, st.day).map(x => Object.assign({}, x, { cont: st.day - x.day + 1 }))).map(e => '<button class="evb" data-lab="' + evLab(e) + '" aria-label="' + evLab(e) + '">' + (EV[e.type].ic ? EV[e.type].ic(e) : I[EV[e.type].icon]) + '</button>').join('');
+  function bindFrise(root) {
+    const box = root.querySelector('.evbox'), ev = friseEv, c = friseC; let cur = null;
+    root.querySelectorAll('.fd.ev,.evn').forEach(b => { b.onclick = () => { const d = b.dataset.d; if (cur === d) { cur = null; box.hidden = true; return; } cur = d; box.innerHTML = '<span class="evj">Jour ' + d + '</span>' + evDefs(ev[d], c); box.hidden = false; SFX.play('card'); }; });
+  }
+  /* le matin : la pile des annonces du jour et leurs noms ; on touche pour lire les définitions */
+  const evBtns = st => { const e = dayEv(SIM.CHALLENGES[st.ch], st, st.day); return e.length ? '<button class="evb" aria-label="Annoncé aujourd’hui : ' + e.map(evName).join(', ') + '">' + pile(e) + '<em class="evnm">' + e.map(evName).join(' · ') + '</em></button>' : ''; };
+  function openEv(st) { const c = SIM.CHALLENGES[st.ch]; openModal('ev', '<span class="sub">Jour ' + st.day + '</span><h2>Annoncé aujourd’hui</h2><div class="evbox">' + evDefs(dayEv(c, st, st.day), c) + '</div><div class="acts"><span></span><button class="tlink" id="evok" data-snd="1">Fermer</button></div>'); $('#evok').onclick = closeModal; }
+  const bindEv = st => bottom.querySelectorAll('.evb').forEach(b => { b.onclick = () => { SFX.play('card'); openEv(st); }; });
 
   /* ---------- écran titre ---------- */
   function showTitle() {
@@ -169,9 +211,17 @@ const UI = (() => {
   /* ---------- le livre : sommaire, défis, niveaux, fiches, options ---------- */
   const back = '<button class="pback" data-back="1">' + I.back + 'Retour</button>';
   const PAGES = {
-    toc: () => '<button class="pback" data-close="1">' + I.back + 'Fermer le livre</button><h2 class="logo" aria-label="Hameau">Hameau</h2><div class="orn">' + I.leaf + '</div><div class="toc">' +
-      [['levels', 'Défis', ''], ['survival', 'Survie', ''], ['sandbox', 'Bac à sable', 'bientôt'], ['cards', 'Cartes', ''], ['options', 'Options', '']].map((p, i) => '<button class="tl' + (p[2] ? ' soon' : '') + '" data-go="' + p[0] + '"><span class="ti">' + I[p[0] === 'levels' ? 'defis' : p[0] === 'survival' ? 'grave' : p[0]] + '</span><b>' + p[1] + '</b><span class="dots"></span><span class="pn">' + (p[2] || 'p. ' + (i + 2)) + '</span></button>').join('') + '</div><div class="ham">' + I.hameau + '</div><div class="pfoot">— 1 —</div>',
-    levels: () => back + '<h2>Défis</h2><div class="toc">' + SIM.LEVELS.map((lv, i) => {
+    toc: () => '<button class="pback" data-close="1">' + I.back + 'Fermer le livre</button><h2 class="logo" aria-label="Hameau">Hameau</h2><div class="orn">' + I.leaf + '</div><div class="toc menu">' +
+      big('play', 'Jouer', 'Défis, survie, bac à sable', I.village) + big('collection', 'Collection', 'Ce que tu as rencontré : bâtiments, événements, ressources, métiers', I.cards) + big('options', 'Options', 'Son, bulles, progression', I.options) +
+      '</div><div class="ham">' + I.hameau + '</div>',
+    play: () => back + '<h2>Jouer</h2><div class="toc menu">' +
+      big('levels', 'Défis principaux', ORDER.length + ' défis · ' + Object.values(save.stars).reduce((a, b) => a + b, 0) + ' étoiles sur ' + ORDER.length * 3, I.defis) +
+      big('survival', 'Survie', kept() ? 'Partie en cours : jour ' + kept().day : save.best4 ? 'Record : ' + jours(save.best4) : 'Tenir le plus de jours possible', I.grave) +
+      big('sandbox', 'Bac à sable', 'Bientôt', I.sandbox, true) + '</div>',
+    collection: () => { const nb = Object.keys(SIM.BT), ne = Object.keys(EVG); return back + '<h2>Collection</h2><p class="plain">Tout ce que tu as déjà rencontré en jouant.</p><div class="toc menu">' +
+      big('cards', 'Bâtiments', nb.filter(t => save.seen[t]).length + ' sur ' + nb.length, I.roof) + big('events', 'Événements', ne.filter(t => save.sev[t]).length + ' sur ' + ne.length, I.storm) +
+      big('resources', 'Ressources', 'Ce qui se compte au village', I.food) + big('jobs', 'Métiers', 'Qui fait quoi, et ce qui l’arrête', I.work) + '</div>'; },
+    levels: () => back + '<h2>Défis principaux</h2><div class="toc">' + SIM.LEVELS.map((lv, i) => {
       const got = lv.ch.reduce((a, id) => a + (save.stars[id] || 0), 0);
       return '<button class="tl" data-level="' + i + '"><span class="tb"><b>' + lv.name + '</b><em>Niveau ' + (i + 1) + ' · ' + lv.sub + '</em></span><span class="dots"></span><span class="pn">' + I.star + got + '/' + lv.ch.length * 3 + '</span></button>';
     }).join('') + '</div><div class="pfoot">— 2 —</div>',
@@ -179,17 +229,25 @@ const UI = (() => {
     fiche: id => {
       const c = SIM.CHALLENGES[id];
       return back + '<h2><small>Niveau ' + (lvlOf(id) + 1) + ' · Défi ' + c.n + '</small>' + c.title + '</h2>' + voiceHtml(c, SIM.cast(window.SEED != null ? window.SEED : seedFor(id), 1)[0].name) + frise(c, 0) +
-        '<div class="tabs" role="tablist"><button class="tab" role="tab" aria-selected="false" data-tab="cards">Cartes</button><button class="tab" role="tab" aria-selected="false" data-tab="goals">Objectifs</button></div><div class="tabp" id="tabp"></div>' +
+        '<div class="tabs" role="tablist"><button class="tab" role="tab" aria-selected="true" data-tab="goals">Objectifs</button><button class="tab" role="tab" aria-selected="false" data-tab="cards">Cartes</button></div><div class="tabp" id="tabp">' + goalsHtml(c) + '</div>' +
         '<div class="pact">' + stars(save.stars[id] || 0) + '<button class="tlink" id="bgo" data-snd="1">Commencer</button></div>';
     },
     survival: () => back + '<h2>Survie</h2><p class="voice">« Nous ne savions pas combien de jours. Nous avons compté quand même. »</p>' +
-      '<p class="note">Quatre villageois, une cabane pour deux, presque rien en réserve. Des jours sans fin. Les cartes viennent presque au hasard, le ciel se fait plus dur de semaine en semaine. Les métiers se redistribuent chaque matin ; qui perd un proche ne travaille pas le lendemain. Tout s’arrête quand il ne reste qu’une personne.</p>' +
       '<p class="rec">' + ([save.best4 ? 'Record : <b>' + jours(save.best4) + '</b>' : '', kept() ? 'Partie en cours : <b>jour ' + kept().day + '</b>, ' + kept().n + ' villageois.' : ''].filter(Boolean).join('<br>') || 'Aucune partie encore.') + '</p><div class="acts">' + (kept() ? '<button class="tlink quiet" id="bsurv">Nouvelle partie</button><button class="tlink" id="bcont">Reprendre</button>' : '<span></span><button class="tlink" id="bsurv">Commencer</button>') + '</div>',
     sandbox: () => back + '<h2>Bac à sable</h2><p class="voice">Un village sans échéance, pour le seul plaisir de le regarder vivre.</p><p class="note">Bientôt.</p>',
-    cards: () => { const seen = new Set(FAM.flatMap(f => f[1])), rest = Object.keys(SIM.BT).filter(t => !seen.has(t)); return back + '<h2>Cartes</h2><p class="note">' + Object.keys(SIM.BT).length + ' bâtiments, pour l’instant.</p>' + FAM.concat(rest.length ? [['Et encore', rest]] : []).map(f => '<h3 class="fam">' + f[0] + '</h3>' + deckHtml(f[1].filter(t => SIM.BT[t]), 'gal')).join(''); },
+    cards: () => { const inFam = new Set(FAM.flatMap(f => f[1])), rest = Object.keys(SIM.BT).filter(t => !inFam.has(t)), all = Object.keys(SIM.BT);
+      return back + '<h2>Bâtiments</h2><p class="plain">' + all.filter(t => save.seen[t]).length + ' rencontrés sur ' + all.length + '. Les autres se découvrent en jouant.</p>' + FAM.concat(rest.length ? [['Et encore', rest]] : []).map(f => '<h3 class="fam">' + f[0] + '</h3>' + galHtml(f[1].filter(t => SIM.BT[t]))).join(''); },
+    events: () => back + '<h2>Événements</h2><p class="plain">Ce que le ciel et la forêt peuvent annoncer. Un événement s’ajoute ici quand tu l’as rencontré.</p><div class="evbox reg">' +
+      Object.keys(EVG).map(t => save.sev[t] ? evDefs([t === 'arrivals' ? { type: t, villagers: [0, 0], gen: 1 } : { type: t, gen: 1 }], { survival: true }) : LOCK).join('') + '</div>',
+    resources: () => back + '<h2>Ressources</h2><div class="evbox reg">' + RESD.map(r => regRow(r[0], r[1], r[2])).join('') + '</div>',
+    jobs: () => { const by = {}; for (const t in SIM.BT) { const d = SIM.BT[t]; if (d.job && d.posts) (by[d.job] = by[d.job] || []).push(t); }
+      return back + '<h2>Métiers</h2><p class="plain">Un métier s’ajoute ici quand tu as rencontré son bâtiment. Dans les défis, chacun garde son poste ; en survie, tu peux choisir.</p><div class="evbox reg">' + regRow(I.none, 'Sans poste', 'Ramasse 1 bois mort par jour, sauf dans la brume. Prend le premier poste qui se libère.') +
+        Object.keys(by).map(j => { const ts = by[j].filter(t => save.seen[t]); if (!ts.length) return LOCK; const n = SIM.JOBNAME[j], cap = x => x[0].toUpperCase() + x.slice(1);
+          return regRow(I[j] || I.work, cap(n.m) + (n.f !== n.m ? ' · ' + n.f : ''), ts.map(t => { const d = SIM.BT[t], st = [d.storm && 'l’orage', d.fog && 'la brume', d.frost && 'le gel', d.dryStop && 'la sécheresse'].filter(Boolean);
+            return cap(d.name.toLowerCase()) + ' : ' + (d.out ? d.per + ' ' + RESN[d.out].toLowerCase() + ' par jour et par personne' : d.play ? 'de la joie chaque soir' : 'un poste') + (d.posts > 1 ? ', ' + d.posts + ' postes' : '') + '.' + (st.length ? ' Arrêté par ' + names(st) + '.' : ''); }).join(' ')); }).join('') + '</div>'; },
     options: () => back + '<h2>Options</h2><div class="h3">Son</div>' + volsHtml() +
       '<div class="h3">Bulles des villageois</div><div class="segs">' + BUBS.map(b => '<button class="seg" data-bub="' + b[0] + '" aria-pressed="' + (save.bub === b[0]) + '">' + b[1] + '</button>').join('') + '</div>' +
-      '<div class="h3">Progression</div><p class="note">' + Object.values(save.stars).reduce((a, b) => a + b, 0) + ' étoiles sur ' + ORDER.length * 3 + '</p><div class="pfoot">Prototype 0.16</div>'
+      '<div class="h3">Progression</div><p class="note">' + Object.values(save.stars).reduce((a, b) => a + b, 0) + ' étoiles sur ' + ORDER.length * 3 + '</p><div class="pfoot">Prototype 0.17</div>'
   };
   function bindPage(name, arg) {
     paint(pageEl);
@@ -200,8 +258,8 @@ const UI = (() => {
     if (name === 'fiche') {
       const c = SIM.CHALLENGES[arg], tp = $('#tabp'); bindFrise(pageEl);
       pageEl.querySelectorAll('.tab').forEach(t => t.onclick = () => {
-        const on = t.getAttribute('aria-selected') !== 'true'; pageEl.querySelectorAll('.tab').forEach(o => o.setAttribute('aria-selected', o === t && on));
-        tp.innerHTML = !on ? '' : t.dataset.tab === 'cards' ? deckHtml(c.deck, 'deck') : goalsHtml(c); paint(tp);
+        pageEl.querySelectorAll('.tab').forEach(o => o.setAttribute('aria-selected', o === t));
+        tp.innerHTML = t.dataset.tab === 'cards' ? deckHtml(c.deck, 'deck') : goalsHtml(c); paint(tp);
       });
       $('#bgo').onclick = () => { SFX.play('go'); startChallenge(arg); };
     }
@@ -226,7 +284,7 @@ const UI = (() => {
     turn(-1, e);
   }
   function openBook(tr) { trail = tr; closeModal(); closeInspect(); endCoach(); hud.hidden = true; bottom.hidden = true; titleEl.hidden = true; book.hidden = false; render(trail[trail.length - 1]); if (GAME.phase !== 'menu') { GAME.attract(); R.setView('day'); } }
-  const trailTo = id => [['toc'], ['levels'], ['level', lvlOf(id)]];
+  const trailTo = id => [['toc'], ['play'], ['levels'], ['level', lvlOf(id)]];
 
   function closeModal() { modal.hidden = true; modal.innerHTML = ''; modalKind = null; }
   function openModal(kind, html) { modalKind = kind; modal.innerHTML = '<div class="sheet" role="dialog" aria-modal="true">' + html + '</div>'; modal.hidden = false; }
@@ -254,7 +312,7 @@ const UI = (() => {
     });
   }
   function dayTitle(st) {
-    const e = $('#daytitle'), ev = SIM.eventsOn(st).map(x => EV[x.type].name(x)).join(' · ');
+    const e = $('#daytitle'), ev = dayEv(SIM.CHALLENGES[st.ch], st, st.day).map(evName).join(' · ');
     e.innerHTML = '<b>Jour ' + st.day + '</b><span>' + (ev || (st.day === st.days ? 'le dernier' : '')) + '</span>'; e.hidden = true; void e.offsetWidth; e.hidden = false; e.onanimationend = () => { e.hidden = true; };
   }
 
@@ -262,14 +320,15 @@ const UI = (() => {
   const planY = () => Math.max(GAME.map.fire.y + 90, ...GAME.st.buildings.map(b => b.y + b.h + 22));
   function renderMorning() {
     const st = GAME.st, n = GAME.cards.length; selCard = null; closeInspect(); buildHud(st.villagers);
+    { let nu = false; const mark = (o, k) => { if (!o[k]) { o[k] = 1; nu = true; } }; st.buildings.forEach(b => mark(save.seen, b.type)); GAME.cards.forEach(t => mark(save.seen, t)); dayEv(SIM.CHALLENGES[st.ch], st, st.day).forEach(e => mark(save.sev, e.type)); if (nu) persist(); }
     /* parti de rien : le premier matin, il n'y a rien à bâtir — la journée commence d'elle-même */
     const surv = !!SIM.CHALLENGES[chId].survival, jb = surv ? '<button class="tlink jb" id="bjobs" data-snd="1">Métiers</button>' : '';
-    if (!n && surv) { bottom.innerHTML = '<div class="mhead"><h2>Jour ' + st.day + '</h2>' + evBtns(st) + jb + '</div><div class="mfoot"><span class="hint" id="mhint" style="text-align:left">Plus de place pour bâtir.</span><button class="tlink" id="bskip" data-snd="1">Commencer</button></div>'; R.setView('day'); bottom.querySelectorAll('.evb').forEach(b => b.onclick = () => { $('#mhint').textContent = b.dataset.lab; }); $('#bjobs').onclick = () => openJobs(); $('#bskip').onclick = () => GAME.choose(null); return; }
-    if (!n) { bottom.innerHTML = '<div class="mhead"><h2>Jour ' + st.day + '</h2>' + evBtns(st) + '<em>Plus de place pour bâtir : la journée commence.</em></div>'; R.setView('day'); bottom.querySelectorAll('.evb').forEach(b => b.onclick = () => GAME.say(b.dataset.lab)); setTimeout(() => { if (GAME.phase === 'morning' && GAME.st === st) GAME.choose(null); }, 2300); return; }
+    if (!n && surv) { bottom.innerHTML = '<div class="mhead"><h2>Jour ' + st.day + '</h2>' + evBtns(st) + jb + '</div><div class="mfoot"><span class="hint" id="mhint" style="text-align:left">Plus de place pour bâtir.</span><button class="tlink" id="bskip" data-snd="1">Commencer</button></div>'; R.setView('day'); bindEv(st); $('#bjobs').onclick = () => openJobs(); $('#bskip').onclick = () => GAME.choose(null); return; }
+    if (!n) { bottom.innerHTML = '<div class="mhead"><h2>Jour ' + st.day + '</h2>' + evBtns(st) + '<em>Plus de place pour bâtir : la journée commence.</em></div>'; R.setView('day'); bindEv(st); setTimeout(() => { if (GAME.phase === 'morning' && GAME.st === st) GAME.choose(null); }, 2300); return; }
     { const c0 = SIM.CHALLENGES[chId]; if (st.day === 1 && !c0.food && !c0.wood && !c0.stone && GAME.cards.every(t => SIM.blocked(st, t))) {
       bottom.innerHTML = '<div class="mhead"><h2>Jour 1</h2><em>Les mains vides : ce matin, on ne bâtit rien.</em></div>'; R.setView('day');
       setTimeout(() => { if (GAME.phase === 'morning' && GAME.st === st) GAME.choose(null); }, 2100); return; } }
-    let h = '<div class="mhead"><h2>Jour ' + st.day + '</h2>' + evBtns(st) + (surv ? jb : SIM.eventsOn(st).length > 1 ? '' : '<em>Que bâtir aujourd’hui ?</em>') + '</div><div class="fan">';
+    let h = '<div class="mhead"><h2>Jour ' + st.day + '</h2>' + evBtns(st) + (surv ? jb : evBtns(st) ? '' : '<em>Que bâtir aujourd’hui ?</em>') + '</div><div class="fan">';
     GAME.cards.forEach((type, i) => {
       const d = SIM.BT[type], bk = SIM.blocked(st, type), cst = SIM.costOf(st, type), tag = bk === 'cost' ? LACK[SIM.RES.find(r => st[r] < (cst[r] || 0))] : bk === 'room' ? 'Plus de place' : '', o = i - (n - 1) / 2;
       const cost = Object.keys(cst).map(k => '<span class="cc' + (cst[k] < d.cost[k] ? ' less' : '') + '" aria-label="' + cst[k] + ' ' + RESN[k].toLowerCase() + '">' + I[k] + cst[k] + '</span>').join('');
@@ -279,7 +338,7 @@ const UI = (() => {
     bottom.innerHTML = h; paint(bottom);
     const fan = bottom.querySelector('.fan'), clear = () => { bottom.querySelectorAll('.card').forEach(o => { o.classList.remove('sel'); o.setAttribute('aria-pressed', false); }); fan.classList.remove('has-sel'); selCard = null; $('#bbuild').hidden = true; };
     const hint = t => { clear(); const e = $('#mhint'); e.textContent = t; e.hidden = false; };
-    bottom.querySelectorAll('.evb').forEach(b => b.onclick = () => hint(b.dataset.lab));
+    bindEv(st);
     bottom.querySelectorAll('.card').forEach(cd => {
       cd.onclick = () => {
         if (cd.classList.contains('off')) { SFX.play('back'); return hint(cd.querySelector('.tag').textContent + '.'); }
@@ -306,7 +365,7 @@ const UI = (() => {
       '<div class="msg" id="msg" aria-live="polite"></div></div>';
     $('#sp0').onclick = () => { GAME.paused = !GAME.paused; syncSpeed(); };
     [1, 2, 4].forEach(s => { $('#sp' + s).onclick = () => { GAME.speed = s; GAME.paused = false; syncSpeed(); }; });
-    bottom.querySelectorAll('.evb').forEach(b => b.onclick = () => GAME.say(b.dataset.lab));
+    bindEv(st);
     cache.delete('jal'); msgN = -1; syncSpeed(); R.setView('day');
   }
   function syncSpeed() {
@@ -340,7 +399,7 @@ const UI = (() => {
       const rec = r.days > (save.best4 || 0); if (rec) save.best4 = r.days; delete save.surv; persist();
       openModal('end', '<div class="center"><span class="sub">Survie</span></div><h2 class="center big">' + jours(r.days) + '</h2><p class="voice center">' + (rec ? 'Jamais le village n’avait tenu si longtemps.' : 'Le village s’est tu. Record : ' + jours(save.best4) + '.') + '</p>' +
         '<p class="note center">' + GAME.st.graves.length + ' tombes au bord de la clairière.</p><div class="acts"><button class="tlink quiet" id="elist">Retour au livre</button><button class="tlink" id="eagain">Rejouer</button></div>');
-      SFX.play(rec ? 'star' : 'fail'); $('#eagain').onclick = () => startChallenge('survie'); $('#elist').onclick = () => openBook([['toc'], ['survival']]); return;
+      SFX.play(rec ? 'star' : 'fail'); $('#eagain').onclick = () => startChallenge('survie'); $('#elist').onclick = () => openBook([['toc'], ['play'], ['survival']]); return;
     }
     if ((save.stars[chId] || 0) < r.stars) save.stars[chId] = r.stars;
     if (c.tutorial) save.tuto[chId] = true; persist(); tuto = false;

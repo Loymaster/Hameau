@@ -407,7 +407,7 @@ const SIM = (() => {
     const need = beds < live ? FAM.toit : foodIn < live || st.food < live ? FAM.vivres : st.wood < 3 && !has('bucheron') ? FAM.bois : coming.length ? GUARD[coming[0]] : !has('carriere') && st.day > 3 ? FAM.pierre : null;
     if (need) pick(need, true) || pick(need, false);
     if (!picked.some(pay)) pick(all, true);
-    if (live < 8 && st.day >= 6 && st.day - st.bell >= 9 && !has('cloche') && r() < 0.07 && ok('cloche')) picked.push('cloche');
+    if (st.day % 10 === 0 && live < 8 && ok('cloche')) picked.push('cloche'); // la cloche revient tous les dix jours, tant que le village compte moins de huit personnes
     while (picked.length < 3 && pick(all, false));
     return picked;
   }
@@ -979,6 +979,6 @@ const SIM = (() => {
     { id: 'l6', name: 'Le ciel contre nous', sub: 'La crue, le vent, et ce qui reste', ch: ['c18', 'c19', 'c20'] }
   ];
 
-  return { W, H, EXT, CELL, T, SPEED, RES, BT, JOBNAME, SEATS, CHALLENGES, LEVELS, MAPDEF, rngOf, getMap, cast, popOf, costOf, newGame, planDay, survDraw, survJobs, sample, draw, capacity, door, buildNav, findPath, eventsOn, weather, beginDay, placeBuilding, afford, blocked };
+  return { W, H, EXT, CELL, T, SPEED, RES, BT, JOBNAME, LIGHT, SEATS, CHALLENGES, LEVELS, MAPDEF, rngOf, getMap, cast, popOf, costOf, newGame, planDay, survDraw, survJobs, sample, draw, capacity, door, buildNav, findPath, eventsOn, weather, beginDay, placeBuilding, afford, blocked };
 })();
 if (typeof module !== 'undefined') module.exports = SIM;
