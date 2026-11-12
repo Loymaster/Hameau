@@ -420,3 +420,6 @@ h2.big{font-size:54px!important}.center{text-align:center}
 .vb.kid canvas{transform:scale(.78);transform-origin:50% 100%}
 /* les pastilles empilées restent dans leur page : elles ne passent plus au travers de la feuille qui tourne */
 .page{isolation:isolate}
+.pgn{display:block;margin-top:6px}
+/* la suite des niveaux : un lien en haut de page, à droite du titre */
+.tlink.more{position:absolute;right:24px;top:92px;font-size:19px;min-height:40px;padding:4px 2px}

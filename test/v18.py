@@ -11,7 +11,7 @@ with sync_playwright() as p:
     pg.goto('file://'+OUT+'index.html'); (os.path.exists('/tmp/fonts/fonts.css') and pg.add_style_tag(path='/tmp/fonts/fonts.css')); pg.wait_for_timeout(1500)
     W=lambda t=1000: pg.wait_for_timeout(t); S=lambda n: pg.screenshot(path=OUT+'v18_'+cid+'_'+n+'.png')
     lvl=pg.evaluate(f"SIM.LEVELS.findIndex(l=>l.ch.includes('{cid}'))")
-    pg.click('#bstart'); W(3300); pg.click('[data-go=play]'); W(); pg.click('[data-go=levels]'); W(); S('niveaux'); pg.click(f'[data-level="{lvl}"]'); W(); pg.click(f'[data-ch={cid}]'); W(); S('fiche'); pg.click('[data-tab=cards]'); W(400); S('fiche_cartes')
+    pg.click('#bstart'); W(3300); pg.click('[data-go=play]'); W(); pg.click('[data-go=levels]'); W(); S('niveaux'); [ (pg.click('[data-lpage]'), pg.wait_for_timeout(900)) for _ in range(lvl//6) ]; pg.click(f'[data-level="{lvl}"]'); W(); pg.click(f'[data-ch={cid}]'); W(); S('fiche'); pg.click('[data-tab=cards]'); W(400); S('fiche_cartes')
     pg.click('#bgo'); W(2500)
     for d,c in enumerate(seq, start=1):
         W(1200)
