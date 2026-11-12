@@ -186,7 +186,7 @@ const R = (() => {
   function drawPawn(p, time) {
     const lying = p.anim === 'sleepout';
     const dir = lying ? 'f' : dirOf(p.dx, p.dy), side = p.dx < 0 ? -1 : 1;
-    const s = sprite('p' + p.v.id + '|' + p.v.name + '|' + p.outfit + '|' + dir, 100 * PS, 124 * PS, 2, g => { g.scale(PS, PS); ART.drawPawn(g, p.v, p.outfit, dir); });
+    const s = sprite('p' + p.v.id + '|' + p.v.name + '|' + p.outfit + '|' + dir + (p.v.child ? '|e' : ''), 100 * PS, 124 * PS, 2, g => { g.scale(PS, PS); if (p.v.child) { g.translate(50, 112); g.scale(0.7, 0.7); g.translate(-50, -112); } ART.drawPawn(g, p.v, p.outfit, dir); }); // un enfant : la même silhouette, plus petite
     let bob = 0, tilt = 0, sy = 1, sw = -1, tl = null;
     const ph = time * 1 + p.v.id * 1.7;
     switch (p.anim) {

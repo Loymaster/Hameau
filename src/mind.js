@@ -13,6 +13,7 @@ const MIND = (() => {
     faim_soir: L('food', 'crainte', ['On trouvera bien de quoi, d’ici ce soir.', 'La réserve est basse. On s’en sortira.'], ['Il n’y en aura pas pour tous, ce soir.', 'La réserve fond. Qui restera sans rien ?'], ['Réserve basse.'], ['S’il manque une part, ce sera la mienne.'], ['Compter les miettes, voilà où on en est.']),
     faim_loin: L('food', 'crainte', [''], ['La réserve ne tiendra pas deux jours.'], [''], [''], ['']),
     faim_hier: L('food', 'crainte', ['Ce soir, je mange. Il le faut.'], ['Encore un soir sans manger, et c’est fini.'], ['Faim.'], ['J’ai faim, mais d’autres aussi.'], ['Le ventre vide, et il faudrait sourire.']),
+    enfant_dehors: L('roof', 'crainte', ['Vous bâtirez quelque chose avant ce soir, dites ?'], ['Sans un toit ce soir, je ne tiendrai pas.'], ['Pas de toit.'], ['Un seul toit suffira, pour nous les petits.'], ['Rien que de l’herbe. Et la nuit qui vient.']),
     dehors_hier: L('roof', 'peine', ['Une nuit dehors. La prochaine sera meilleure.'], ['Une autre nuit dehors, et je n’y survivrai pas.'], ['Froid, cette nuit.'], ['J’ai eu froid. Pourvu que personne d’autre.'], ['La rosée pour drap. Merci bien.']),
     bois_zero: L('wood', 'crainte', ['Plus de bois ? On en ramassera.'], ['Plus une planche. On ne bâtira rien demain.'], ['Plus de bois.'], ['J’irai chercher du bois mort pour tous.'], ['Pas une bûche. Bravo.']),
     orage_demain: L('storm', 'crainte', ['L’orage passera, comme les autres.'], ['Le ciel se charge. Demain, la rivière montera.'], ['Orage demain.'], ['Demain l’orage. Restons près les uns des autres.'], ['Demain la pluie. Il ne manquait plus que ça.']),
@@ -99,6 +100,7 @@ const MIND = (() => {
     const V = st.villagers.filter(v => v.alive), n = V.length, day = st.day, out = [], cnt = {}, places = SIM.capacity(st);
     const evT = SIM.eventsOn(st, day), evN = SIM.eventsOn(st, day + 1), wz = SIM.weather(st), needBed = V.filter(v => v.roofless > 0 && v.home == null).length;
     const add = (v, sit, force, o) => { const th = push(out, mk(m, st, v, sit, force, o, 'matin')); if (th) cnt[v.id] = (cnt[v.id] || 0) + 1; return th; };
+    if (!st.buildings.some(b => !b.gone && !SIM.BT[b.type].open)) for (const v of V) if (v.child) add(v, 'enfant_dehors', 3); // aucun bâtiment : un enfant ne passerait pas la nuit
     for (const v of V) {
       if (st.arrived.includes(v.id)) { add(v, 'arrive', 2); continue; }
       const lv = lover(m, st, v);
@@ -207,7 +209,7 @@ const MIND = (() => {
     for (const x of plan.sum.deaths) { m.grief.push({ id: x.id, name: x.name, day: d, lover: m.love[x.id] != null ? m.love[x.id] : null }); const o = m.love[x.id]; if (o != null) { delete m.love[o]; delete m.love[x.id]; } }
     /* l'amour naît entre deux proches, libres l'un et l'autre, qui dorment sous le même toit : rarement dans une cabane, souvent dans une maison (un couple au plus par soir) */
     for (const [a, c, o] of mates) {
-      const q = r(); if (m.love[a] != null || m.love[c] != null || !E.villagers[a].alive || !E.villagers[c].alive || aff(m, a, c) < 2 || q >= (o ? 0.7 : 0.1)) continue;
+      const q = r(); if (m.love[a] != null || m.love[c] != null || !E.villagers[a].alive || !E.villagers[c].alive || E.villagers[a].young || E.villagers[c].young || aff(m, a, c) < 2 || q >= (o ? 0.7 : 0.1)) continue;
       m.love[a] = c; m.love[c] = a; m.fresh.push({ a, b: c, day: d }); break;
     }
   }

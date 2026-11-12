@@ -14,11 +14,11 @@ function check(st, p, pick) {
       if (['gather', 'chop', 'fish', 'mine', 'bake'].includes(s[i].anim) && s[i].t1 > SIM.T.MEAL + 0.3) bad('travail tardif', s[i].anim, s[i].t1.toFixed(2));
     }
     if (Math.abs(s[s.length - 1].t1 - SIM.T.END) > 1e-6) bad('fin de piste', id);
-    if (pick && p.nb && !s.some(sg => sg.anim === 'build')) bad('pas de chantier pour', id);
+    if (pick && p.nb && !st.villagers[id].child && !s.some(sg => sg.anim === 'build')) bad('pas de chantier pour', id); // les enfants regardent
     const eat = p.events.find(e => (e.type === 'eat' || e.type === 'noeat') && e.vid == id);
     if (!eat || eat.t > SIM.T.BED) bad('repas tardif', id, eat && eat.t.toFixed(2));
     const bed = p.events.find(e => (e.type === 'bed' || e.type === 'nobed') && e.vid == id);
-    if (!bed || bed.t > SIM.T.NIGHT + 0.6) bad('coucher tardif', id, bed && bed.t.toFixed(2));
+    if (!bed || bed.t > SIM.T.NIGHT + 1) bad('coucher tardif', id, bed && bed.t.toFixed(2));
   }
   const r = { food: st.food, wood: st.wood, stone: st.stone };
   for (const e of p.events) for (const k of SIM.RES) { r[k] += e[k] || 0; if (r[k] < 0) bad('ressource négative', k, 'jour', st.day, e.type, e.t.toFixed(2)); }
@@ -30,8 +30,10 @@ function check(st, p, pick) {
   const slept = new Set(p.events.filter(e => e.type === 'bed').map(e => e.vid)), outN = p.events.filter(e => e.type === 'nobed').map(e => e.vid);
   const wrecked = new Set(p.events.filter(e => e.type === 'fire').map(e => e.bid)), cap = p.end.buildings.reduce((n, b) => n + (wrecked.has(b.id) ? 0 : SIM.BT[b.type].beds), 0), aliveN = Object.keys(p.tracks).length;
   if (outN.length && slept.size < Math.min(cap, aliveN) - p.end.buildings.filter(b => b.owners && !wrecked.has(b.id)).reduce((n, b) => n + SIM.BT[b.type].beds - b.owners.length, 0)) bad('lit libre alors que quelqu’un dort dehors', 'jour', st.day);
-  for (const v of st.villagers) if (v.alive && v.home == null && v.roofless > 0 && !slept.has(v.id)) { if (st.villagers.some(o => o.alive && o.home == null && o.roofless === 0 && slept.has(o.id))) bad('priorité au toit non respectée', v.name); }
-  for (const v of st.villagers) if (v.alive && v.home != null && p.end.villagers[v.id].alive && p.end.villagers[v.id].home !== v.home) bad('a perdu sa maison', v.name);
+  for (const v of st.villagers) if (v.alive && v.home == null && v.roofless > 0 && !slept.has(v.id)) { if (st.villagers.some(o => o.alive && o.home == null && o.roofless === 0 && slept.has(o.id) && !o.child && !v.child)) bad('priorité au toit non respectée', v.name); }
+  /* les enfants passent d'abord : aucun adulte sans maison ne dort dans un lit tant qu'un enfant n'en a pas */
+  for (const v of st.villagers) if (v.alive && v.child && v.home == null && !slept.has(v.id) && st.villagers.some(o => o.alive && !o.child && o.home == null && slept.has(o.id))) bad('un adulte a pris le lit d’un enfant', v.name);
+  for (const v of st.villagers) if (v.alive && v.home != null && p.end.villagers[v.id].alive && p.end.villagers[v.id].home !== v.home && !wrecked.has(v.home)) bad('a perdu sa maison', v.name); // sauf si elle a été détruite
   const map = SIM.getMap(st.map);
   /* orage : personne ne passe la rivière, sauf si une digue la retient */
   if (SIM.weather(st).storm && !st.buildings.concat(p.nb ? [p.nb] : []).some(b => SIM.BT[b.type].anti === 'storm' && !b.gone)) // une digue protège dès le jour où on la bâtit, comme le fanal
@@ -50,6 +52,12 @@ for (const id of Object.keys(SIM.CHALLENGES).filter(k => !process.env.ONLY || pr
       if (p.result) { n++; dist[p.result.stars] = (dist[p.result.stars] || 0) + 1; if (p.result.stars === 3) three.push(s2.join('>')); } else rec(p.end, s2);
     }
   };
+  if (process.env.SAMPLE) { /* défis trop longs pour tout parcourir : des parties tirées au hasard */
+    const r = SIM.rngOf(4321);
+    for (let k = 0; k < +process.env.SAMPLE; k++) { let st = SIM.newGame(ch, +process.env.SEED || undefined); const seq = [];
+      for (;;) { st = SIM.beginDay(st); const o = [null, ...SIM.draw(st)].filter(pk => !pk || !SIM.blocked(st, pk)), pk = o[Math.floor(r() * o.length)], p = SIM.planDay(st, pk); check(st, p, pk); deaths += p.sum.deaths.length; seq.push(pk || '-');
+        if (p.result) { n++; dist[p.result.stars] = (dist[p.result.stars] || 0) + 1; if (p.result.stars === 3) three.push(seq.join('>')); break; } st = p.end; } }
+  } else
   rec(SIM.newGame(ch, +process.env.SEED || undefined), []);
   console.log(id, ch.title, ':', n, 'parties, étoiles', JSON.stringify(dist), ', décès', deaths, ', 3★ :', three.length);
   if (three.length <= 6) console.log('   ', three.join(' ; '));

@@ -61,10 +61,22 @@ const SIM = (() => {
     pressoir: { name: 'Pressoir', w: 48, h: 42, cost: { wood: 3 }, posts: 1, job: 'cidrier', play: 2, site: true },
     cellier: { name: 'Cellier', w: 40, h: 36, cost: { wood: 3, stone: 1 }, plenty: 1 },
     /* la grande table : personne n'y travaille ; si tout le monde mange, le soir y est heureux */
+    /* la vie de famille : des maisons en dur, et ce qui tourne autour des enfants (ils mangent, ne travaillent pas, et l'école en fait des adultes) */
+    foyer: { name: 'Maison de famille', w: 64, h: 48, cost: { wood: 5, stone: 3 }, beds: 4, own: true },
+    longere: { name: 'Longère', w: 66, h: 42, cost: { wood: 4, stone: 1 }, beds: 3 },
+    ferme: { name: 'Ferme familiale', w: 64, h: 48, cost: { wood: 5, stone: 2 }, beds: 3, own: true, give: { food: 1 } },
+    ecole: { name: 'École', w: 56, h: 46, cost: { wood: 4, stone: 2 }, school: 3 },
+    bibliotheque: { name: 'Bibliothèque', w: 48, h: 44, cost: { wood: 3, stone: 2 }, fast: 1 },
+    cantine: { name: 'Cantine', w: 54, h: 44, cost: { wood: 3, stone: 1 }, feedKids: 3 },
+    chevre: { name: 'Enclos à chèvre', w: 44, h: 40, cost: { wood: 2 }, feedKids: 1 },
+    bassecour: { name: 'Basse-cour', w: 48, h: 42, cost: { wood: 3 }, kidFood: 1, kidCap: 2 },
+    jeux: { name: 'Aire de jeux', w: 50, h: 40, cost: { wood: 2 }, open: true, kidJoy: 1, kidCap: 3 },
+    marionnettes: { name: 'Théâtre de marionnettes', w: 44, h: 42, cost: { wood: 3, stone: 1 }, ifKid: 2 },
     cloche: { name: 'Cloche', w: 30, h: 36, cost: { wood: 3, stone: 2 }, open: true, call: 2 },
     table: { name: 'Grande table', w: 58, h: 34, cost: { wood: 3 }, open: true, joy: 2 },
   };
   for (const k in BT) { BT[k].beds = BT[k].beds || 0; BT[k].posts = BT[k].posts || 0; }
+  const SCHOOL_DAYS = 4; // jours d'école pour qu'un enfant devienne adulte (trois avec une bibliothèque)
   const JOBNAME = {
     none: { m: 'sans poste', f: 'sans poste' }, cueilleur: { m: 'cueilleur', f: 'cueilleuse' }, paysan: { m: 'jardinier', f: 'jardinière' },
     bucheron: { m: 'bûcheron', f: 'bûcheronne' }, pecheur: { m: 'pêcheur', f: 'pêcheuse' }, carrier: { m: 'tailleur de pierre', f: 'tailleuse de pierre' }, fermier: { m: 'fermier', f: 'fermière' }, champi: { m: 'champignonniste', f: 'champignonniste' }, musicien: { m: 'musicien', f: 'musicienne' }, berger: { m: 'berger', f: 'bergère' }, scieur: { m: 'scieur', f: 'scieuse' }, cidrier: { m: 'cidrier', f: 'cidrière' }, boulanger: { m: 'boulanger', f: 'boulangère' }
@@ -374,7 +386,7 @@ const SIM = (() => {
     initRoads(st);
     if (ch.survival) { st.ev = []; st.evGen = 2; st.cards = null; st.hist = []; st.bell = -99; }
     st.pool = cast(seed, popOf(ch));
-    ch.villagers.forEach((_, i) => { const v = st.pool.shift(); st.villagers.push(Object.assign({ id: i, job: null, work: null, hunger: 0, roofless: 0, alive: true, home: null, pos: { x: map.seats[i % 8].x, y: map.seats[i % 8].y } }, v)); });
+    ch.villagers.forEach((_, i) => { const v = st.pool.shift(); st.villagers.push(Object.assign({ id: i, job: null, work: null, hunger: 0, roofless: 0, alive: true, home: null, pos: { x: map.seats[i % 8].x, y: map.seats[i % 8].y } }, v, ch.villagers[i].child ? { child: true, young: true, school: 0, beard: null } : {})); });
     let hk = 0; const nearFire = v => { const q = map.seats[v.id % 8]; return { x: q.x, y: q.y }; };
     for (const s of ch.start) {
       const r = placeBuilding(st, s.type, rng); if (!r) continue;
@@ -466,7 +478,7 @@ const SIM = (() => {
     st.buildings = st.buildings.filter(b => !b.gone); // un abri de branchages ne tient que deux nuits
     for (const e of eventsOn(st)) if (e.type === 'arrivals') e.villagers.forEach((_, k) => {
       const id = st.villagers.length, v = st.pool.shift();
-      st.villagers.push(Object.assign({ id, job: null, work: null, hunger: 0, roofless: 0, alive: true, home: null, pos: map.arrive.to(k) }, v)); st.arrived.push(id);
+      st.villagers.push(Object.assign({ id, job: null, work: null, hunger: 0, roofless: 0, alive: true, home: null, pos: map.arrive.to(k) }, v, e.villagers[k].child ? { child: true, young: true, school: 0, beard: null } : {})); st.arrived.push(id);
       for (const b of st.buildings) st.food += BT[b.type].welcome || 0;
     });
     if (CHALLENGES[st.ch].survival) survMorning(st, map);
@@ -489,6 +501,11 @@ const SIM = (() => {
     const anti = k => st.buildings.some(b => BT[b.type].anti === k && !b.gone);
     const surv = !!CHALLENGES[st.ch].survival, today = eventsOn(st);
     if (surv) for (const v of alive) v.off = v.sick > 0 ? 'sick' : (mourn || []).includes(v.id) ? 'mourn' : null; // malades et endeuillés ne travaillent pas
+    else for (const v of alive) v.off = v.child ? 'child' : null; // les enfants ne travaillent pas
+    /* l'école : les enfants y vont d'eux-mêmes tant qu'il y a de la place, les plus avancés d'abord */
+    const kids = alive.filter(v => v.child), pupils = {}, schools = st.buildings.filter(b => BT[b.type].school && !b.gone);
+    kids.slice().sort((a, b) => (b.school || 0) - (a.school || 0) || a.id - b.id).forEach((v, k) => { const sb = schools[Math.floor(k / BT.ecole.school)]; if (sb) pupils[v.id] = sb; });
+    const kidsFree = kids.filter(v => !pupils[v.id]);
     if (st.arrived && st.arrived.length) { const l = st.arrived.map(id => st.villagers[id].name); log.push({ k: 'new', text: names(l) + (l.length > 1 ? ' ont rejoint' : ' a rejoint') + ' le village.' }); }
     const sum = { day: st.day, built: null, got: { food: 0, wood: 0, stone: 0 }, v: {}, deaths: [], jobs: [], homes: [] };
     const gain = (t, res, n, x, y) => { E(t, 'res', { [res]: n, x, y }); st[res] += n; sum.got[res] += n; };
@@ -511,6 +528,7 @@ const SIM = (() => {
       const ctr = { x: nb.x + nb.w / 2, y: nb.y + nb.h / 2 };
       alive.forEach((v, i) => {
         const tr = tracks[v.id]; tr.act('idle', 0.04 + i * 0.035, { label: 'Se réveille' });
+        if (v.child) { tr.until(nb.t1, 'idle', { look: ctr, label: 'Regarde le chantier' }); return; }
         const sp = { x: SK.ax + (i % 2 ? -7 : 3), y: SK.ay + (i % 4 > 1 ? 8 : 0) }, spot = spots[i % spots.length];
         if (tr.est(nav, sp) + plen(nav, sp, spot) < 1.75) { // assez près : passe prendre des planches
           tr.walkBy(nav, sp, 7.4, { label: 'Va chercher des planches' });
@@ -578,6 +596,12 @@ const SIM = (() => {
     for (const v of alive) {
       const tr = tracks[v.id], b = v.work != null ? st.buildings.find(x => x.id === v.work) : null, def = b ? BT[b.type] : null;
       const k = b ? b.workers.indexOf(v.id) : 0, dr = b ? door(b) : null;
+      if (v.off === 'child') {
+        const sb = pupils[v.id], sd = sb ? door(sb) : null;
+        if (sb && isFinite(tr.est(nav, sd))) { tr.walkBy(nav, sd, Math.max(9.5, tr.t + tr.est(nav, sd) / 1.2), { label: 'Va à l’école' }); tr.until(Math.max(tr.t + 0.5, 16), 'idle', { inside: sb.id, label: 'Est à l’école' }); v.school = (v.school || 0) + 1; v.atSchool = true; }
+        else { v.atSchool = false; tr.act('idle', 0.3, { label: 'Joue' }); stroll(tr); }
+        continue;
+      }
       if (v.off) { tr.act('idle', 0.3, { label: v.off === 'sick' ? 'Est malade' : 'Porte le deuil' }); stroll(tr); continue; }
       if (b && !(stormOn(def) || frostOn(def) || fogOn(def))) worked[b.type] = (worked[b.type] || 0) + 1; else if (!noGlean) worked.glean = (worked.glean || 0) + 1;
       if (!b) glean(v, tr);
@@ -657,11 +681,15 @@ const SIM = (() => {
     for (const b of st.buildings) {
       const def = BT[b.type], x = b.x + b.w / 2, y = b.y + 6; if (b.gone) continue;
       if (def.give && !frostOn(def) && st.day - b.day >= (def.wait || 0)) { for (const r of RES) if (def.give[r]) gain(16.5, r, def.give[r], x, y); if (def.give.joy) joyQ.push([16.52, def.give.joy, x, y]); }
+      if (def.kidFood && kidsFree.length) gain(16.6, 'food', def.kidFood * Math.min(kidsFree.length, def.kidCap), x, y); // les enfants qui ne sont pas à l'école ramassent les œufs
+      if (def.kidJoy && kids.length) joyQ.push([16.62, def.kidJoy * Math.min(kids.length, def.kidCap), x, y]);
+      if (def.ifKid && kids.length) joyQ.push([19.44, def.ifKid, x, y]);
       if (def.boost) for (const k in def.boost) if (worked[k]) gain(16.8, k === 'glean' ? 'wood' : BT[k].out, def.boost[k] * worked[k], x, y);
       if (def.swap && RES.every(r => st[r] >= (def.swap.take[r] || 0))) { for (const r of RES) { if (def.swap.take[r]) gain(16.9, r, -def.swap.take[r], x - 8, y); if (def.swap.give[r]) gain(16.92, r, def.swap.give[r], x + 8, y); } if (def.swap.give.joy) joyQ.push([16.94, def.swap.give.joy, x, y]); } // après toutes les récoltes du jour, pour ne jamais donner ce qui n'est pas encore rentré
     }
     /* 4. repas */
-    const rations = st.buildings.reduce((n, b) => n + (b.gone ? 0 : BT[b.type].ration || 0), 0), eaters = allocate(alive, st.food + rations, 'hunger', rng);
+    const rations = st.buildings.reduce((n, b) => n + (b.gone ? 0 : BT[b.type].ration || 0), 0), kidCap = st.buildings.reduce((n, b) => n + (b.gone ? 0 : BT[b.type].feedKids || 0), 0);
+    const fedFree = allocate(kids, kidCap, 'hunger', rng), eaters = fedFree.concat(allocate(alive.filter(v => !fedFree.includes(v.id)), st.food + rations, 'hunger', rng));
     /* le soir, les bâtiments servent : la moitié du village au plus dîne à la grande table, et deux par maison de bains y filent sitôt mangé. Rien n'est tiré au sort : on tourne chaque jour. */
     const tablesB = st.buildings.filter(b => b.type === 'table' && !b.gone), bathsB = st.buildings.filter(b => b.type === 'bains' && !b.gone), atTable = new Map(), bather = new Map();
     for (let k = 0, nT = Math.min(6 * tablesB.length, Math.ceil(alive.length / 2)); k < nT; k++) { const v = alive[(k + st.day) % alive.length], b = tablesB[Math.floor(k / 6)], q = k % 6; atTable.set(v.id, { x: b.x + b.w * (0.2 + 0.3 * (q % 3)), y: q < 3 ? b.y - 5 : b.y + b.h + 6, c: { x: b.x + b.w / 2, y: b.y + b.h / 2 } }); }
@@ -672,7 +700,7 @@ const SIM = (() => {
       tr.walkBy(nav, seat, Math.max(18.95, Math.min(19.38, tr.t + tr.est(nav, seat) / 1.5)), { label: 'Rentre pour le repas' }); // qui travaille très loin arrive un peu après les autres, sans courir
       const te = Math.max(18 + i * 0.16, tr.t + 0.1), ate = eaters.includes(v.id);
       tr.until(te, 'sit', { look, label: tb ? 'S’assoit à la grande table' : 'S’assoit près du feu' });
-      if (ate) { if (st.food > 0) { E(te, 'eat', { vid: v.id, food: -1 }); st.food--; } else E(te, 'eat', { vid: v.id, ration: true }); v.hunger = 0; } else { E(te, 'noeat', { vid: v.id }); v.hunger++; }
+      if (ate) { if (fedFree.includes(v.id)) E(te, 'eat', { vid: v.id, ration: true }); else if (st.food > 0) { E(te, 'eat', { vid: v.id, food: -1 }); st.food--; } else E(te, 'eat', { vid: v.id, ration: true }); v.hunger = 0; } else { E(te, 'noeat', { vid: v.id }); v.hunger++; }
       const bh = ate ? bather.get(v.id) : null, bd = bh ? door(bh) : null;
       if (bh && plen(nav, tr.p, bd) < 1.3) { tr.until(te + 0.4, 'eat', { look, label: 'Mange sur le pouce' }); tr.walkBy(nav, bd, te + 0.4 + Math.max(0.5, plen(nav, tr.p, bd) / 1.2), { label: 'File aux bains' }); tr.until(Math.max(tr.t + 0.5, T.BED + 0.7), 'idle', { inside: bh.id, label: 'Prend un bain' }); }
       else tr.until(T.BED + (tb ? i % 3 : i) * 0.08, ate ? 'eat' : 'sad', { look, label: ate ? (tb ? 'Mange à la grande table' : 'Mange') : 'N’a rien à manger' }); // de la table, le lit peut être loin : on se lève plus tôt
@@ -704,16 +732,24 @@ const SIM = (() => {
     }
     /* 5. coucher : chacun chez soi s'il a une maison ; les autres se partagent cabanes et cabanons, d'abord ceux qui ont dormi dehors la veille, puis au hasard */
     const beds = []; for (const b of houses) if (!BT[b.type].own && !b.gone) for (let k = 0; k < BT[b.type].beds; k++) beds.push({ b, k, free: true });
-    const lucky = allocate(alive.filter(v => v.home == null), beds.length, 'roofless', rng), out = [];
+    /* les enfants d'abord. Un enfant sans lit se réfugie dans n'importe quel bâtiment : il a manqué d'un lit, mais il ne risque rien. S'il n'y a aucun bâtiment, il ne passe pas la nuit. */
+    const homeless = alive.filter(v => v.home == null), luckyK = allocate(homeless.filter(v => v.child), beds.length, 'roofless', rng);
+    const lucky = luckyK.concat(allocate(homeless.filter(v => !v.child), beds.length - luckyK.length, 'roofless', rng)), out = [], squeezed = [], standing = st.buildings.filter(b => !b.gone && !BT[b.type].open);
     alive.forEach((v, i) => {
       const tr = tracks[v.id]; let b = null, k = 0;
       if (v.home != null) { b = st.buildings.find(x => x.id === v.home); k = b.owners.indexOf(v.id); }
       else if (lucky.includes(v.id)) { let best = null, bd = 1e9; for (const q of beds) if (q.free) { const d0 = door(q.b), d = hyp(d0.x - tr.p.x, d0.y - tr.p.y); if (d < bd) { bd = d; best = q; } } best.free = false; b = best.b; k = best.k; }
       if (b) {
         const dr = door(b);
-        tr.walkBy(nav, dr, Math.min(22, Math.max(21.2, tr.t + plen(nav, tr.p, dr) / 1.4)), { label: 'Rentre se coucher' }); E(tr.t, 'bed', { vid: v.id, bid: b.id });
+        tr.walkBy(nav, dr, Math.max(Math.min(22, Math.max(21.2, tr.t + plen(nav, tr.p, dr) / 1.4)), tr.t + plen(nav, tr.p, dr) / 1.5), { label: 'Rentre se coucher' }); /* qui sort des bains loin de son lit rentre plus tard, sans courir */ E(tr.t, 'bed', { vid: v.id, bid: b.id });
         tr.until(T.END, 'sleep', { inside: b.id, bed: k, label: 'Dort au chaud' });
         v.roofless = 0; v.pos = dr; sum.v[v.id].roof = true; if (v.home != null) J(tr.t, 1, dr.x, dr.y - 22);
+      } else if (v.child && standing.length) {
+        let sh = standing[0], bd = 1e9; for (const q of standing) { const d0 = door(q), d = hyp(d0.x - tr.p.x, d0.y - tr.p.y); if (d < bd) { bd = d; sh = q; } }
+        const dr = door(sh); squeezed.push(v);
+        tr.walkBy(nav, dr, Math.min(22, Math.max(21.2, tr.t + plen(nav, tr.p, dr) / 1.4)), { label: 'Cherche un abri' }); E(tr.t, 'nobed', { vid: v.id });
+        tr.until(T.END, 'sleep', { inside: sh.id, bed: 0, label: 'Dort à l’abri, sans lit' });
+        v.roofless = 0; v.pos = dr; J(21.3, -1, dr.x, dr.y - 20);
       } else {
         out.push(v);
         tr.until(20.4 + i * 0.1, 'sit', { look: F, label: 'Reste près du feu' }); E(tr.t, 'nobed', { vid: v.id });
@@ -722,10 +758,11 @@ const SIM = (() => {
       }
     });
     if (out.length) log.push({ k: 'bad', text: names(out.map(v => v.name)) + (out.length > 1 ? ' ont dormi dehors.' : ' a dormi dehors.') });
+    if (squeezed.length) log.push({ k: 'bad', text: names(squeezed.map(v => v.name)) + (squeezed.length > 1 ? ' ont dormi à l’abri, mais sans lit.' : ' a dormi à l’abri, mais sans lit.') });
 
     /* 6. bilan : décès, alertes */
-    if (hungry.length || out.length) st.everLacked = true;
-    st.lastAllOk = !hungry.length && !out.length; st.lastRoofOk = !out.length;
+    if (hungry.length || out.length || squeezed.length) st.everLacked = true;
+    st.lastAllOk = !hungry.length && !out.length && !squeezed.length; st.lastRoofOk = !out.length && !squeezed.length;
     if (joyOn) { st.joy = Math.max(0, st.joy + joy); sum.joy = joy; }
     /* un abri de branchages ne tient que deux nuits : il disparaîtra au matin */
     { let n = 0; for (const b of st.buildings) if (BT[b.type].life && !b.gone) { b.nights = (b.nights || 0) + 1; if (b.nights >= BT[b.type].life) { b.gone = true; n++; } } if (n) log.push({ k: 'bad', text: n > 1 ? 'Les abris de branchages ne tiendront pas une nuit de plus.' : 'L’abri de branchages ne tiendra pas une nuit de plus.' }); }
@@ -734,12 +771,15 @@ const SIM = (() => {
     let prey = null;
     if (surv && today.some(e => e.type === 'wolves')) { if (anti('cold')) log.push({ k: 'new', text: 'Les loups ont rôdé. Le braséro les a tenus loin.' }); else if (out.length) prey = out[Math.floor(rng() * out.length)]; else { const loss = Math.min(st.food, 2 + lvOf(today.find(e => e.type === 'wolves'))); if (loss > 0) { gain(21.9, 'food', -loss, SK.x + 40, SK.y - 4); log.push({ k: 'bad', text: 'Les loups ont pillé ' + loss + ' nourriture' + (loss > 1 ? 's' : '') + '.' }); } } }
     st.lost = lost;
-    for (const v of alive) if (v === prey || v.hunger >= 2 || v.roofless >= 2 || (frost && out.includes(v) && !anti('cold')) || (surv && v.sick > 0 && (v.hunger >= 1 || out.includes(v)))) {
+    for (const v of alive) if (v === prey || v.hunger >= 2 || v.roofless >= 2 || (v.child && out.includes(v)) || (frost && out.includes(v) && !anti('cold')) || (surv && v.sick > 0 && (v.hunger >= 1 || out.includes(v)))) {
       v.alive = false; const why = v === prey ? 'sous les crocs des loups' : v.hunger >= 2 ? 'de faim' : surv && v.sick > 0 && !(frost && out.includes(v)) && v.roofless < 2 ? 'de maladie' : 'de froid';
       sum.deaths.push({ id: v.id, name: v.name, why }); st.graves.push({ x: v.pos.x, y: v.pos.y, name: v.name });
       log.push({ k: 'dead', text: v.name + ' est ' + (v.sex === 'f' ? 'morte ' : 'mort ') + why + '.' });
       for (const b of st.buildings) { b.workers = b.workers.filter(id => id !== v.id); if (b.owners) b.owners = b.owners.filter(id => id !== v.id); }
     }
+    { const need = SCHOOL_DAYS - (st.buildings.some(b => BT[b.type].fast && !b.gone) ? 1 : 0), grown = st.villagers.filter(v => v.alive && v.child && (v.school || 0) >= need);
+      for (const v of grown) { v.child = false; v.off = null; delete v.atSchool; }
+      if (grown.length) { sum.grown = grown.map(v => v.id); log.push({ k: 'new', text: names(grown.map(v => v.name)) + (grown.length > 1 ? ' ont fini l’école : dès demain, ils travaillent.' : ' a fini l’école : dès demain, ' + (grown[0].sex === 'f' ? 'elle' : 'il') + ' travaille.') }); } }
     const warn = [], live = st.villagers.filter(v => v.alive), wh = live.filter(v => v.hunger === 1).map(v => v.name), wr = live.filter(v => v.roofless === 1).map(v => v.name);
     if (wh.length) warn.push(names(wh) + (wh.length > 1 ? ' doivent' : ' doit') + ' manger demain.');
     if (wr.length) warn.push(names(wr) + (wr.length > 1 ? ' doivent' : ' doit') + ' avoir un toit demain.');
@@ -778,6 +818,8 @@ const SIM = (() => {
   const NV = k => Array.from({ length: k }, () => ({}));
   const cab = (n, t) => Array.from({ length: n }, () => ({ type: t || 'cabane' }));
   const G = { alive: n => ({ t: 'Tous en vie au soir du jour ' + n, ok: (st, a) => a }), roof: { t: 'Le dernier soir, un toit pour chacun', ok: (st, a) => a && st.lastRoofOk }, never: { t: 'Personne n’a manqué de rien', ok: (st, a) => a && !st.everLacked }, stockOf: n => ({ t: n + ' nourritures en réserve', ok: (st, a) => a && !st.everLacked && st.food >= n }), joyOf: n => ({ t: n + ' de bonheur', ok: (st, a) => a && !st.everLacked && st.joy >= n }) };
+  G.all = (f, w, s, j) => ({ t: [f + ' nourritures', w + ' bois', s + ' pierres'].join(', ') + (j ? ' et ' + j + ' de bonheur' : '') + ' au dernier soir', ok: (st, a) => a && !st.everLacked && st.food >= f && st.wood >= w && st.stone >= s && (!j || st.joy >= j) });
+  const KID = { child: true }, NK = k => Array.from({ length: k }, () => ({ child: true }));
   const ALL3 = d => [d];
   const CHALLENGES = {
     c1: {
@@ -960,8 +1002,101 @@ const SIM = (() => {
       events: [{ day: 3, type: 'drought', len: 2 }, { day: 5, type: 'wind', lv: 9 }, { day: 5, type: 'arrivals', villagers: NV(2) }, { day: 7, type: 'frost' }],
       goals: [G.alive(7), G.never, G.joyOf(17)],
       endMsg: ['Il n’est rien resté.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Partis de rien, sous un ciel dur, et l’on chante.']
+    },
+    /* niveaux 7 à 9 : aucun bâtiment au départ, mais de quoi commencer */
+    c21: {
+      id: 'c21', n: 21, map: 'pre', title: 'Table rase', days: 5, seed: 20261201, food: 14, wood: 8, stone: 0,
+      voice: { text: 'Il n’y avait qu’un pré, et nos sacs posés dans l’herbe.', by: '' },
+      start: [], villagers: NV(4),
+      draws: [['abri', 'dortoir', 'cueillette'], ['cueillette', 'cabane', 'bucheron'], ['cabane', 'potager', 'cabanon'], ['cabane', 'pecheur', 'potager'], ['potager', 'cabanon', 'bucher']],
+      events: [],
+      goals: [G.alive(5), G.never, G.stockOf(16)],
+      endMsg: ['Le pré est resté un pré.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Un pré, cinq jours, et déjà un village.']
+    },
+    c22: {
+      id: 'c22', n: 22, map: 'rive', title: 'L’autre rive', days: 6, seed: 20261202, food: 18, wood: 10, stone: 2,
+      voice: { text: 'Nous avons choisi la rive où le soleil se lève. Le reste a suivi.', by: '' },
+      start: [], villagers: NV(5),
+      draws: [['abri', 'grange', 'dortoir'], ['pecheur', 'cueillette', 'bucheron'], ['cabane', 'pecheur', 'cabanon'], ['cabane', 'cueillette', 'potager'], ['cabane', 'cabanon', 'gardemanger'], ['pecheur', 'potager', 'cabanon']],
+      events: [{ day: 4, type: 'storm' }, { day: 5, type: 'arrivals', villagers: NV(2) }],
+      goals: [G.alive(6), G.never, G.stockOf(16)],
+      endMsg: ['La rive est restée vide.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Une rive nue, un orage, et sept couverts le soir.']
+    },
+    c23: {
+      id: 'c23', n: 23, map: 'vallon', title: 'La première fête', days: 7, seed: 20261203, food: 18, wood: 10, stone: 2, joy: true,
+      voice: { text: 'Avant même les murs, quelqu’un a parlé de danser.', by: '' },
+      start: [], villagers: NV(5),
+      draws: [['abri', 'grange', 'rubans'], ['cueillette', 'bucheron', 'rubans'], ['pecheur', 'potager', 'table'], ['carriere', 'table', 'potager'], ['maison', 'cabane', 'bains'], ['table', 'bains', 'cabanon'], ['rubans', 'jardin', 'cellier']],
+      events: [{ day: 5, type: 'fog' }],
+      goals: [G.alive(7), G.never, G.joyOf(20)],
+      endMsg: ['Personne n’a dansé.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Des murs, du pain, et l’on a dansé.']
+    },
+    c24: {
+      id: 'c24', n: 24, map: 'coude', title: 'Les beaux jours', days: 8, seed: 20261204, food: 20, wood: 10, stone: 3, joy: true,
+      voice: { text: 'Nous voulions plus que tenir. Nous voulions que ce soit bon.', by: '' },
+      start: [], villagers: NV(6),
+      draws: [['grange', 'abri', 'dortoir'], ['cueillette', 'pecheur', 'bucheron'], ['dortoir', 'cabane', 'table'], ['carriere', 'potager', 'rubans'], ['maison', 'table', 'cabane'], ['bains', 'maison', 'kiosque'], ['cabane', 'jardin', 'pressoir'], ['rubans', 'cellier', 'bains']],
+      events: [{ day: 3, type: 'fog' }, { day: 5, type: 'storm' }, { day: 6, type: 'arrivals', villagers: NV(2) }],
+      goals: [G.alive(8), G.never, G.joyOf(14)],
+      endMsg: ['Les beaux jours ne sont pas venus.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Huit jours, et le village sait déjà rire.']
+    },
+    c25: {
+      id: 'c25', n: 25, map: 'pont', title: 'Les petits', days: 6, seed: 20261205, food: 16, wood: 10, stone: 2,
+      voice: { text: 'Ils ne portaient rien, et c’est pour eux que nous portions tout.', by: '' },
+      start: [], villagers: NV(3).concat(NK(2)),
+      draws: [['abri', 'grange', 'chevre'], ['cueillette', 'cabane', 'chevre'], ['potager', 'cabane', 'cantine'], ['potager', 'bassecour', 'cabane'], ['cabane', 'cantine', 'pecheur'], ['bassecour', 'potager', 'cabanon']],
+      events: [{ day: 4, type: 'arrivals', villagers: [KID] }],
+      goals: [G.alive(6), G.never, G.stockOf(15)],
+      endMsg: ['Le pré n’a pas gardé les petits.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Trois paires de bras, six bouches, et il en reste.']
+    },
+    c26: {
+      id: 'c26', n: 26, map: 'pre', title: 'Le chemin de l’école', days: 8, seed: 20261206, food: 22, wood: 12, stone: 4,
+      voice: { text: 'Le quatrième soir, ils sont rentrés plus grands que nous ne les avions envoyés.', by: '' },
+      start: [], villagers: NV(2).concat(NK(3)),
+      draws: [['grange', 'abri', 'ecole'], ['ecole', 'cueillette', 'cabane'], ['cueillette', 'potager', 'ecole'], ['pecheur', 'potager', 'bucheron'], ['pecheur', 'four', 'cabane'], ['potager', 'pecheur', 'bucheron'], ['cueillette', 'pecheur', 'cabanon'], ['potager', 'cabanon', 'bucher']],
+      events: [],
+      goals: [G.alive(8), G.never, G.stockOf(15)],
+      endMsg: ['Le chemin de l’école s’est refermé.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Trois enfants sont partis à l’école. Trois adultes en sont revenus.']
     }
   };
+  Object.assign(CHALLENGES, {
+    c27: {
+      id: 'c27', n: 27, map: 'coude', title: 'Dix jours', days: 10, seed: 20261207, food: 22, wood: 12, stone: 4, joy: true,
+      voice: { text: 'Dix jours pour faire d’un pré un endroit où l’on rit. Nous en avons eu besoin de neuf.', by: '' },
+      start: [], villagers: NV(4).concat(NK(2)),
+      draws: [['grange', 'abri', 'dortoir'], ['cueillette', 'pecheur', 'ecole'], ['ecole', 'potager', 'carriere'], ['bucheron', 'table', 'chevre'], ['cabane', 'longere', 'jeux'], ['table', 'bassecour', 'cantine'], ['four', 'maison', 'marionnettes'], ['serre', 'brasero', 'bains'], ['poulailler', 'bergerie', 'rubans'], ['rubans', 'bains', 'cellier']],
+      events: [{ day: 3, type: 'fog' }, { day: 5, type: 'arrivals', villagers: [{}, KID] }, { day: 6, type: 'storm' }, { day: 9, type: 'frost' }],
+      goals: [G.alive(10), G.never, G.joyOf(21)],
+      endMsg: ['Dix jours n’ont pas suffi.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Dix jours, et le gel trouve un village qui chante.']
+    },
+    c28: {
+      id: 'c28', n: 28, map: 'vallon', title: 'Les quatre greniers', days: 7, seed: 20261208, food: 18, wood: 11, stone: 2, joy: true,
+      voice: { text: 'Du pain, des planches, des pierres, et de quoi rire : il fallait de tout, et le même soir.', by: '' },
+      start: [], villagers: NV(5),
+      draws: [['grange', 'abri', 'dortoir'], ['cueillette', 'bucheron', 'carriere'], ['carriere', 'pecheur', 'table'], ['bucheron', 'potager', 'rubans'], ['table', 'scierie', 'cabane'], ['bains', 'four', 'rubans'], ['jardin', 'etal', 'cabanon']],
+      events: [{ day: 4, type: 'fog' }],
+      goals: [G.alive(7), G.never, G.all(8, 6, 4, 6)],
+      endMsg: ['Les greniers sont restés vides.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Quatre greniers, et aucun n’est vide.']
+    },
+    c29: {
+      id: 'c29', n: 29, map: 'rive', title: 'La bonne mesure', days: 7, seed: 20261209, food: 20, wood: 12, stone: 3, joy: true,
+      voice: { text: 'Trop de bois, pas assez de pain ; puis l’inverse. Il a fallu apprendre la mesure.', by: '' },
+      start: [], villagers: NV(4).concat(NK(2)),
+      draws: [['grange', 'abri', 'dortoir'], ['pecheur', 'cueillette', 'chevre'], ['carriere', 'bucheron', 'jeux'], ['bassecour', 'carriere', 'table'], ['cantine', 'bucheron', 'marionnettes'], ['table', 'potager', 'jeux'], ['rubans', 'etal', 'cabanon']],
+      events: [{ day: 3, type: 'storm' }, { day: 5, type: 'drought', len: 2 }],
+      goals: [G.alive(7), G.never, G.all(6, 6, 4, 8)],
+      endMsg: ['Rien n’a été à la mesure.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'De tout, juste assez, et les enfants ont ri.']
+    },
+    c30: {
+      id: 'c30', n: 30, map: 'pont', title: 'Ce que nous leur laissons', days: 10, seed: 20261210, food: 24, wood: 12, stone: 4, joy: true,
+      voice: { text: 'Nous n’avons pas bâti pour nous. Nous avons bâti pour qu’ils n’aient pas à recommencer.', by: '' },
+      start: [], villagers: NV(4).concat(NK(2)),
+      draws: [['grange', 'abri', 'ecole'], ['cueillette', 'pecheur', 'chevre'], ['ecole', 'carriere', 'potager'], ['puits', 'bassecour', 'bucheron'], ['longere', 'cabane', 'tente'], ['foyer', 'table', 'jeux'], ['digue', 'four', 'cantine'], ['brasero', 'bergerie', 'marionnettes'], ['table', 'poulailler', 'bains'], ['rubans', 'cellier', 'bains']],
+      events: [{ day: 2, type: 'fog' }, { day: 4, type: 'drought', len: 2 }, { day: 5, type: 'arrivals', villagers: [{}, KID] }, { day: 6, type: 'wind', lv: 9 }, { day: 7, type: 'storm' }, { day: 8, type: 'flood', lv: 2 }, { day: 9, type: 'frost' }],
+      goals: [G.alive(10), G.never, G.joyOf(26)],
+      endMsg: ['Il ne leur est rien resté.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Un pré, dix jours, sept ciels contraires — et un village à leur laisser.']
+    }
+  });
   CHALLENGES.survie = {
     id: 'survie', n: 0, survival: true, map: 'pre', title: 'Survie', days: 1e9, seed: 20261201, food: 4, wood: 2, stone: 0,
     voice: { text: 'Nous ne savions pas combien de jours. Nous avons compté quand même.', by: '' },
@@ -976,9 +1111,12 @@ const SIM = (() => {
     { id: 'l3', name: 'Les jours gris', sub: 'La brume, le froid et la joie', ch: ['c7', 'c8', 'c9', 'c10'] },
     { id: 'l4', name: 'Les mains vides', sub: 'Repartir de rien', ch: ['c11', 'c12', 'c13', 'c14'] },
     { id: 'l5', name: 'Les outils', sub: 'Scier, fumer, creuser', ch: ['c15', 'c16', 'c17'] },
-    { id: 'l6', name: 'Le ciel contre nous', sub: 'La crue, le vent, et ce qui reste', ch: ['c18', 'c19', 'c20'] }
+    { id: 'l6', name: 'Le ciel contre nous', sub: 'La crue, le vent, et ce qui reste', ch: ['c18', 'c19', 'c20'] },
+    { id: 'l7', name: 'Sans toit', sub: 'Rien de bâti, mais de quoi commencer', ch: ['c21', 'c22', 'c23', 'c24'] },
+    { id: 'l8', name: 'Les enfants', sub: 'Des bouches, puis des bras', ch: ['c25', 'c26', 'c27'] },
+    { id: 'l9', name: 'Tout à la fois', sub: 'De tout, et le même soir', ch: ['c28', 'c29', 'c30'] }
   ];
 
-  return { W, H, EXT, CELL, T, SPEED, RES, BT, JOBNAME, LIGHT, SEATS, CHALLENGES, LEVELS, MAPDEF, rngOf, getMap, cast, popOf, costOf, newGame, planDay, survDraw, survJobs, sample, draw, capacity, door, buildNav, findPath, eventsOn, weather, beginDay, placeBuilding, afford, blocked };
+  return { W, H, EXT, CELL, T, SPEED, RES, BT, JOBNAME, LIGHT, SCHOOL_DAYS, SEATS, CHALLENGES, LEVELS, MAPDEF, rngOf, getMap, cast, popOf, costOf, newGame, planDay, survDraw, survJobs, sample, draw, capacity, door, buildNav, findPath, eventsOn, weather, beginDay, placeBuilding, afford, blocked };
 })();
 if (typeof module !== 'undefined') module.exports = SIM;

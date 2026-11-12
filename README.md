@@ -8,9 +8,9 @@ Le jeu tient dans une seule page web. Il est pensé pour un écran de téléphon
 
 ## État
 
-Prototype 0.17.
+Prototype 0.18.
 
-- **Défis** : 20 défis en 6 niveaux, de 4 à 7 jours chacun, avec des événements annoncés (orage, brume, gel, sécheresse, crue, grand vent, nouveaux venus) et jusqu'à 3 étoiles.
+- **Défis** : 30 défis en 9 niveaux, de 4 à 10 jours chacun, avec des événements annoncés (orage, brume, gel, sécheresse, crue, grand vent, nouveaux venus) et jusqu'à 3 étoiles. Les défis 21 à 30 partent d'un pré nu ; les enfants et l'école y arrivent au défi 25.
 - **Survie** : 4 villageois, presque rien au départ, des jours sans fin et un ciel de plus en plus dur. On y choisit qui travaille où, et la partie se garde d'une visite à l'autre.
 - **Bac à sable** : pas encore.
 
@@ -42,6 +42,8 @@ node test/sim.test.js              # toutes les parties possibles de chaque déf
 ONLY=c15 node test/sim.test.js     # un seul défi
 node test/stars.js c15             # étoiles, parties gagnantes, cartes utilisées
 node test/trace.js c15 '->scierie>potager>four>grange>four'   # une partie, jour par jour
+node test/beam.js c27 300          # défis longs : recherche des meilleures parties
+SAMPLE=1000 ONLY=c27 node test/sim.test.js   # défis longs : parties tirées au hasard
 node test/surv.js 40 sage          # 40 parties de survie (sage, hasard ou meneur)
 node test/mind.test.js             # les pensées des villageois
 ```

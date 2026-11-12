@@ -36,7 +36,7 @@ const UI = (() => {
   };
   /* ce que l'on dit des événements : leur nom, et en une ligne ce qu'ils empêchent */
   const EV = {
-    arrivals: { icon: 'ppl2', ic: e => e.villagers.length > 1 ? I.ppl2 : I.ppl, name: e => e.villagers.length > 1 ? e.villagers.length + ' nouveaux venus' : 'Un nouveau venu' },
+    arrivals: { icon: 'ppl2', ic: e => e.villagers.length > 1 ? I.ppl2 : I.ppl, name: e => { const n = e.villagers.length, k = e.villagers.filter(x => x && x.child).length; return (n > 1 ? n + ' nouveaux venus' : 'Un nouveau venu') + (k === n ? (n > 1 ? ' (des enfants)' : ' (un enfant)') : k ? ', dont ' + (k > 1 ? k + ' enfants' : 'un enfant') : ''); } },
     storm: { icon: 'storm', name: () => 'Orage', tip: 'la rivière ne se passe plus, on ne pêche pas' },
     frost: { icon: 'frost', name: e => e.len ? 'Gel de ' + e.len + ' jours' : 'Gel', tip: 'plus de récoltes, et une nuit dehors tue' },
     sick: { icon: 'malade', name: () => 'Maladie', tip: 'un villageois alité deux jours ; elle passe à qui dort sous le même toit' },
@@ -69,14 +69,15 @@ const UI = (() => {
   const evDur = (e, c) => e.cont ? 'jour ' + e.cont + (e.len ? ' sur ' + e.len : '') : e.len > 1 ? 'dure ' + e.len + ' jours' : e.type === 'frost' && e.len == null && !c.survival ? 'jusqu’à la fin du défi' : '';
   const evDefs = (ev, c) => ev.map(e => '<div class="evd"><span class="evc">' + evIcon(e) + '</span><div><b>' + evName(e) + '</b>' + (evDur(e, c) ? '<small>' + evDur(e, c) + '</small>' : '') + '<p>' + EVD[e.type]() + '</p></div></div>').join('');
   const pile = ev => '<span class="pile">' + ev.map((e, k) => '<span class="evc" style="z-index:' + (9 - k) + '">' + evIcon(e) + '</span>').join('') + '</span>';
-  const INFO = { cabane: 'Deux places, à qui en a besoin.', cabanon: 'Une place, à qui en a besoin.', maison: 'Deux places, pour de bon.', cueillette: 'Baies de l’autre rive.', potager: 'Légumes du village.', bucheron: 'Arbres de la lisière.', pecheur: 'Poisson de la rivière.', carriere: 'Pierre des rochers.', four: 'Pain cuit sur place.', table: 'Si tous mangent, la joie monte.', abri: 'Quatre places, pour deux nuits seulement.', dortoir: 'Quatre places, à qui en a besoin.', poulailler: 'Des œufs, par tous les temps.', champi: 'Peu de chose, sauf dans la brume ou après la pluie.', rucher: 'Du miel, sans personne. Craint le gel.', serre: 'Garde du gel potagers, ruches et fleurs.', fanal: 'Dans la brume, il guide vers la forêt et les rochers.', jardin: 'Un peu de joie chaque jour. Craint le gel.', kiosque: 'De la musique, et de la joie chaque soir.', moulin: 'Chaque four donne deux pains de plus.', cloche: 'On la sonne : dans deux jours, quelqu’un l’aura entendue.',
+  const INFO = { foyer: 'Quatre places, pour de bon.', longere: 'Trois places en dur, à qui en a besoin.', ferme: 'Trois places, pour de bon, et une nourriture par jour.', ecole: 'Trois enfants y vont chaque jour. Au bout de quatre jours, ils sont adultes.', bibliotheque: 'L’école ne prend plus que trois jours.',
+    cantine: 'Trois enfants y mangent chaque soir sans toucher à la réserve.', chevre: 'Un enfant y boit son lait chaque soir, sans toucher à la réserve.', bassecour: 'Chaque enfant qui n’est pas à l’école rapporte un œuf par jour, deux au plus.', jeux: 'Un bonheur par enfant chaque jour, trois au plus.', marionnettes: 'Deux bonheurs chaque soir, tant qu’il reste un enfant.', cabane: 'Deux places, à qui en a besoin.', cabanon: 'Une place, à qui en a besoin.', maison: 'Deux places, pour de bon.', cueillette: 'Baies de l’autre rive.', potager: 'Légumes du village.', bucheron: 'Arbres de la lisière.', pecheur: 'Poisson de la rivière.', carriere: 'Pierre des rochers.', four: 'Pain cuit sur place.', table: 'Si tous mangent, la joie monte.', abri: 'Quatre places, pour deux nuits seulement.', dortoir: 'Quatre places, à qui en a besoin.', poulailler: 'Des œufs, par tous les temps.', champi: 'Peu de chose, sauf dans la brume ou après la pluie.', rucher: 'Du miel, sans personne. Craint le gel.', serre: 'Garde du gel potagers, ruches et fleurs.', fanal: 'Dans la brume, il guide vers la forêt et les rochers.', jardin: 'Un peu de joie chaque jour. Craint le gel.', kiosque: 'De la musique, et de la joie chaque soir.', moulin: 'Chaque four donne deux pains de plus.', cloche: 'On la sonne : dans deux jours, quelqu’un l’aura entendue.',
     grange: 'Six places dans le foin, à qui en a besoin.', chaumiere: 'Trois places, pour de bon.', tente: 'Deux places, pour trois nuits seulement.', auberge: 'Deux places. Chaque nouveau venu y laisse deux provisions.',
     verger: 'Deux fruits par jour, à partir du surlendemain. Craint le gel.', bergerie: 'Du lait et du fromage, par tous les temps.', fumoir: 'Chaque pêcheur rapporte un poisson de plus.', puits: 'Chaque potager donne un légume de plus.',
     etal: 'Chaque jour, deux bois contre deux nourritures.', gardemanger: 'Quand la réserve est vide, il reste un repas.', scierie: 'Trois bois par jour, même dans la brume.', menuiserie: 'Chaque chantier coûte un bois de moins.',
     taillerie: 'Chaque chantier coûte une pierre de moins.', bucher: 'Qui glane rapporte un bois de plus.', digue: 'Sous l’orage, le pont tient et la rivière se laisse approcher.', brasero: 'Une nuit de gel dehors n’est plus mortelle.',
     rubans: 'Un peu de joie chaque jour, même sous le gel.', bains: 'Chaque jour, un bois contre deux joies.', pressoir: 'Du cidre, et de la joie chaque soir.', cellier: 'Une joie par soir, tant que la réserve est pleine.' };
   const RESD = [[I.food, 'Nourriture', 'Chaque villageois en mange 1 chaque soir. Deux soirs de suite sans manger, il meurt.'], [I.wood, 'Bois', 'Sert à payer les bâtiments. Un villageois sans poste en ramasse 1 par jour.'], [I.stone, 'Pierre', 'Sert à payer certains bâtiments. Elle vient de la carrière.'],
-    [I.roof, 'Toits', 'Une place par villageois. Deux nuits de suite dehors, il meurt ; par gel, une seule nuit suffit.'], [I.joy, 'Bonheur', 'Ne compte que dans certains défis, où il sert d’objectif. Les bâtiments de la famille « Se réjouir » en donnent.'], [I.ppl, 'Villageois', 'Ils agissent seuls. Un bâtiment à postes ne produit que s’il a quelqu’un pour y travailler.']];
+    [I.roof, 'Toits', 'Une place par villageois. Deux nuits de suite dehors, il meurt ; par gel, une seule nuit suffit.'], [I.joy, 'Bonheur', 'Ne compte que dans certains défis, où il sert d’objectif. Les bâtiments de la famille « Se réjouir » en donnent.'], [I.ppl, 'Villageois', 'Ils agissent seuls. Un bâtiment à postes ne produit que s’il a quelqu’un pour y travailler.'], [I.ppl2, 'Enfants', 'Ils mangent comme les autres mais ne travaillent pas et ne bâtissent pas. Ils passent avant les adultes pour les lits. Sans lit, un enfant dort dans n’importe quel bâtiment couvert ; s’il n’y en a aucun, il meurt dans la nuit. Quatre jours d’école en font un adulte.']];
   const RESN = { food: 'Nourriture', wood: 'Bois', stone: 'Pierre' }, LACK = { food: 'Nourriture insuffisante', wood: 'Bois insuffisant', stone: 'Pierre insuffisante' };
   const VOLS = [['music', 'Musique', 'note'], ['nature', 'Nature', 'splash'], ['village', 'Village', 'hammer'], ['ui', 'Interface', 'card']];
   const ORDER = SIM.LEVELS.reduce((a, l) => a.concat(l.ch), []);
@@ -113,13 +114,19 @@ const UI = (() => {
   const stars = (n, big) => { let s = ''; for (let i = 0; i < 3; i++) s += i < n ? I.star : I.star0; return '<span class="' + (big ? 'bigstars' : 'stars') + '" role="img" aria-label="' + n + ' étoile' + (n > 1 ? 's' : '') + ' sur 3">' + s + '</span>'; };
   /* ce que fait un bâtiment, en un chiffre, une icône et quelques mots */
   const FAM = [['Dormir', ['cabane', 'cabanon', 'maison', 'dortoir', 'chaumiere', 'grange', 'auberge', 'abri', 'tente']], ['Manger', ['cueillette', 'potager', 'pecheur', 'four', 'poulailler', 'bergerie', 'champi', 'rucher', 'verger', 'moulin', 'fumoir', 'puits', 'etal', 'gardemanger']],
-    ['Bâtir', ['bucheron', 'carriere', 'scierie', 'bucher', 'menuiserie', 'taillerie']], ['Se réjouir', ['table', 'jardin', 'rubans', 'kiosque', 'pressoir', 'bains', 'cellier']], ['Tenir tête au ciel', ['serre', 'fanal', 'digue', 'brasero', 'cloche']]];
+    ['Bâtir', ['bucheron', 'carriere', 'scierie', 'bucher', 'menuiserie', 'taillerie']], ['Se réjouir', ['table', 'jardin', 'rubans', 'kiosque', 'pressoir', 'bains', 'cellier']], ['Tenir tête au ciel', ['serre', 'fanal', 'digue', 'brasero', 'cloche']], ['Vie de famille', ['foyer', 'longere', 'ferme', 'ecole', 'bibliotheque', 'cantine', 'chevre', 'bassecour', 'jeux', 'marionnettes']]];
   const BOOSTL = { four: 'par boulanger', pecheur: 'par pêcheur', potager: 'par jardinier', glean: 'par glaneur' }, ANTIL = { frost: ['frost', 'abrite les jardins'], fog: ['fog', 'guide dans la brume'], storm: ['storm', 'retient la rivière'], cold: ['frost', 'le gel ne tue plus'] };
   const resOf = o => Object.keys(o).map(k => o[k] + I[k]).join(' ');
   /* ce que fait une carte : [valeur, icône, précision] */
   function effect(type, small) {
     const d = SIM.BT[type], jy = SIM.CHALLENGES[chId].joy, bk = d.boost && Object.keys(d.boost)[0], gk = d.give && Object.keys(d.give)[0];
     const m = d.beds ? ['+' + d.beds, I.roof, d.own ? 'à demeure' : d.life ? d.life + ' nuits' : '']
+      : d.school ? ['', I.ppl, d.school + ' enfants : adultes en ' + SIM.SCHOOL_DAYS + ' jours']
+      : d.fast ? ['−' + d.fast, I.ppl, 'jour d’école']
+      : d.feedKids ? ['+' + d.feedKids, I.food, d.feedKids > 1 ? 'repas d’enfants offerts' : 'repas d’enfant offert']
+      : d.kidFood ? ['+' + d.kidFood, I.food, 'par enfant, ' + d.kidCap + ' au plus']
+      : d.kidJoy ? ['+' + d.kidJoy, I.joy, 'par enfant, ' + d.kidCap + ' au plus']
+      : d.ifKid ? ['+' + d.ifKid, I.joy, 's’il y a un enfant']
       : d.joy ? ['+' + d.joy, I.joy, 'si tous mangent']
       : d.play ? ['+' + d.play, I.joy, 'par soir']
       : d.give ? ['+' + d.give[gk], I[gk], 'par jour' + (d.wait ? ', après ' + d.wait + ' jours' : '')]
@@ -132,7 +139,7 @@ const UI = (() => {
       : d.anti ? ['', I[ANTIL[d.anti][0]], ANTIL[d.anti][1]]
       : ['+' + d.per * d.posts + (d.wet ? ' à ' + d.wet : ''), I[d.out], 'par jour'];
     if (small) return m[0] + m[1];
-    return '<span class="ce">' + (m[0] ? '<b>' + m[0] + '</b>' : '') + m[1] + (m[2] ? '<small>' + m[2] + '</small>' : '') + '</span>' + (d.posts ? '<span class="cw">' + I.ppl + '<span>× ' + d.posts + '</span></span>' : '') + (d.own && jy ? '<span class="cw">' + I.joy + '<span>+1 par habitant</span></span>' : '') + (d.welcome ? '<span class="cw">' + I.food + '<span>+' + d.welcome + ' par nouveau venu</span></span>' : '');
+    return '<span class="ce">' + (m[0] ? '<b>' + m[0] + '</b>' : '') + m[1] + (m[2] ? '<small>' + m[2] + '</small>' : '') + '</span>' + (d.posts ? '<span class="cw">' + I.ppl + '<span>× ' + d.posts + '</span></span>' : '') + (d.own && jy ? '<span class="cw">' + I.joy + '<span>+1 par habitant</span></span>' : '') + (d.welcome ? '<span class="cw">' + I.food + '<span>+' + d.welcome + ' par nouveau venu</span></span>' : '') + (d.beds && d.give ? '<span class="cw">' + I.food + '<span>+' + d.give.food + ' par jour</span></span>' : '');
   }
   /* le sommaire : de grandes entrées, un titre et une ligne claire */
   const big = (go, title, desc, ic, soon) => '<button class="tl big' + (soon ? ' soon' : '') + '" data-go="' + go + '"><span class="ti">' + ic + '</span><span class="tb"><b>' + title + '</b><em>' + desc + '</em></span><span class="chev" aria-hidden="true">›</span></button>';
@@ -247,7 +254,7 @@ const UI = (() => {
             return cap(d.name.toLowerCase()) + ' : ' + (d.out ? d.per + ' ' + RESN[d.out].toLowerCase() + ' par jour et par personne' : d.play ? 'de la joie chaque soir' : 'un poste') + (d.posts > 1 ? ', ' + d.posts + ' postes' : '') + '.' + (st.length ? ' Arrêté par ' + names(st) + '.' : ''); }).join(' ')); }).join('') + '</div>'; },
     options: () => back + '<h2>Options</h2><div class="h3">Son</div>' + volsHtml() +
       '<div class="h3">Bulles des villageois</div><div class="segs">' + BUBS.map(b => '<button class="seg" data-bub="' + b[0] + '" aria-pressed="' + (save.bub === b[0]) + '">' + b[1] + '</button>').join('') + '</div>' +
-      '<div class="h3">Progression</div><p class="note">' + Object.values(save.stars).reduce((a, b) => a + b, 0) + ' étoiles sur ' + ORDER.length * 3 + '</p><div class="pfoot">Prototype 0.17</div>'
+      '<div class="h3">Progression</div><p class="note">' + Object.values(save.stars).reduce((a, b) => a + b, 0) + ' étoiles sur ' + ORDER.length * 3 + '</p><div class="pfoot">Prototype 0.18</div>'
   };
   function bindPage(name, arg) {
     paint(pageEl);
@@ -307,7 +314,7 @@ const UI = (() => {
     const vb = $('#vbar'); vb.classList.toggle('many', villagers.length > 7);
     villagers.forEach((v, i) => {
       if (vbtn[i]) return;
-      const b = document.createElement('button'); b.className = 'vb'; b.dataset.snd = '1'; b.setAttribute('aria-label', v.name); b.innerHTML = '<canvas aria-hidden="true"></canvas><span class="vn">' + v.name + '</span><span class="bad"></span>';
+      const b = document.createElement('button'); b.className = 'vb' + (v.child ? ' kid' : ''); b.dataset.snd = '1'; b.setAttribute('aria-label', v.name + (v.child ? ', enfant' : '')); b.innerHTML = '<canvas aria-hidden="true"></canvas><span class="vn">' + v.name + '</span><span class="bad"></span>';
       b.onclick = () => { SFX.play('voice', 0, i); showVillager(i); }; vb.appendChild(b); vbtn.push({ b, cv: b.querySelector('canvas'), bad: b.querySelector('.bad') });
     });
   }
@@ -559,7 +566,7 @@ const UI = (() => {
     }
     if (G.phase === 'day' && msgN !== G.msgN) { msgN = G.msgN; const m = $('#msg'); if (m) { m.textContent = G.msg; m.classList.remove('new'); void m.offsetWidth; m.classList.add('new'); } }
     if (inspect && inspect.v != null) {
-      const v = st.villagers[inspect.v], s = G.last[inspect.v], job = L.jobs[v.id], jn = SIM.JOBNAME[job || 'none'][v.sex], hu = L.hunger[v.id], rf = L.roofless[v.id], home = (G.plan && G.t >= 9.05 ? G.plan.end : st).villagers[v.id].home != null;
+      const v = st.villagers[inspect.v], s = G.last[inspect.v], job = L.jobs[v.id], jn = v.child ? 'enfant' + (v.school ? ' · ' + v.school + (v.school > 1 ? ' jours' : ' jour') + ' d’école' : '') : SIM.JOBNAME[job || 'none'][v.sex], hu = L.hunger[v.id], rf = L.roofless[v.id], home = (G.plan && G.t >= 9.05 ? G.plan.end : st).villagers[v.id].home != null;
       const M = G.mind, log = (M && M.log[v.id]) || [], cl = M ? MIND.close(M, st, v.id) : [], ch = MIND.CHARN[MIND.charOf(v)][v.sex === 'f' ? 1 : 0];
       set(null, 'insp', v.id + '|' + job + '|' + (s ? s.label : '') + '|' + hu + '|' + rf + '|' + home + '|' + log.length + '|' + cl.map(c => c.id + (c.love ? 'L' : '')).join(','), () => {
         portrait(insp.querySelector('canvas'), v, job || 'civil');

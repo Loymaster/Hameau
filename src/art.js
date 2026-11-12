@@ -311,6 +311,9 @@ const ART = (() => {
   }
   const BDEF = {
     cabane: { beds: [[7, 7], [29, 7]], win: [8], lights: [[12, 37], [24, 40]] },
+    foyer: { beds: [[5, 8], [19, 8], [35, 8], [49, 8]], win: [8, 46], lights: [[12, 41], [52, 41], [32, 44]] }, longere: { beds: [[6, 7], [28, 7], [50, 7]], win: [8, 48], lights: [[12, 35], [54, 35], [33, 38]] },
+    ferme: { beds: [[5, 8], [21, 8], [37, 8]], win: [8, 46], lights: [[12, 41], [52, 41]] }, ecole: { win: [8, 38], lights: [[12, 39], [44, 39], [28, 42]] }, bibliotheque: { win: [6, 32], lights: [[10, 37], [38, 37]] },
+    cantine: { win: [8, 36], lights: [[12, 37], [42, 37], [27, 40]] }, chevre: { win: [], lights: [[22, 35]] }, bassecour: { win: [], lights: [[24, 37]] }, marionnettes: { win: [], lights: [[22, 37]], lamp: true }, jeux: { win: [], lights: [] },
     cabanon: { beds: [[5, 6]], win: [4], lights: [[8, 33], [18, 36]] },
     maison: { beds: [[7, 8], [29, 8]], win: [8, 32], lights: [[12, 39], [36, 39], [24, 42]] },
     cueillette: { win: [9, 47], lights: [[13, 41], [51, 41], [32, 44]] },
@@ -337,6 +340,12 @@ const ART = (() => {
   };
   /* ---------- dix bâtiments de plus ---------- */
   const OPEN = {
+    jeux(g, w, h) {
+      rr(g, 0, 0, w, h, 6); g.fillStyle = 'rgba(150,168,96,.55)'; g.fill();
+      ell(g, w - 13, h - 10, 10, 6.5); FS(g, '#E8D29A', 1); g.fillStyle = '#C8384A'; circ(g, w - 15, h - 11, 1.8); g.fill(); g.fillStyle = '#4E6E80'; g.fillRect(w - 11, h - 10, 3, 2.4);
+      g.strokeStyle = '#7A5636'; g.lineWidth = 1.8; g.lineCap = 'round'; g.beginPath(); g.moveTo(6, h - 5); g.lineTo(11, 7); g.lineTo(27, 7); g.lineTo(32, h - 5); g.stroke();
+      g.strokeStyle = '#4A3A2C'; g.lineWidth = 0.8; for (const x of [15, 23]) { g.beginPath(); g.moveTo(x, 7); g.lineTo(x + 1.5, h - 13); g.stroke(); } g.fillStyle = '#D9A441'; g.fillRect(14.5, h - 14, 4, 1.8); g.fillStyle = '#8C3B4A'; g.fillRect(22.5, h - 14, 4, 1.8);
+    },
     rucher(g, w, h) {
       rr(g, 0, 0, w, h, 6); g.fillStyle = 'rgba(150,168,96,.55)'; g.fill();
       rr(g, 4, h - 13, w - 8, 5, 2); FS(g, '#9C7146', 1);
@@ -446,6 +455,8 @@ const ART = (() => {
   });
   /* une maison ordinaire : murs, toit, puis les détails propres à chacune */
   const HOUSE = {
+    foyer: ['#E3D6BC', '#B5553D', '#8A3B2A', 'tile'], longere: ['#D8CDB6', '#8E99A4', '#6C7884', 'planks'], ferme: ['#D9C7A0', '#C9A45C', '#A5823E', 'thatch'], ecole: ['#E9DFC8', '#A8483A', '#7E3228', 'tile'],
+    bibliotheque: ['#CFC3AA', '#6F8E86', '#4F6E66', 'planks'], cantine: ['#E2D2AE', '#C77E3A', '#9C5E26', 'tile'], chevre: ['#B9B1A0', '#B9A26A', '#93803E', 'thatch'], bassecour: ['#C9AE86', '#B0623C', '#84442A', 'planks'], marionnettes: ['#E8DCC2', '#C8384A', '#8E2333', 'planks'],
     grange: ['#B98A5E', '#A6583A', '#7E3F28', 'planks'], chaumiere: ['#DDD2BC', '#DDBE7C', '#BF9C58', 'thatch'], auberge: ['#D9C9A8', '#A5553D', '#7E3A2A', 'tile'],
     bergerie: ['#B9B1A0', '#CDB06E', '#A98A4C', 'thatch'], fumoir: ['#5E4A38', '#6B5644', '#4A3A2C', 'planks'], scierie: ['#B48858', '#B79468', '#8A6A48', 'planks'],
     menuiserie: ['#C9AE86', '#9FB068', '#7B8E4C', 'moss'], bains: ['#C4B49A', '#8FA9AE', '#6C8890', 'planks'], pressoir: ['#D6C7A6', '#A5553D', '#7E3A2A', 'tile'], cellier: ['#A39C8F', '#8DA05E', '#6B7E44', 'moss']
@@ -455,7 +466,17 @@ const ART = (() => {
     facade(g, w, h, H0[0], { win: BDEF[type].win });
     roofTex(g, 0, 0, w, rh, H0[1], H0[2], H0[3]); g.fillStyle = dk(H0[2], 0.25); g.fillRect(0, 0, 2.600, rh); g.fillRect(w - 2.600, 0, 2.600, rh); line(g, H0[2], 1.7); g.strokeRect(0, 0, w, rh);
     const chim = (x, y) => { rr(g, x, y, 7, 8, 1.200); FS(g, '#9A948A', 1.1); g.fillStyle = '#2A2420'; g.fillRect(x + 1.800, y + 2, 3.400, 3.400); };
-    if (type === 'grange') { g.fillStyle = dk(H0[2], 0.25); g.fillRect(w / 2 - 1.300, 0, 2.600, rh); g.strokeStyle = '#F4EEDC'; g.lineWidth = 1.200; g.strokeRect(w / 2 - 9, rh + 1, 18, FH - 1); g.beginPath(); g.moveTo(w / 2 - 9, rh + 1); g.lineTo(w / 2 + 9, h); g.moveTo(w / 2 + 9, rh + 1); g.lineTo(w / 2 - 9, h); g.stroke(); }
+    const tuft = (x, y, c) => { g.fillStyle = c; circ(g, x, y, 1.3); g.fill(); };
+    if (type === 'foyer') { chim(10, 5); chim(w - 17, 5); for (const wx of BDEF.foyer.win) { rr(g, wx - 1, h - 4, 10, 3, 1); FS(g, '#8A6038', 0.8); for (let k = 0; k < 3; k++) tuft(wx + 1.5 + k * 2.6, h - 4.6, k % 2 ? '#F2C14E' : '#E46A8A'); } }
+    else if (type === 'longere') { chim(w / 2 - 3.5, 4); g.fillStyle = dk(H0[2], 0.2); g.fillRect(w / 3, 0, 1.6, rh); g.fillRect(2 * w / 3, 0, 1.6, rh); }
+    else if (type === 'ferme') { chim(w - 16, 5); for (const x of [w / 2 + 10, w / 2 + 17]) { circ(g, x, h - 4.5, 4); FS(g, '#E3C46B', 0.9); } }
+    else if (type === 'ecole') { rr(g, w / 2 - 5, 2, 10, 11, 1.5); FS(g, '#E9DFC8', 1.1); g.fillStyle = '#D9A441'; circ(g, w / 2, 8, 2.6); g.fill(); g.fillStyle = '#3A4854'; rr(g, w / 2 + 8, rh + 3, 11, 6, 1); g.fill(); g.strokeStyle = '#F4EEDC'; g.lineWidth = 0.7; g.beginPath(); g.moveTo(w / 2 + 10, rh + 5); g.lineTo(w / 2 + 16, rh + 5); g.moveTo(w / 2 + 10, rh + 7); g.lineTo(w / 2 + 14, rh + 7); g.stroke(); }
+    else if (type === 'bibliotheque') { for (let k = 0; k < 5; k++) { g.fillStyle = ['#C8384A', '#D9A441', '#4E6E80', '#7FA65A', '#8C3B4A'][k]; g.fillRect(w - 18 + k * 2.6, h - 9, 2.2, 8); } }
+    else if (type === 'cantine') { chim(9, 4); circ(g, w - 11, h - 5, 4.2); FS(g, '#5A5F68', 1); g.fillStyle = 'rgba(244,248,250,.55)'; circ(g, w - 11, h - 11, 2.4); g.fill(); circ(g, w - 8.5, h - 14.5, 1.7); g.fill(); }
+    else if (type === 'chevre') { g.strokeStyle = '#7A5636'; g.lineWidth = 1.1; for (let x = 3; x < w - 2; x += 5) { g.beginPath(); g.moveTo(x, h - 7); g.lineTo(x, h); g.stroke(); } g.beginPath(); g.moveTo(2, h - 5); g.lineTo(w - 2, h - 5); g.stroke(); ell(g, w - 13, h - 5, 4.2, 2.8); FS(g, '#F4EEDC', 0.8); circ(g, w - 8.5, h - 7, 1.9); FS(g, '#F4EEDC', 0.6); g.strokeStyle = '#4A3A2C'; g.lineWidth = 0.7; g.beginPath(); g.moveTo(w - 8, h - 9); g.lineTo(w - 7, h - 11); g.stroke(); }
+    else if (type === 'bassecour') { for (const q of [[7, h - 3.5], [13, h - 5], [w - 9, h - 4]]) { ell(g, q[0], q[1], 2.6, 2.1); FS(g, q[0] > 20 ? '#F4EEDC' : '#B5703A', 0.6); g.fillStyle = '#C8384A'; circ(g, q[0] + 2.2, q[1] - 1.8, 0.9); g.fill(); } }
+    else if (type === 'marionnettes') { for (let x = 0; x < w; x += 8) { g.fillStyle = 'rgba(244,238,220,.85)'; g.fillRect(x, 0, 4, rh); } rr(g, w / 2 - 11, rh + 1.5, 22, FH - 3, 1.5); FS(g, '#3A2A30', 1); g.fillStyle = '#D9A441'; g.fillRect(w / 2 - 11, rh + 1.5, 4, FH - 3); g.fillRect(w / 2 + 7, rh + 1.5, 4, FH - 3); for (const q of [[w / 2 - 3, '#7FA65A'], [w / 2 + 3, '#4E6E80']]) { circ(g, q[0], h - 6, 2); FS(g, '#F0D2B0', 0.5); g.fillStyle = q[1]; g.fillRect(q[0] - 1.6, h - 4, 3.2, 3); } }
+    else if (type === 'grange') { g.fillStyle = dk(H0[2], 0.25); g.fillRect(w / 2 - 1.300, 0, 2.600, rh); g.strokeStyle = '#F4EEDC'; g.lineWidth = 1.200; g.strokeRect(w / 2 - 9, rh + 1, 18, FH - 1); g.beginPath(); g.moveTo(w / 2 - 9, rh + 1); g.lineTo(w / 2 + 9, h); g.moveTo(w / 2 + 9, rh + 1); g.lineTo(w / 2 - 9, h); g.stroke(); }
     else if (type === 'chaumiere') { chim(w - 16, 5); for (const wx of BDEF.chaumiere.win) { rr(g, wx - 1, h - 4, 10, 3, 1); FS(g, '#8A6038', 0.800); for (let k = 0; k < 3; k++) { g.fillStyle = k % 2 ? '#F2C14E' : '#E46A8A'; circ(g, wx + 1.500 + k * 2.600, h - 4.600, 1.200); g.fill(); } } }
     else if (type === 'auberge') { chim(10, 5); chim(w - 17, 5); g.fillStyle = '#6B4A2E'; g.fillRect(w / 2 + 9, rh + 2, 9, 1.200); rr(g, w / 2 + 11, rh + 3, 7, 5.500, 1); FS(g, '#E9C85A', 0.900); }
     else if (type === 'bergerie') { for (const q of [[7, h - 4], [14, h - 6], [w - 9, h - 4.500]]) { ell(g, q[0], q[1], 3.600, 2.700); FS(g, '#F4EEDC', 0.800); circ(g, q[0] + 3, q[1] - 1, 1.500); FS(g, '#4A3A2C', 0.500); } }
