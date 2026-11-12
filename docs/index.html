@@ -2748,7 +2748,7 @@ const SFX = (() => {
     note: (p, i) => pluck(i == null ? 4 : i, 0.04, { d: 1.2, pan: p }),
     /* le livre s'ouvre : il se pose, la couverture bascule, deux feuilles suivent, et quelques notes montent dans le ton du morceau à venir */
     open: () => {
-      if (!M.dead && TRACKS[M.want]) root = TRACKS[M.want][M.idx[M.want] % TRACKS[M.want].length].root;
+      if (!M.dead) { const pl = poolNow(); root = TRACKS[pl][M.idx[pl] % TRACKS[pl].length].root; }
       cur = 'ui'; hiss({ type: 'lowpass', f: 190, d: 0.55, v: 0.14, a: 0.16, brown: true }); tone({ f: 82, f2: 62, d: 0.5, v: 0.07, a: 0.08 });
       hiss({ f: 380, f2: 1250, q: 1.1, d: 1.0, v: 0.17, a: 0.3, at: 0.95, brown: true }); hiss({ f: 1500, f2: 600, q: 1.2, d: 0.5, v: 0.12, a: 0.1, at: 1.7, brown: true });
       [1.28, 1.44].forEach(t => { hiss({ f: 650, f2: 1500, q: 1.3, d: 0.2, v: 0.11, a: 0.05, at: t, brown: true }); hiss({ type: 'lowpass', f: 360, d: 0.09, v: 0.04, a: 0.015, at: t + 0.22, brown: true }); });
@@ -2810,9 +2810,15 @@ const SFX = (() => {
      Tonalités mesurées sur les fichiers : la majeur, mi♭ majeur, ré majeur, mi mineur (donc sol majeur pour les cinq notes du jeu). */
   const TRACKS = {
     automne: [{ src: 'music/automne-1.mp3', root: 220.00, g: 1 }, { src: 'music/automne-2.mp3', root: 311.13, g: 1 }],
-    hiver: [{ src: 'music/hiver-1.mp3', root: 293.66, g: 0.97 }, { src: 'music/hiver-2.mp3', root: 392.00, g: 1.1 }]
+    hiver: [{ src: 'music/hiver-1.mp3', root: 293.66, g: 0.97 }, { src: 'music/hiver-2.mp3', root: 392.00, g: 1.1 }],
+    /* « Matin de printemps » (do majeur, mi♭ majeur) pour les matins ; « Nuit d'été » (do majeur / la mineur, si♭ majeur) pour les soirs et les nuits */
+    printemps: [{ src: 'music/printemps-1.mp3', root: 261.63, g: 1.02 }, { src: 'music/printemps-2.mp3', root: 311.13, g: 1.05 }],
+    ete: [{ src: 'music/ete-1.mp3', root: 261.63, g: 0.95 }, { src: 'music/ete-2.mp3', root: 233.08, g: 1.1 }]
   };
-  const M = { want: 'automne', season: null, idx: { automne: Math.floor(Math.random() * 2), hiver: Math.floor(Math.random() * 2) }, el: null, tr: null, g: null, an: null, state: 'idle', nextAt: 0, lvl: 0, to: 0, tOut: 0, t0: 0, plain: false, dead: false, fails: 0, heard: false, ok: false };
+  /* quel répertoire au moment de lancer un morceau : le gel impose l'hiver ; sinon le matin, le plein jour ou la nuit choisissent. Un morceau commencé va jusqu'au bout, sauf si le gel arrive ou s'en va. */
+  let mood = 'jour';
+  const poolNow = () => M.want === 'hiver' ? 'hiver' : mood === 'matin' ? 'printemps' : mood === 'nuit' ? 'ete' : 'automne';
+  const M = { want: 'automne', season: null, idx: { automne: Math.floor(Math.random() * 2), hiver: Math.floor(Math.random() * 2), printemps: Math.floor(Math.random() * 2), ete: Math.floor(Math.random() * 2) }, pool: null, el: null, tr: null, g: null, an: null, state: 'idle', nextAt: 0, lvl: 0, to: 0, tOut: 0, t0: 0, plain: false, dead: false, fails: 0, heard: false, ok: false };
   let measuring = false;
   function mSet() { const v = M.lvl * (M.tr ? M.tr.g : 1); if (M.g) M.g.gain.setTargetAtTime(0.25 * v, ac.currentTime, 0.12); else if (M.el) { try { M.el.volume = Math.max(0, Math.min(1, 0.5 * v * vol.music * (muted ? 0 : 1))); } catch (e) { /* volume figé sur certains téléphones */ } } }
   function mStop() { if (M.el) { M.el.onerror = M.el.onended = null; try { M.el.pause(); M.el.removeAttribute('src'); M.el.load(); } catch (e) { /* rien */ } } if (M.g) { try { M.g.disconnect(); } catch (e) { /* rien */ } } M.el = M.g = M.an = null; M.state = 'idle'; M.lvl = M.to = 0; }
@@ -2823,9 +2829,9 @@ const SFX = (() => {
     if (p && p.then) p.then(ok, () => { if (M.el === el) M.state = 'blocked'; }); else ok();
   }
   function mStart() {
-    const list = TRACKS[M.want], tr = list[M.idx[M.want] % list.length], el = new Audio(); M.season = M.want; M.tr = tr; M.el = el; M.state = 'loading'; M.lvl = 0; M.to = 1; M.heard = false; el.preload = 'auto';
+    const pool = poolNow(), list = TRACKS[pool], tr = list[M.idx[pool] % list.length], el = new Audio(); M.season = M.want; M.pool = pool; M.tr = tr; M.el = el; M.state = 'loading'; M.lvl = 0; M.to = 1; M.heard = false; el.preload = 'auto';
     el.onerror = () => { mStop(); M.nextAt = ac.currentTime + 6; if (++M.fails >= 2 && !M.ok) M.dead = true; }; // pas de fichier : on revient aux phrases composées par le jeu
-    el.onended = () => { M.idx[M.season]++; mStop(); M.nextAt = ac.currentTime + rnd(18, 34); };                 // un silence, puis l'autre morceau de la saison
+    el.onended = () => { M.idx[M.pool]++; mStop(); M.nextAt = ac.currentTime + rnd(18, 34); };                 // un silence, puis l'autre morceau de la saison
     el.src = tr.src;
     if (!M.plain) { try { const src = ac.createMediaElementSource(el); M.g = ac.createGain(); M.g.gain.value = 0; M.an = ac.createAnalyser(); M.an.fftSize = 256; src.connect(M.an); src.connect(M.g); M.g.connect(bus.rec); } catch (e) { M.plain = true; M.g = M.an = null; } }
     mSet(); mPlay();
@@ -2887,7 +2893,7 @@ const SFX = (() => {
     ({ ac, master, bus, noiseW, noiseB, L, st } = live); measuring = false;
     return { peak: +pk.toFixed(3), rms: +Math.sqrt(sq / d.length).toFixed(4), data: scene.data ? Array.from(d.filter((_, i) => i % 2 === 0), x => Math.round(x * 32767)) : undefined };
   }
-  const season = s => { if (TRACKS[s]) M.want = s; }, music = () => ({ state: M.state, season: M.season, want: M.want, src: M.tr && M.tr.src, t: M.el ? M.el.currentTime : 0, lvl: +M.lvl.toFixed(2), plain: M.plain, dead: M.dead, heard: M.heard, root });
+  const season = (s, m) => { if (TRACKS[s]) M.want = s; if (m) mood = m; }, music = () => ({ state: M.state, pool: M.pool, mood, season: M.season, want: M.want, src: M.tr && M.tr.src, t: M.el ? M.el.currentTime : 0, lvl: +M.lvl.toFixed(2), plain: M.plain, dead: M.dead, heard: M.heard, root });
   return { unlock, play, step, hit, ambient, season, music, setMute, setVol, vol, measure, get muted() { return muted; }, get ready() { return !!ac && ac.state === 'running'; }, names: () => Object.keys(S) };
 })();
 
@@ -3528,7 +3534,7 @@ const GAME = (() => {
     });
     const wz = weather();
     SFX.ambient({ night: R.night(hour), rain: wz.rain, flood: wz.flood, frost: wz.frost });
-    SFX.season(wz.frost ? 'hiver' : 'automne'); // dès que le gel est là, la musique d'hiver prend le relais
+    SFX.season(wz.frost ? 'hiver' : 'automne', hour >= 19.5 || hour < 6 ? 'nuit' : G.phase === 'morning' || hour < 11 ? 'matin' : 'jour'); // dès que le gel est là, la musique d'hiver prend le relais ; sinon le matin et la nuit ont leurs morceaux
     return { v: { buildings, pawns, cut: L.cut, chopping, wood: L.wood, food: L.food, stone: L.stone, graves: st.graves, weather: wz }, hour };
   }
   /* toucher la scène : un villageois, un bâtiment… ou le feu, l'eau, un arbre, juste pour le plaisir */
@@ -3868,7 +3874,7 @@ const UI = (() => {
             return cap(d.name.toLowerCase()) + ' : ' + (d.out ? d.per + ' ' + RESN[d.out].toLowerCase() + ' par jour et par personne' : d.play ? 'de la joie chaque soir' : 'un poste') + (d.posts > 1 ? ', ' + d.posts + ' postes' : '') + '.' + (st.length ? ' Arrêté par ' + names(st) + '.' : ''); }).join(' ')); }).join('') + '</div>'; },
     options: () => back + '<h2>Options</h2><div class="h3">Son</div>' + volsHtml() +
       '<div class="h3">Bulles des villageois</div><div class="segs">' + BUBS.map(b => '<button class="seg" data-bub="' + b[0] + '" aria-pressed="' + (save.bub === b[0]) + '">' + b[1] + '</button>').join('') + '</div>' +
-      '<div class="h3">Progression</div><p class="note">' + Object.values(save.stars).reduce((a, b) => a + b, 0) + ' étoiles sur ' + ORDER.length * 3 + '</p><div class="pfoot">Prototype 0.18</div>'
+      '<div class="h3">Progression</div><p class="note">' + Object.values(save.stars).reduce((a, b) => a + b, 0) + ' étoiles sur ' + ORDER.length * 3 + '</p><div class="pfoot">Prototype 0.19</div>'
   };
   function bindPage(name, arg) {
     paint(pageEl);

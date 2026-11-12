@@ -189,7 +189,7 @@ const GAME = (() => {
     });
     const wz = weather();
     SFX.ambient({ night: R.night(hour), rain: wz.rain, flood: wz.flood, frost: wz.frost });
-    SFX.season(wz.frost ? 'hiver' : 'automne'); // dès que le gel est là, la musique d'hiver prend le relais
+    SFX.season(wz.frost ? 'hiver' : 'automne', hour >= 19.5 || hour < 6 ? 'nuit' : G.phase === 'morning' || hour < 11 ? 'matin' : 'jour'); // dès que le gel est là, la musique d'hiver prend le relais ; sinon le matin et la nuit ont leurs morceaux
     return { v: { buildings, pawns, cut: L.cut, chopping, wood: L.wood, food: L.food, stone: L.stone, graves: st.graves, weather: wz }, hour };
   }
   /* toucher la scène : un villageois, un bâtiment… ou le feu, l'eau, un arbre, juste pour le plaisir */

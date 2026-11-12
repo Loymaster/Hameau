@@ -8,7 +8,7 @@ Le jeu tient dans une seule page web. Il est pensé pour un écran de téléphon
 
 ## État
 
-Prototype 0.18.
+Prototype 0.19.
 
 - **Défis** : 30 défis en 9 niveaux, de 4 à 10 jours chacun, avec des événements annoncés (orage, brume, gel, sécheresse, crue, grand vent, nouveaux venus) et jusqu'à 3 étoiles. Les défis 21 à 30 partent d'un pré nu ; les enfants et l'école y arrivent au défi 25.
 - **Survie** : 4 villageois, presque rien au départ, des jours sans fin et un ciel de plus en plus dur. On y choisit qui travaille où, et la partie se garde d'une visite à l'autre.
@@ -20,7 +20,7 @@ La progression et la partie de survie en cours sont gardées dans le navigateur 
 
 | Dossier | Contenu |
 |---|---|
-| `src/` | Les sources : `sim.js` (règles et défis), `mind.js` (pensées et liens des villageois), `art.js` et `render.js` (dessin), `audio.js` (sons et musique), `game.js` (déroulement), `ui.js` et `style.css` (interface), `icons.js` (icônes), `music/` (quatre morceaux) |
+| `src/` | Les sources : `sim.js` (règles et défis), `mind.js` (pensées et liens des villageois), `art.js` et `render.js` (dessin), `audio.js` (sons et musique), `game.js` (déroulement), `ui.js` et `style.css` (interface), `icons.js` (icônes), `music/` (huit morceaux) |
 | `docs/` | La page publiée par GitHub Pages, produite par `build.py` |
 | `icons/svg/` | Les tracés sources des icônes |
 | `test/` | Les essais : règles, pensées, équilibre, et parcours joués dans un navigateur sans tête |
