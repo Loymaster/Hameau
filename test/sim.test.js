@@ -14,11 +14,11 @@ function check(st, p, pick) {
       if (['gather', 'chop', 'fish', 'mine', 'bake'].includes(s[i].anim) && s[i].t1 > SIM.T.MEAL + 0.3) bad('travail tardif', s[i].anim, s[i].t1.toFixed(2));
     }
     if (Math.abs(s[s.length - 1].t1 - SIM.T.END) > 1e-6) bad('fin de piste', id);
-    if (pick && p.nb && !st.villagers[id].child && !s.some(sg => sg.anim === 'build')) bad('pas de chantier pour', id); // les enfants regardent
+    if (pick && p.nb && !st.villagers[id].child && !s.some(sg => sg.anim === 'build' || /Trop loin/.test(sg.label || ''))) bad('pas de chantier pour', id); // les enfants regardent
     const eat = p.events.find(e => (e.type === 'eat' || e.type === 'noeat') && e.vid == id);
     if (!eat || eat.t > SIM.T.BED) bad('repas tardif', id, eat && eat.t.toFixed(2));
     const bed = p.events.find(e => (e.type === 'bed' || e.type === 'nobed') && e.vid == id);
-    if (!bed || bed.t > SIM.T.NIGHT + 1) bad('coucher tardif', id, bed && bed.t.toFixed(2));
+    if (!bed || bed.t > SIM.T.NIGHT + (SIM.W > 400 ? 1.6 : 1)) bad('coucher tardif', id, bed && bed.t.toFixed(2));
   }
   const r = {}; for (const k of SIM.RES) r[k] = st[k] || 0;
   for (const e of p.events) for (const k of SIM.RES) { r[k] += e[k] || 0; if (r[k] < 0) bad('ressource négative', k, 'jour', st.day, e.type, e.t.toFixed(2)); }

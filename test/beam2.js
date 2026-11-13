@@ -8,12 +8,12 @@ const ch = Object.assign({}, SIM.CHALLENGES[id], ov); SIM.CHALLENGES[id] = ch; i
 const BT = SIM.BT, need = Object.assign({}, ...ch.goals.map(g => g.need || {})), XW = {}; (process.env.W || '').split(',').filter(Boolean).forEach(s => { const [k, v] = s.split(':'); XW[k] = +v; });
 const BASE = { food: 1, wood: 0.6, stone: 0.7, clay: 0.9, brick: 2.2, plank: 1.6, meal: 1.6, culture: 1.2, ingen: 3, bloom: 3, joy: ch.joy ? 2 : 0 };
 const val = st => {
-  const al = st.villagers.filter(v => v.alive); let v = (st.villagers.length - al.length) * -1000 + (st.everLacked ? -300 : 0);
+  const al = st.villagers.filter(v => v.alive); let v = (st.villagers.length - al.length) * -1000 + (st.everLacked ? -(+process.env.LACK || 300) : 0);
   for (const k in BASE) v += (BASE[k] + (XW[k] || 0)) * (st[k] || 0);
   for (const k in need) v += 40 * Math.min(1, (st[k] || 0) / need[k]) + (st[k] >= need[k] ? 15 : 0);
   v += Math.min(0, SIM.capacity(st) - al.length) * 5 + Math.min(0, st.food - al.length) * 3;
   for (const b of st.buildings) { if (b.gone) continue; const d = BT[b.type], w = b.workers.filter(i => st.villagers[i].alive).length;
-    v += (d.per || 0) * w * 2.5 + (d.conv && w ? 7 : 0) + (d.expert && w ? 9 : 0) + (d.medic && w ? 9 : 0) + (d.store ? 4 : 0) + (d.tools ? 6 : 0) + (SIM.solid(b.type) ? 0.8 : 0);
+    v += (d.per || 0) * w * 2.5 + (d.conv && w ? 7 : 0) + (d.expert && w ? 9 : 0) + (d.medic && w ? 9 : 0) + (d.store ? 22 : 0) + (d.tools ? 6 : 0) + (SIM.solid(b.type) ? 0.8 : 0);
     if (d.give) for (const k in d.give) v += d.give[k] * 2.5; }
   for (const t of ch.deck) { const d = BT[t]; if (!(d.medic || d.expert)) continue; const b = st.buildings.find(x => x.type === t && !x.gone);
     if (b) v += b.workers.length ? 30 : 8; else { const ks = Object.keys(d.cost); v += 16 * ks.reduce((n, k) => n + Math.min(1, (st[k] || 0) / d.cost[k]), 0) / ks.length + (st.buildings.some(x => !x.gone && BT[x.type].conv && BT[x.type].conv.to === 'ingen' && x.workers.length) ? 10 : 0); } }

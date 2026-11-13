@@ -436,3 +436,9 @@ h2.big{font-size:54px!important}.center{text-align:center}
 .card .ce b.sw svg.i{width:15px;height:15px;vertical-align:-3px}
 .vgrid.dense{gap:7px 3px}.vgrid.dense .vcell{width:calc(20% - 3px)}.vgrid.dense .vcell canvas{width:34px;height:34px}.vgrid.dense .vcell b{font-size:calc(15.5px*var(--hs))}.vgrid.dense .vcell .ck svg{width:15px;height:15px}
 .delta{flex-wrap:wrap}
+.rule{margin:8px 0 0;padding:7px 10px;border-left:3px solid var(--accent,#8C3B4A);background:rgba(140,59,74,.07);border-radius:0 8px 8px 0;font-size:14.5px;line-height:1.35;color:var(--ink)}.rule b{font-weight:700}
+/* fiches des grands défis : beaucoup de jours et d'événements — on resserre, et « Commencer » reste sous la main */
+.page:has(.mk-dense){gap:10px}.page:has(.mk-dense) h2{font-size:32px}.page:has(.mk-dense) .voice{font-size:calc(21px*var(--hs));line-height:1.08}
+.page:has(.mk-dense) .frise{gap:5px}.page:has(.mk-dense) .fd{width:30px;height:30px;font-size:16px}.page:has(.mk-dense) .fd svg{width:17px;height:17px}
+.page:has(.mk-dense) .evl>*{padding-top:3px;padding-bottom:3px}
+.page:has(.mk-dense) .pact{position:sticky;bottom:-44px;z-index:3;background:var(--page);margin:0 -6px -30px;padding:8px 6px 34px;box-shadow:0 -10px 10px -8px rgba(60,36,14,.28)}
