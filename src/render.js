@@ -1,7 +1,7 @@
 'use strict';
 /* ===== Hameau — rendu de la scène, lumières et particules ===== */
 const R = (() => {
-  const W = SIM.W, H = SIM.H, X = SIM.EXT, PS = 0.34, PK = 0.34 / 0.3;
+  let W = SIM.W, H = SIM.H, X = SIM.EXT; const PS = 0.34, PK = 0.34 / 0.3;
   const { circ, ell, rr, al } = ART;
   let cv, ctx, VW = 1, VH = 1, dpr = 1, scale = 1, ox = 0, oy = 0, SS = 2, RS = 1;
   /* zoom du joueur : un facteur et un décalage posés par-dessus la vue calculée ; à 1, on retrouve la vue d'ensemble */
@@ -32,6 +32,7 @@ const R = (() => {
   /* change de carte : sol, rivière, lucioles */
   function setMap(m) {
     if (map === m) return;
+    SIM.world(m.id); const big = SIM.W !== W || SIM.H !== H; if (big) { W = SIM.W; H = SIM.H; X = SIM.EXT; ground = null; gctx = null; } // carte d'une autre taille : on refait les calques
     map = m; F = m.fire; frostC = null; roadPts = []; smoke = []; sparks = []; dust = []; floats = []; splash = [];
     const r = SIM.rngOf(31 + m.id.length); flies = [];
     for (let i = 0; i < 18; i++) {
@@ -39,6 +40,7 @@ const R = (() => {
       flies.push({ ax: p.x + (r() - 0.5) * 30, ay: p.y + (r() - 0.5) * 30, ph: r() * 6.28, sp: 0.4 + r() * 0.6, rad: 8 + r() * 16 });
     }
     for (const k of Array.from(spr.keys())) if (k.startsWith('bridge')) spr.delete(k);
+    if (big && VW) resize(VW, VH, dpr, ins.top, ins.bot);
     if (gctx) { redrawGround(); redrawRoads(); setView(mode); resetZoom(); scale = tgt.s; ox = tgt.x; oy = tgt.y; }
   }
   let ins = { top: 130, bot: 104 }, mode = 'day', planBot = 300, planY = 676, tgt = { s: 1, x: 0, y: 0 };

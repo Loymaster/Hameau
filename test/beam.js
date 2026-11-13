@@ -8,7 +8,7 @@ const val = st => { const al = st.villagers.filter(v => v.alive), prod = st.buil
 let front = [{ st: SIM.newGame(ch, process.env.SEED ? 1000 + (+process.env.SEED) * 7919 : undefined), seq: [] }], finals = [], sims = 0;
 for (let d = 1; d <= ch.days; d++) {
   const next = [];
-  for (const f of front) { const st = SIM.beginDay(f.st); for (const pk of [null, ...SIM.draw(st)]) { if (pk && SIM.blocked(st, pk)) continue; const p = SIM.planDay(st, pk); sims++; const seq = f.seq.concat(pk || '-'); if (p.result) finals.push({ r: p.result, st: p.end, seq }); else next.push({ st: p.end, seq, v: val(p.end) }); } }
+  for (const f of front) { const st = SIM.beginDay(f.st); for (const pk of SIM.options(st)) { const p = SIM.planDay(st, pk); sims++; const seq = f.seq.concat(pk ? [].concat(pk).join('+') : '-'); if (p.result) finals.push({ r: p.result, st: p.end, seq }); else next.push({ st: p.end, seq, v: val(p.end) }); } }
   const seen = new Set(); front = next.sort((a, b) => b.v - a.v).filter(x => { const k = x.st.buildings.map(b => b.type + b.workers.length).sort().join() + '|' + x.st.food + '|' + x.st.wood + '|' + x.st.stone + '|' + x.st.joy + '|' + x.st.everLacked + '|' + x.st.villagers.map(v => (v.alive ? 1 : 0) + (v.child ? 'e' + v.school : '')).join(''); if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, K);
 }
 const dist = {}; for (const f of finals) dist[f.r.stars] = (dist[f.r.stars] || 0) + 1;

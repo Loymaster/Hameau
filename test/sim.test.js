@@ -20,7 +20,7 @@ function check(st, p, pick) {
     const bed = p.events.find(e => (e.type === 'bed' || e.type === 'nobed') && e.vid == id);
     if (!bed || bed.t > SIM.T.NIGHT + 1) bad('coucher tardif', id, bed && bed.t.toFixed(2));
   }
-  const r = { food: st.food, wood: st.wood, stone: st.stone };
+  const r = {}; for (const k of SIM.RES) r[k] = st[k] || 0;
   for (const e of p.events) for (const k of SIM.RES) { r[k] += e[k] || 0; if (r[k] < 0) bad('ressource négative', k, 'jour', st.day, e.type, e.t.toFixed(2)); }
   for (const k of SIM.RES) if (r[k] !== p.end[k]) bad('écart', k, r[k], p.end[k]);
   if (pick && !p.nb) bad('placement impossible', pick, 'jour', st.day);
@@ -41,6 +41,7 @@ function check(st, p, pick) {
   else if (SIM.weather(st).storm) stormDike++;
   for (const b of p.end.buildings) if (!map.clear(b.x + b.w / 2, b.y + b.h / 2)) bad('bâtiment hors clairière', b.type);
 }
+if (process.env.VAR) require(process.env.VAR);
 for (const id of Object.keys(SIM.CHALLENGES).filter(k => !process.env.ONLY || process.env.ONLY.split(',').includes(k))) {
   const ch = SIM.CHALLENGES[id], dist = {}; let n = 0, deaths = 0, three = [];
   const rec = (st, seq) => {
@@ -55,7 +56,7 @@ for (const id of Object.keys(SIM.CHALLENGES).filter(k => !process.env.ONLY || pr
   if (process.env.SAMPLE) { /* défis trop longs pour tout parcourir : des parties tirées au hasard */
     const r = SIM.rngOf(4321);
     for (let k = 0; k < +process.env.SAMPLE; k++) { let st = SIM.newGame(ch, +process.env.SEED || undefined); const seq = [];
-      for (;;) { st = SIM.beginDay(st); const o = [null, ...SIM.draw(st)].filter(pk => !pk || !SIM.blocked(st, pk)), pk = o[Math.floor(r() * o.length)], p = SIM.planDay(st, pk); check(st, p, pk); deaths += p.sum.deaths.length; seq.push(pk || '-');
+      for (;;) { st = SIM.beginDay(st); const o = SIM.options(st), pk = o[Math.floor(r() * o.length)], p = SIM.planDay(st, pk); check(st, p, pk); deaths += p.sum.deaths.length; seq.push(pk ? [].concat(pk).join('+') : '-');
         if (p.result) { n++; dist[p.result.stars] = (dist[p.result.stars] || 0) + 1; if (p.result.stars === 3) three.push(seq.join('>')); break; } st = p.end; } }
   } else
   rec(SIM.newGame(ch, +process.env.SEED || undefined), []);

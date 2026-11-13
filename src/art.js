@@ -1,7 +1,7 @@
 'use strict';
 /* ===== Hameau — dessins (personnages, arbres, bâtiments, sol) ===== */
 const ART = (() => {
-  const W = SIM.W, H = SIM.H, X = SIM.EXT;
+  let W = SIM.W, H = SIM.H, X = SIM.EXT; const sync = () => { W = SIM.W; H = SIM.H; X = SIM.EXT; };
   const hex = h => { h = h.replace('#', ''); return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)]; };
   const dk = (h, f) => { const c = hex(h); return 'rgb(' + c.map(v => Math.round(v * (1 - f))).join(',') + ')'; };
   const lt = (h, f) => { const c = hex(h); return 'rgb(' + c.map(v => Math.round(v + (255 - v) * f)).join(',') + ')'; };
@@ -757,6 +757,7 @@ const ART = (() => {
     g.beginPath(); for (let i = 0; i < P.length; i++) i ? g.lineTo(P[i].x + ox, P[i].y + oy) : g.moveTo(P[i].x + ox, P[i].y + oy);
   }
   function drawGround(g, map) {
+    sync();
     const r = SIM.rngOf(404 + map.id.charCodeAt(0) * 7), F = map.fire, B = map.bridge;
     const RX = () => X.x + r() * X.w, RY = () => X.y + r() * X.h;
     g.fillStyle = '#6C7C47'; g.fillRect(X.x, X.y, X.w, X.h);

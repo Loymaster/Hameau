@@ -1,12 +1,17 @@
 'use strict';
 /* ===== Hameau — moteur de simulation (déterministe, sans affichage) ===== */
 const SIM = (() => {
-  const W = 384, H = 832, CELL = 16, GW = W / CELL, GH = H / CELL, N = GW * GH;
-  const EXT = { x: -112, y: -48, w: 608, h: 976 }; // zone dessinée, plus large que la zone jouable
+  /* le monde : 384 × 832 pour un hameau ; les bourgs des niveaux 10 et suivants ont une carte plus grande (MAPDEF.size). world(id) cale la grille sur la carte en cours. */
+  const CELL = 16; let W = 384, H = 832, GW = W / CELL, GH = H / CELL, N = GW * GH, EXT = { x: -112, y: -48, w: 608, h: 976 };
+  function world(id) { const z = (MAPDEF[id] && MAPDEF[id].size) || [384, 832]; if (z[0] === W && z[1] === H) return; W = z[0]; H = z[1]; GW = W / CELL; GH = H / CELL; N = GW * GH; EXT = { x: -112, y: -48, w: W + 224, h: H + 144 }; }
   const T = { BUILD: 6, WORK: 9, MEAL: 17, BED: 19.5, NIGHT: 21.5, END: 30 };
   const SPEED = 160; // px par heure de jeu
   const SEATS = [[-27, -8], [27, -8], [-22, 19], [22, 19], [0, -29], [0, 30], [-34, 6], [34, 6]];
-  const RES = ['food', 'wood', 'stone'];
+  /* les ressources : trois matières brutes, l'argile, puis ce que la manufacture en tire (deux pour un), et ce qui ne pèse rien : culture, ingéniosité, épanouissement.
+     Le bonheur (joy) se compte à part, comme avant. */
+  const RES = ['food', 'wood', 'stone', 'clay', 'brick', 'plank', 'meal', 'culture', 'ingen', 'bloom'];
+  const RNAME = { food: 'nourriture', wood: 'bois', stone: 'pierre', clay: 'argile', brick: 'brique', plank: 'planche', meal: 'repas', culture: 'culture', ingen: 'ingéniosité', bloom: 'épanouissement', joy: 'bonheur' };
+  const RATIO = 2; // deux pour un, un pour un avec le spécialiste du domaine
   function rngOf(seed) {
     let a = seed >>> 0;
     return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
@@ -72,13 +77,34 @@ const SIM = (() => {
     bassecour: { name: 'Basse-cour', w: 48, h: 42, cost: { wood: 3 }, kidFood: 1, kidCap: 2 },
     jeux: { name: 'Aire de jeux', w: 50, h: 40, cost: { wood: 2 }, open: true, kidJoy: 1, kidCap: 3 },
     marionnettes: { name: 'Théâtre de marionnettes', w: 44, h: 42, cost: { wood: 3, stone: 1 }, ifKid: 2 },
+    /* la manufacture et le savoir (niveaux 10 et suivants) */
+    argiliere: { name: 'Argilière', w: 52, h: 40, cost: { wood: 2 }, posts: 1, job: 'argilier', out: 'clay', per: 2, indoor: true, verb: 'Tire de l’argile' },
+    briqueterie: { name: 'Briqueterie', w: 54, h: 44, cost: { wood: 3, stone: 2 }, posts: 1, job: 'briquetier', conv: { from: 'clay', to: 'brick', cap: 4 }, verb: 'Cuit des briques' },
+    charpenterie: { name: 'Charpenterie', w: 56, h: 44, cost: { wood: 4 }, posts: 1, job: 'charpentier', conv: { from: 'wood', to: 'plank', cap: 4 }, verb: 'Débite des planches' },
+    cuisine: { name: 'Cuisine', w: 50, h: 44, cost: { wood: 3, stone: 1 }, posts: 1, job: 'commis', conv: { from: 'food', to: 'meal', cap: 6 }, verb: 'Prépare les repas' },
+    lycee: { name: 'Lycée', w: 62, h: 48, cost: { wood: 4, stone: 3 }, posts: 1, job: 'professeur', out: 'culture', per: 3, indoor: true, verb: 'Fait la classe' },
+    theatre: { name: 'Théâtre', w: 60, h: 48, cost: { plank: 3, brick: 1 }, give: { culture: 1, joy: 2 } },
+    observatoire: { name: 'Observatoire', w: 46, h: 46, cost: { brick: 3, plank: 1 }, give: { culture: 2 } },
+    academie: { name: 'Académie', w: 60, h: 48, cost: { plank: 2, brick: 2 }, posts: 1, job: 'savant', conv: { from: 'culture', to: 'ingen', cap: 4 }, verb: 'Cherche' },
+    arts: { name: 'Atelier des arts', w: 54, h: 44, cost: { plank: 2, stone: 1 }, posts: 1, job: 'artiste', conv: { from: 'joy', to: 'bloom', cap: 4 }, verb: 'Crée' },
+    cabinet: { name: 'Cabinet du médecin', w: 48, h: 44, cost: { ingen: 3, plank: 1 }, posts: 1, job: 'medecin', medic: true, indoor: true, verb: 'Soigne' },
+    geologue: { name: 'Bureau du géologue', w: 46, h: 42, cost: { ingen: 2, wood: 2 }, posts: 1, job: 'geologue', expert: 'brick', indoor: true, verb: 'Étudie les terres' },
+    ingenieur: { name: 'Bureau de l’ingénieur', w: 46, h: 42, cost: { ingen: 2, wood: 2 }, posts: 1, job: 'ingenieur', expert: 'plank', indoor: true, verb: 'Trace des plans' },
+    chef: { name: 'Fourneau du cuisinier', w: 46, h: 42, cost: { ingen: 2, stone: 1 }, posts: 1, job: 'cuisinier', expert: 'meal', indoor: true, verb: 'Invente des plats' },
+    psy: { name: 'Cabinet du psychologue', w: 48, h: 44, cost: { ingen: 3, plank: 1 }, posts: 1, job: 'psychologue', expert: 'bloom', indoor: true, verb: 'Écoute' },
+    maisonbrique: { name: 'Maison de brique', w: 60, h: 46, cost: { brick: 3, plank: 1 }, beds: 4 },
+    demeure: { name: 'Grande demeure', w: 70, h: 52, cost: { brick: 4, plank: 3 }, beds: 6 },
+    entrepot: { name: 'Entrepôt', w: 62, h: 46, cost: { plank: 3, brick: 1 }, store: true },
+    halle: { name: 'Halle du marché', w: 64, h: 48, cost: { brick: 2, plank: 2 }, give: { food: 2, wood: 1 } },
     cloche: { name: 'Cloche', w: 30, h: 36, cost: { wood: 3, stone: 2 }, open: true, call: 2 },
     table: { name: 'Grande table', w: 58, h: 34, cost: { wood: 3 }, open: true, joy: 2 },
   };
   for (const k in BT) { BT[k].beds = BT[k].beds || 0; BT[k].posts = BT[k].posts || 0; }
   const SCHOOL_DAYS = 4; // jours d'école pour qu'un enfant devienne adulte (trois avec une bibliothèque)
   const JOBNAME = {
-    none: { m: 'sans poste', f: 'sans poste' }, cueilleur: { m: 'cueilleur', f: 'cueilleuse' }, paysan: { m: 'jardinier', f: 'jardinière' },
+    none: { m: 'sans poste', f: 'sans poste' }, argilier: { m: 'argilier', f: 'argilière' }, briquetier: { m: 'briquetier', f: 'briquetière' }, charpentier: { m: 'charpentier', f: 'charpentière' }, commis: { m: 'commis de cuisine', f: 'commise de cuisine' },
+    professeur: { m: 'professeur', f: 'professeure' }, savant: { m: 'savant', f: 'savante' }, artiste: { m: 'artiste', f: 'artiste' }, medecin: { m: 'médecin', f: 'médecin' }, geologue: { m: 'géologue', f: 'géologue' }, ingenieur: { m: 'ingénieur', f: 'ingénieure' },
+    cuisinier: { m: 'cuisinier', f: 'cuisinière' }, psychologue: { m: 'psychologue', f: 'psychologue' }, cueilleur: { m: 'cueilleur', f: 'cueilleuse' }, paysan: { m: 'jardinier', f: 'jardinière' },
     bucheron: { m: 'bûcheron', f: 'bûcheronne' }, pecheur: { m: 'pêcheur', f: 'pêcheuse' }, carrier: { m: 'tailleur de pierre', f: 'tailleuse de pierre' }, fermier: { m: 'fermier', f: 'fermière' }, champi: { m: 'champignonniste', f: 'champignonniste' }, musicien: { m: 'musicien', f: 'musicienne' }, berger: { m: 'berger', f: 'bergère' }, scieur: { m: 'scieur', f: 'scieuse' }, cidrier: { m: 'cidrier', f: 'cidrière' }, boulanger: { m: 'boulanger', f: 'boulangère' }
   };
   function costOf(st, type) {
@@ -89,6 +115,16 @@ const SIM = (() => {
   const afford = (st, type) => { const c = costOf(st, type); return RES.every(r => st[r] >= (c[r] || 0)); };
   /* pourquoi une carte ne peut pas être jouée : 'cost' (ressources), 'room' (plus de place), sinon null */
   const blocked = (st, type) => !afford(st, type) ? 'cost' : !placeBuilding(st, type, () => 0) ? 'room' : null;
+  /* à partir de dix habitants, le village est un bourg : deux chantiers par jour */
+  const maxBuilds = st => st.town ? 2 : 1;
+  const affordBoth = (st, a, b) => { const ca = costOf(st, a), cb = costOf(st, b); return RES.every(r => st[r] >= (ca[r] || 0) + (cb[r] || 0)); };
+  /* tout ce que le joueur peut décider ce matin : rien, une carte, ou deux quand le village est un bourg */
+  function options(st) {
+    const c = draw(st).filter(t => !blocked(st, t)), o = [null].concat(c);
+    if (maxBuilds(st) > 1) for (let i = 0; i < c.length; i++) for (let j = i + 1; j < c.length; j++) if (affordBoth(st, c[i], c[j])) o.push([c[i], c[j]]);
+    return o;
+  }
+  const solid = type => { const c = BT[type].cost; return (c.stone || 0) + (c.brick || 0) > 0; }; // bâti avec de la pierre ou de la brique : tient sous la tornade
 
   /* ---------- cartes ---------- */
   const MAPDEF = {
@@ -111,6 +147,25 @@ const SIM = (() => {
       clear: (x, y) => pw((x - 196) / 158, 2.6) + pw((y - 452) / 178, 2.6) < 1
     }
   };
+  /* les bourgs : des cartes une fois et demie plus grandes, pour des villages de vingt à quarante bâtiments */
+  MAPDEF.bourg = {
+    name: 'Le bourg du gué', seed: 83, size: [544, 1168], band: [170, 1100], c: [272, 660],
+    river: { axis: 'x', f: x => 236 + 14 * Math.sin(x / 70 + 1.2) + 5 * Math.sin(x / 24) }, bridge: 300,
+    fire: { x: 280, y: 640 }, stock: { x: 314, y: 674, ax: 301, ay: 692 }, rocks: { x: 470, y: 900 },
+    clear: (x, y) => pw((x - 272) / 244, 3.4) + pw((y - 660) / 396, 3.4) < 1
+  };
+  MAPDEF.plaine = {
+    name: 'La grande plaine', seed: 91, size: [544, 1168], band: [150, 1100], c: [316, 610],
+    river: { axis: 'y', f: y => 96 + 13 * Math.sin(y / 66) + 5 * Math.sin(y / 23 + 2) }, bridge: 700,
+    fire: { x: 320, y: 560 }, stock: { x: 354, y: 594, ax: 341, ay: 612 }, rocks: { x: 468, y: 930 },
+    clear: (x, y) => pw((x - 316) / 204, 4) + pw((y - 610) / 448, 4) < 1
+  };
+  MAPDEF.confluent = {
+    name: 'Les deux rives', seed: 97, size: [544, 1168], band: [150, 1100], c: [272, 560],
+    river: { axis: 'x', f: x => 968 + 13 * Math.sin(x / 62 + 0.4) + 5 * Math.sin(x / 22 + 1) }, bridge: 212,
+    fire: { x: 262, y: 580 }, stock: { x: 296, y: 614, ax: 283, ay: 632 }, rocks: { x: 82, y: 560 },
+    clear: (x, y) => pw((x - 272) / 240, 3) + pw((y - 560) / 372, 3) < 1
+  };
   MAPDEF.pre = {
     name: 'Le grand pré', seed: 61, band: [134, 772], c: [192, 470],
     river: { axis: 'x', f: x => 178 + 12 * Math.sin(x / 64 + 2) + 4 * Math.sin(x / 20) }, bridge: 112,
@@ -124,7 +179,7 @@ const SIM = (() => {
     clear: (x, y) => pw((x - 236) / 126, 4) + pw((y - 452) / 292, 4) < 1
   };
   const MAPS = {};
-  function getMap(id) { return MAPS[id] || (MAPS[id] = makeMap(id)); }
+  function getMap(id) { world(id); return MAPS[id] || (MAPS[id] = makeMap(id)); }
   function makeMap(id) {
     const D = MAPDEF[id], r = rngOf(D.seed), ax = D.river.axis, f = D.river.f, at = D.bridge;
     const rdist = (x, y) => ax === 'x' ? Math.abs(y - f(x)) : Math.abs(x - f(y));
@@ -173,11 +228,12 @@ const SIM = (() => {
     const near = { x: B.x - far.x * 34, y: B.y - far.y * 34 }, meadow = { x: B.x + far.x * 46, y: B.y + far.y * 46 };
     const arrive = { from: { x: B.x + far.x * 150, y: B.y + far.y * 150 }, to: k => ({ x: B.x - far.x * (52 + k * 9) + perp.x * (k % 2 ? 9 : -8), y: B.y - far.y * (52 + k * 9) + perp.y * (k % 2 ? 9 : -8) }) };
     const river = []; for (let a = (ax === 'x' ? EXT.x : EXT.y) - 24; a <= (ax === 'x' ? EXT.x + EXT.w : EXT.y + EXT.h) + 24; a += 8) river.push(bank(a, 0));
-    return { id, name: D.name, band: D.band, c: D.c, axis: ax, home, fire, open: (x, y) => open(x, y, 0), stock, bridge: B, far, perp, near, meadow, arrive, rocks: D.rocks || null, river, rdist, rside, bank, along, at, onBridge, clear, trees, bushes, dead, decor, chop, seats: SEATS.map(s => ({ x: fire.x + s[0], y: fire.y + s[1] })) };
+    return { id, name: D.name, band: D.band, c: D.c, axis: ax, home, fire, open: (x, y) => open(x, y, 0), stock, bridge: B, far, perp, near, meadow, arrive, rocks: D.rocks || null, river, rdist, rside, bank, along, at, onBridge, clear, trees, bushes, dead, decor, chop, seats: [1, 1.62, 2.2].flatMap((k, ring) => SEATS.map((s, q) => { const a = ring * 0.39, c = Math.cos(a), n = Math.sin(a); return { x: fire.x + (s[0] * c - s[1] * n) * k, y: fire.y + (s[0] * n + s[1] * c) * k }; })) }; // trois cercles autour du feu : vingt-quatre places
   }
 
   /* ---------- navigation : grille, coûts (les chemins attirent), plus court chemin ---------- */
   function buildNav(st, flood) {
+    world(st.map);
     const map = getMap(st.map), g = new Uint8Array(N), c = new Float32Array(N).fill(1), F = map.fire;
     for (let i = 0; i < N; i++) {
       const x = cx(i), y = cy(i); let b = 0;
@@ -253,6 +309,7 @@ const SIM = (() => {
 
   /* ---------- routes : un nouveau bâtiment se raccorde au chemin le plus proche, pas forcément à la place ---------- */
   function connect(st, p) {
+    world(st.map);
     const nav = buildNav(st, false), road = new Uint8Array(N); for (const i of st.roadCells) road[i] = 1;
     const s = nearestFree(nav, p), path = astar(nav, s, i => road[i] === 1, false);
     if (!path) return;
@@ -276,6 +333,7 @@ const SIM = (() => {
 
   /* ---------- placement décidé par les villageois ---------- */
   function placeBuilding(st, type, rng) {
+    world(st.map);
     const map = getMap(st.map), def = BT[type], F = map.fire, S = map.stock, GX = 12, GY = 18;
     const road = new Uint8Array(N); for (const i of st.roadCells) road[i] = 1;
     /* distance (en cases) au chemin le plus proche */
@@ -382,12 +440,12 @@ const SIM = (() => {
   function newGame(ch, seed) {
     seed = seed == null ? ch.seed : seed >>> 0;
     const mapId = ch.survival ? ['pre', 'coude'][seed % 2] : ch.map, map = getMap(mapId), rng = rngOf(seed + 17);
-    const st = { ch: ch.id, map: mapId, day: 1, days: ch.days, seed, food: ch.food, wood: ch.wood, stone: ch.stone || 0, joy: 0, nextId: 1, begun: 0, arrived: [], buildings: [], villagers: [], cut: [], roadCells: [], roadLines: [], everLacked: false, lastAllOk: false, lastRoofOk: false, graves: [] };
+    const st = { ch: ch.id, map: mapId, day: 1, days: ch.days, seed, food: ch.food, wood: ch.wood, stone: ch.stone || 0, clay: ch.clay || 0, brick: ch.brick || 0, plank: ch.plank || 0, meal: ch.meal || 0, culture: ch.culture || 0, ingen: ch.ingen || 0, bloom: 0, joy: 0, nextId: 1, begun: 0, arrived: [], buildings: [], villagers: [], cut: [], roadCells: [], roadLines: [], everLacked: false, lastAllOk: false, lastRoofOk: false, graves: [] };
     initRoads(st);
     if (ch.survival) { st.ev = []; st.evGen = 2; st.cards = null; st.hist = []; st.bell = -99; }
     st.pool = cast(seed, popOf(ch));
-    ch.villagers.forEach((_, i) => { const v = st.pool.shift(); st.villagers.push(Object.assign({ id: i, job: null, work: null, hunger: 0, roofless: 0, alive: true, home: null, pos: { x: map.seats[i % 8].x, y: map.seats[i % 8].y } }, v, ch.villagers[i].child ? { child: true, young: true, school: 0, beard: null } : {})); });
-    let hk = 0; const nearFire = v => { const q = map.seats[v.id % 8]; return { x: q.x, y: q.y }; };
+    ch.villagers.forEach((_, i) => { const v = st.pool.shift(); st.villagers.push(Object.assign({ id: i, job: null, work: null, hunger: 0, roofless: 0, alive: true, home: null, pos: { x: map.seats[i % map.seats.length].x, y: map.seats[i % map.seats.length].y } }, v, ch.villagers[i].child ? { child: true, young: true, school: 0, beard: null } : {})); });
+    let hk = 0; const nearFire = v => { const q = map.seats[v.id % map.seats.length]; return { x: q.x, y: q.y }; };
     for (const s of ch.start) {
       const r = placeBuilding(st, s.type, rng); if (!r) continue;
       const b = { id: st.nextId++, type: s.type, x: r.x, y: r.y, w: r.w, h: r.h, workers: (s.workers || []).slice(), day: 0 };
@@ -407,6 +465,7 @@ const SIM = (() => {
      1) une carte répond au manque le plus pressant ; 2) une carte au moins est payable ; 3) la troisième est libre ;
      on évite les cartes des deux derniers jours, les doublons, et ce qui ne servirait à rien (un moulin sans four). */
   function survDraw(st) {
+    world(st.map);
     const r = rngOf((st.seed >>> 0) * 53 + st.day * 7919 + 3), live = st.villagers.filter(v => v.alive).length, has = t => st.buildings.some(b => b.type === t && !b.gone), recent = [].concat.apply([], st.hist || []);
     const once = ['puits', 'gardemanger', 'menuiserie', 'taillerie', 'bucher', 'serre', 'fanal', 'digue', 'brasero'];
     const useful = t => !(t === 'moulin' && !has('four')) && !(t === 'fumoir' && !has('pecheur')) && !(once.includes(t) && has(t)) && !((BT[t].cost.stone || 0) > st.stone && !has('carriere') && t !== 'carriere');
@@ -473,15 +532,23 @@ const SIM = (() => {
   function weather(st, day) { const d = day == null ? st.day : day, ev = evList(st); return { storm: ev.some(e => e.type === 'storm' && e.day === d), fog: ev.some(e => e.type === 'fog' && e.day === d), frost: ev.some(e => e.type === 'frost' && e.day <= d && (e.len == null || d < e.day + e.len)), dry: ev.some(e => e.type === 'drought' && e.day <= d && d < e.day + (e.len || 1)) }; }
   /* début de journée : les événements du matin s'appliquent avant le choix du joueur */
   function beginDay(S) {
+    world(S.map);
     if (S.begun === S.day) return S;
     const st = JSON.parse(JSON.stringify(S)), map = getMap(st.map); st.begun = st.day; st.arrived = [];
     st.buildings = st.buildings.filter(b => !b.gone); // un abri de branchages ne tient que deux nuits
+    for (const r of RES) if (st[r] == null) st[r] = 0; // parties gardées avant la manufacture
     for (const e of eventsOn(st)) if (e.type === 'arrivals') e.villagers.forEach((_, k) => {
       const id = st.villagers.length, v = st.pool.shift();
       st.villagers.push(Object.assign({ id, job: null, work: null, hunger: 0, roofless: 0, alive: true, home: null, pos: map.arrive.to(k) }, v, e.villagers[k].child ? { child: true, young: true, school: 0, beard: null } : {})); st.arrived.push(id);
       for (const b of st.buildings) st.food += BT[b.type].welcome || 0;
     });
     if (CHALLENGES[st.ch].survival) survMorning(st, map);
+    else for (const e of eventsOn(st)) if (e.type === 'sick') { /* dans les défis, la maladie est annoncée : on sait combien tombent malades, pas qui */
+      const r = rngOf((st.seed >>> 0) * 53 + st.day * 7919 + 3), got = [];
+      for (let k = 0; k < (e.n || 1); k++) { const c = st.villagers.filter(v => v.alive && !(v.sick > 0)); if (!c.length) break; const v = c[Math.floor(r() * c.length)]; v.sick = 2; v.grave = !!e.grave; got.push(v.id); }
+      st.sickNew = got;
+    }
+    if (!st.town && st.villagers.filter(v => v.alive).length >= 10) st.town = st.day; // dix habitants : le village devient un bourg
     return st;
   }
   /* répartition par priorité : les plus en danger d'abord, puis le hasard */
@@ -492,6 +559,7 @@ const SIM = (() => {
 
   /* ---------- plan d'une journée ---------- */
   function planDay(S, choice, mourn) {
+    world(S.map);
     const st = JSON.parse(JSON.stringify(S)), map = getMap(st.map), F = map.fire, SK = map.stock, stockPt = { x: SK.ax, y: SK.ay }, stockLook = { x: SK.x + SK.w / 2, y: SK.y + SK.h / 2 };
     const rng = rngOf(st.seed * 977 + st.day * 131 + 5);
     const ev = [], log = [], tracks = {}, alive = st.villagers.filter(v => v.alive);
@@ -501,33 +569,36 @@ const SIM = (() => {
     const anti = k => st.buildings.some(b => BT[b.type].anti === k && !b.gone);
     const surv = !!CHALLENGES[st.ch].survival, today = eventsOn(st);
     if (surv) for (const v of alive) v.off = v.sick > 0 ? 'sick' : (mourn || []).includes(v.id) ? 'mourn' : null; // malades et endeuillés ne travaillent pas
-    else for (const v of alive) v.off = v.child ? 'child' : null; // les enfants ne travaillent pas
+    else for (const v of alive) v.off = v.sick > 0 ? 'sick' : v.child ? 'child' : null; // les malades et les enfants ne travaillent pas
     /* l'école : les enfants y vont d'eux-mêmes tant qu'il y a de la place, les plus avancés d'abord */
     const kids = alive.filter(v => v.child), pupils = {}, schools = st.buildings.filter(b => BT[b.type].school && !b.gone);
     kids.slice().sort((a, b) => (b.school || 0) - (a.school || 0) || a.id - b.id).forEach((v, k) => { const sb = schools[Math.floor(k / BT.ecole.school)]; if (sb) pupils[v.id] = sb; });
     const kidsFree = kids.filter(v => !pupils[v.id]);
     { const l = kids.filter(v => pupils[v.id]).map(v => v.name); if (l.length) E(T.WORK + 0.06, 'msg', { msg: names(l) + (l.length > 1 ? ' partent à l’école.' : ' part à l’école.') }); }
     if (st.arrived && st.arrived.length) { const l = st.arrived.map(id => st.villagers[id].name); log.push({ k: 'new', text: names(l) + (l.length > 1 ? ' ont rejoint' : ' a rejoint') + ' le village.' }); }
-    const sum = { day: st.day, built: null, got: { food: 0, wood: 0, stone: 0 }, v: {}, deaths: [], jobs: [], homes: [] };
+    const sum = { day: st.day, built: null, builts: [], got: {}, v: {}, deaths: [], jobs: [], homes: [] }; for (const r of RES) sum.got[r] = 0;
     const gain = (t, res, n, x, y) => { E(t, 'res', { [res]: n, x, y }); st[res] += n; sum.got[res] += n; };
 
     /* 1. chantier */
-    let nb = null;
-    if (choice && BT[choice] && afford(st, choice)) {
-      const def = BT[choice], r = placeBuilding(st, choice, rng);
+    /* un chantier par jour ; deux, au choix, quand le village est un bourg. Les bras se partagent entre les deux. */
+    const nbs = [];
+    for (const pick of (Array.isArray(choice) ? choice : choice ? [choice] : []).slice(0, maxBuilds(st))) {
+      if (!(BT[pick] && afford(st, pick))) continue;
+      const def = BT[pick], r = placeBuilding(st, pick, rng);
       if (r) {
-        const cost = costOf(st, choice), pay = {}; for (const k of RES) if (cost[k]) { st[k] -= cost[k]; pay[k] = -cost[k]; }
-        sum.built = choice;
-        nb = { id: st.nextId++, type: choice, x: r.x, y: r.y, w: def.w, h: def.h, workers: [], day: st.day, t0: 6.5, t1: 8.85 };
-        st.buildings.push(nb); connect(st, { x: door(nb).x, y: door(nb).y - 3 });
-        E(6.02, 'site', Object.assign({ bid: nb.id }, pay));
+        const cost = costOf(st, pick), pay = {}; for (const k of RES) if (cost[k]) { st[k] -= cost[k]; pay[k] = -cost[k]; }
+        const b = { id: st.nextId++, type: pick, x: r.x, y: r.y, w: def.w, h: def.h, workers: [], day: st.day, t0: 6.5, t1: 8.85 };
+        st.buildings.push(b); connect(st, { x: door(b).x, y: door(b).y - 3 }); nbs.push(b);
+        E(6.02 + nbs.length * 0.001, 'site', Object.assign({ bid: b.id }, pay));
       }
     }
+    const nb = nbs[0] || null; sum.built = nb ? nb.type : null; sum.builts = nbs.map(b => b.type);
+    const m0 = {}; for (const r of RES) m0[r] = st[r]; m0.joy = st.joy || 0; // ce qu'il y a en réserve une fois les chantiers payés : c'est cela que les ateliers transforment aujourd'hui
     let nav = buildNav(st, storm && !anti('storm'));
     if (nb) {
-      const spots = [{ x: nb.x - 9, y: nb.y + nb.h * 0.55 }, { x: nb.x + nb.w + 9, y: nb.y + nb.h * 0.55 }, { x: nb.x + nb.w * 0.25, y: nb.y + nb.h + 10 }, { x: nb.x + nb.w * 0.75, y: nb.y + nb.h + 10 }, { x: nb.x - 9, y: nb.y + nb.h * 0.2 }, { x: nb.x + nb.w + 9, y: nb.y + nb.h * 0.2 }, { x: nb.x - 10, y: nb.y + nb.h * 0.92 }, { x: nb.x + nb.w + 10, y: nb.y + nb.h * 0.92 }];
-      const ctr = { x: nb.x + nb.w / 2, y: nb.y + nb.h / 2 };
+      const sites = nbs.map(nb => ({ nb, spots: [{ x: nb.x - 9, y: nb.y + nb.h * 0.55 }, { x: nb.x + nb.w + 9, y: nb.y + nb.h * 0.55 }, { x: nb.x + nb.w * 0.25, y: nb.y + nb.h + 10 }, { x: nb.x + nb.w * 0.75, y: nb.y + nb.h + 10 }, { x: nb.x - 9, y: nb.y + nb.h * 0.2 }, { x: nb.x + nb.w + 9, y: nb.y + nb.h * 0.2 }, { x: nb.x - 10, y: nb.y + nb.h * 0.92 }, { x: nb.x + nb.w + 10, y: nb.y + nb.h * 0.92 }], ctr: { x: nb.x + nb.w / 2, y: nb.y + nb.h / 2 } }));
       alive.forEach((v, i) => {
+        const site = sites[i % sites.length], nb = site.nb, spots = site.spots, ctr = site.ctr; i = Math.floor(i / sites.length) + (i % sites.length) * 3;
         const tr = tracks[v.id]; tr.act('idle', 0.04 + i * 0.035, { label: 'Se réveille' });
         if (v.child) { tr.until(nb.t1, 'idle', { look: ctr, label: 'Regarde le chantier' }); return; }
         const sp = { x: SK.ax + (i % 2 ? -7 : 3), y: SK.ay + (i % 4 > 1 ? 8 : 0) }, spot = spots[i % spots.length];
@@ -539,11 +610,10 @@ const SIM = (() => {
         else tr.walkBy(nav, spot, Math.min(nb.t1 - 0.2, Math.max(8.3, tr.t + tr.est(nav, spot) / 1.45)), { label: 'Rejoint le chantier' }); // qui a dormi loin arrive un peu plus tard
         tr.until(nb.t1, 'build', { look: ctr, label: 'Bâtit : ' + BT[nb.type].name.toLowerCase() });
       });
-      E(nb.t1, 'built', { bid: nb.id, msg: BT[nb.type].name });
-      log.push({ k: 'build', text: 'Bâti : ' + BT[nb.type].name.toLowerCase() + '.' });
+      for (const b of nbs) { E(b.t1 + (b === nb ? 0 : 0.012), 'built', { bid: b.id, msg: BT[b.type].name }); log.push({ k: 'build', text: 'Bâti : ' + BT[b.type].name.toLowerCase() + '.' }); }
     } else alive.forEach((v, i) => {
       const tr = tracks[v.id]; tr.act('idle', 0.1 + i * 0.1, { label: 'Se réveille' });
-      { const seat = { x: F.x + SEATS[i % 8][0] * 1.5, y: F.y + SEATS[i % 8][1] * 1.5 }; tr.walkBy(nav, seat, Math.min(T.WORK - 0.05, Math.max(8.2, tr.t + tr.est(nav, seat) / 1.45)), { label: 'Rejoint le feu' }); } // qui a dormi loin arrive plus tard, sans courir
+      { const sq = map.seats[i % map.seats.length], seat = i < 8 ? { x: F.x + SEATS[i][0] * 1.5, y: F.y + SEATS[i][1] * 1.5 } : { x: F.x + (sq.x - F.x) * 1.25, y: F.y + (sq.y - F.y) * 1.25 }; tr.walkBy(nav, seat, Math.min(T.WORK - 0.05, Math.max(8.2, tr.t + tr.est(nav, seat) / 1.45)), { label: 'Rejoint le feu' }); } // qui a dormi loin arrive plus tard, sans courir
       tr.until(8.4 + i * 0.06, 'idle', { look: F, label: 'Se réchauffe près du feu' });
     });
     alive.forEach(v => tracks[v.id].until(T.WORK, 'idle', { label: 'Regarde autour' }));
@@ -607,6 +677,10 @@ const SIM = (() => {
       if (b && !(stormOn(def) || frostOn(def) || fogOn(def))) worked[b.type] = (worked[b.type] || 0) + 1; else if (!noGlean) worked.glean = (worked.glean || 0) + 1;
       if (!b) glean(v, tr);
       else if (stormOn(def) || frostOn(def) || fogOn(def)) glean(v, tr, stormOn(def) ? (dry && def.dryStop && !storm ? 'La rivière est à sec' : v.job === 'pecheur' ? 'La rivière est en crue' : 'Ne peut pas traverser la rivière') : fogOn(def) ? 'La brume cache tout' : 'Tout a gelé');
+      else if (def.conv || def.indoor) { /* ateliers et bureaux : on y passe la journée ; ce qui en sort est compté plus bas */
+        tr.walkBy(nav, dr, Math.max(9.5, tr.t + tr.est(nav, dr) / 1.25), { label: 'Va travailler : ' + def.name.toLowerCase() });
+        tr.until(Math.max(tr.t + 0.5, 16.2), 'idle', { inside: b.id, label: def.verb || 'Travaille' });
+      }
       else if (def.site) { /* métiers qui se font sur place : poules, champignons, musique */
         const LAB = { berger: ['Va à la bergerie', 'Soigne les brebis', 'Rapporte du lait', 'Range le lait'], scieur: ['Va à la scierie', 'Scie des planches', 'Rapporte des planches', 'Range les planches'], cidrier: ['Va au pressoir', 'Presse les pommes', 'Goûte le cidre', ''], fermier: ['Va au poulailler', 'Soigne les poules', 'Rapporte des œufs', 'Range les œufs'], champi: ['Va aux champignons', 'Cueille des champignons', 'Rapporte des champignons', 'Range les champignons'], musicien: ['Va au kiosque', 'Joue un air', 'Reprend son souffle', ''] }[v.job];
         const n = def.play ? 0 : def.wet && (fog || storm || weather(st, st.day - 1).storm) ? def.wet : def.per; // les champignons aiment la pluie et la brume
@@ -678,10 +752,19 @@ const SIM = (() => {
     for (const id of usedTrees) if (!st.cut.includes(id)) st.cut.push(id);
     nav = buildNav(st, storm && !anti('storm'));
 
+    const staffed = f => st.buildings.some(b => !b.gone && f(BT[b.type]) && b.workers.some(id => st.villagers[id].alive && !st.villagers[id].off));
+    const expert = k => staffed(d => d.expert === k), medic = staffed(d => d.medic), made = {}, idleShops = [];
     /* ce qui agit sans personne : ruches, fleurs, verger (après quelques jours), troc, et ce qui améliore le travail des autres */
     for (const b of st.buildings) {
       const def = BT[b.type], x = b.x + b.w / 2, y = b.y + 6; if (b.gone) continue;
       if (def.give && !frostOn(def) && st.day - b.day >= (def.wait || 0)) { for (const r of RES) if (def.give[r]) gain(16.5, r, def.give[r], x, y); if (def.give.joy) joyQ.push([16.52, def.give.joy, x, y]); }
+      const crewN = b.workers.filter(id => st.villagers[id].alive && !st.villagers[id].off).length;
+      if (def.indoor && def.out && crewN) gain(16.4, def.out, def.per * crewN, x, y);
+      if (def.conv && crewN) { /* l'atelier ne transforme que ce qui était en réserve ce matin : deux pour un, un pour un si le spécialiste du domaine est à son poste */
+        const c = def.conv, ratio = expert(c.to) ? 1 : RATIO, have = c.from === 'joy' ? Math.min(m0.joy, st.joy) : Math.min(m0[c.from], st[c.from]), n = Math.floor(Math.min(have, c.cap) / ratio);
+        if (n > 0) { if (c.from === 'joy') { joyQ.push([16.42, -n * ratio, x - 8, y]); m0.joy -= n * ratio; } else { gain(16.42, c.from, -n * ratio, x - 8, y); m0[c.from] -= n * ratio; } gain(16.44, c.to, n, x + 8, y); made[c.to] = (made[c.to] || 0) + n; }
+        else idleShops.push(def.name.toLowerCase());
+      }
       if (def.kidFood && kidsFree.length) gain(16.6, 'food', def.kidFood * Math.min(kidsFree.length, def.kidCap), x, y); // les enfants qui ne sont pas à l'école ramassent les œufs
       if (def.kidJoy && kids.length) joyQ.push([16.62, def.kidJoy * Math.min(kids.length, def.kidCap), x, y]);
       if (def.ifKid && kids.length) joyQ.push([19.44, def.ifKid, x, y]);
@@ -690,18 +773,18 @@ const SIM = (() => {
     }
     /* 4. repas */
     const rations = st.buildings.reduce((n, b) => n + (b.gone ? 0 : BT[b.type].ration || 0), 0), kidCap = st.buildings.reduce((n, b) => n + (b.gone ? 0 : BT[b.type].feedKids || 0), 0);
-    const fedFree = allocate(kids, kidCap, 'hunger', rng), eaters = fedFree.concat(allocate(alive.filter(v => !fedFree.includes(v.id)), st.food + rations, 'hunger', rng));
+    let mealJoy = 0; const fedFree = allocate(kids, kidCap, 'hunger', rng), eaters = fedFree.concat(allocate(alive.filter(v => !fedFree.includes(v.id)), st.food + st.meal + rations, 'hunger', rng));
     /* le soir, les bâtiments servent : la moitié du village au plus dîne à la grande table, et deux par maison de bains y filent sitôt mangé. Rien n'est tiré au sort : on tourne chaque jour. */
     const tablesB = st.buildings.filter(b => b.type === 'table' && !b.gone), bathsB = st.buildings.filter(b => b.type === 'bains' && !b.gone), atTable = new Map(), bather = new Map();
     for (let k = 0, nT = Math.min(6 * tablesB.length, Math.ceil(alive.length / 2)); k < nT; k++) { const v = alive[(k + st.day) % alive.length], b = tablesB[Math.floor(k / 6)], q = k % 6; atTable.set(v.id, { x: b.x + b.w * (0.2 + 0.3 * (q % 3)), y: q < 3 ? b.y - 5 : b.y + b.h + 6, c: { x: b.x + b.w / 2, y: b.y + b.h / 2 } }); }
     for (let k = 0, nB = Math.min(2 * bathsB.length, Math.floor(alive.length / 3)); k < nB; k++) bather.set(alive[(alive.length - 1 - k + st.day * 2) % alive.length].id, bathsB[Math.floor(k / 2)]);
     alive.forEach((v, i) => {
-      const tr = tracks[v.id], tb = atTable.get(v.id), seat = tb || map.seats[i % 8], look = tb ? tb.c : F;
+      const tr = tracks[v.id], tb = atTable.get(v.id), seat = tb || map.seats[i % map.seats.length], look = tb ? tb.c : F;
       tr.until(Math.max(tr.t, T.MEAL - 0.3 + i * 0.04), 'idle', { label: 'Termine sa journée' });
       tr.walkBy(nav, seat, Math.max(18.95, Math.min(19.38, tr.t + tr.est(nav, seat) / 1.5)), { label: 'Rentre pour le repas' }); // qui travaille très loin arrive un peu après les autres, sans courir
-      const te = Math.max(18 + i * 0.16, tr.t + 0.1), ate = eaters.includes(v.id);
+      const te = Math.max(18 + i * Math.min(0.16, 1.28 / alive.length), tr.t + 0.1), ate = eaters.includes(v.id);
       tr.until(te, 'sit', { look, label: tb ? 'S’assoit à la grande table' : 'S’assoit près du feu' });
-      if (ate) { if (fedFree.includes(v.id)) E(te, 'eat', { vid: v.id, ration: true }); else if (st.food > 0) { E(te, 'eat', { vid: v.id, food: -1 }); st.food--; } else E(te, 'eat', { vid: v.id, ration: true }); v.hunger = 0; } else { E(te, 'noeat', { vid: v.id }); v.hunger++; }
+      if (ate) { if (fedFree.includes(v.id)) E(te, 'eat', { vid: v.id, ration: true }); else if (st.meal > 0) { E(te, 'eat', { vid: v.id, meal: -1 }); st.meal--; mealJoy++; } else if (st.food > 0) { E(te, 'eat', { vid: v.id, food: -1 }); st.food--; } else E(te, 'eat', { vid: v.id, ration: true }); v.hunger = 0; } else { E(te, 'noeat', { vid: v.id }); v.hunger++; }
       const bh = ate ? bather.get(v.id) : null, bd = bh ? door(bh) : null;
       if (bh && plen(nav, tr.p, bd) < 1.3) { tr.until(te + 0.4, 'eat', { look, label: 'Mange sur le pouce' }); tr.walkBy(nav, bd, te + 0.4 + Math.max(0.5, plen(nav, tr.p, bd) / 1.2), { label: 'File aux bains' }); tr.until(Math.max(tr.t + 0.5, T.BED + 0.7), 'idle', { inside: bh.id, label: 'Prend un bain' }); }
       else tr.until(T.BED + (tb ? i % 3 : i) * 0.08, ate ? 'eat' : 'sad', { look, label: ate ? (tb ? 'Mange à la grande table' : 'Mange') : 'N’a rien à manger' }); // de la table, le lit peut être loin : on se lève plus tôt
@@ -714,6 +797,7 @@ const SIM = (() => {
     /* le bonheur (défis qui le comptent) : une tablée où personne ne manque, une nuit dans sa propre maison ; un manque l'entame */
     let joy = 0; const J = (t, n, x, y) => { if (joyOn && n) { E(t, 'joy', { n, x, y }); joy += n; } };
     joyQ.forEach(q => J(q[0], q[1], q[2], q[3]));
+    if (mealJoy) J(18.7, mealJoy, F.x, F.y - 34); // un repas nourrit, et réjouit
     for (const b of st.buildings) if (BT[b.type].plenty && !b.gone && st.food >= 2 * alive.length) J(19.48, BT[b.type].plenty, b.x + b.w / 2, b.y + 6); // un cellier plein rassure
     if (!hungry.length) for (const b of st.buildings) if (BT[b.type].joy) J(19.42, BT[b.type].joy, b.x + b.w / 2, b.y + 4);
     hungry.forEach((v, k) => J(19.46 + k * 0.01, -1, F.x, F.y - 14));
@@ -721,11 +805,16 @@ const SIM = (() => {
     /* en survie : le feu prend le soir, les rats viennent à la nuit */
     const wreck = (b, txt) => { b.gone = true; lost.push(BT[b.type].name.toLowerCase()); E(19.9, 'fire', { bid: b.id, x: b.x + b.w / 2, y: b.y + b.h / 2 }); for (const v of alive) if (v.home === b.id) v.home = null; log.push({ k: 'bad', text: txt + BT[b.type].name.toLowerCase() + '.' }); }, lost = [], well = () => st.buildings.some(x => x.type === 'puits' && !x.gone), lvOf = e => e.lv || 1;
     for (const e of today) { // foudre, vent, crue, feu, rats : en survie, et dans les défis qui les annoncent
+      if (e.type === 'tornado') { /* la tornade emporte tout ce qui est bâti sans pierre ni brique */
+        const c = st.buildings.filter(b => !b.gone && !solid(b.type));
+        for (const b of c) { b.gone = true; lost.push(BT[b.type].name.toLowerCase()); E(19.9 + (b.id % 7) * 0.004, 'fire', { bid: b.id, x: b.x + b.w / 2, y: b.y + b.h / 2 }); for (const v of alive) if (v.home === b.id) v.home = null; }
+        log.push(c.length ? { k: 'bad', text: 'La tornade a emporté ' + (c.length > 1 ? c.length + ' bâtiments' : 'un bâtiment') + ' : ' + names(c.slice(0, 6).map(b => BT[b.type].name.toLowerCase())) + (c.length > 6 ? '…' : '') + '. Ce qui était de pierre ou de brique a tenu.' } : { k: 'new', text: 'La tornade est passée. Tout était de pierre ou de brique : rien n’a bougé.' });
+      }
       if (e.type === 'storm' && lvOf(e) >= 2) { const c = st.buildings.filter(b => !b.gone && !BT[b.type].open); if (c.length) { const b = c[Math.floor(rng() * c.length)]; if (well()) log.push({ k: 'new', text: 'La foudre est tombée, le puits a sauvé : ' + BT[b.type].name.toLowerCase() + '.' }); else wreck(b, 'La foudre a brûlé : '); } }
       if (e.type === 'wind') for (let k = 0; k < lvOf(e) + 1; k++) { const c = st.buildings.filter(b => !b.gone && LIGHT.includes(b.type)); if (!c.length) break; wreck(c[Math.floor(rng() * c.length)], 'Le vent a emporté : '); }
       if (e.type === 'flood') { if (anti('storm')) log.push({ k: 'new', text: 'La rivière est montée. La digue a tenu.' }); else { const c = st.buildings.filter(b => !b.gone && map.rdist(b.x + b.w / 2, b.y + b.h / 2) < 150).sort((a, b) => map.rdist(a.x + a.w / 2, a.y + a.h / 2) - map.rdist(b.x + b.w / 2, b.y + b.h / 2)); c.slice(0, lvOf(e)).forEach(b => wreck(b, 'La crue a emporté : ')); } }
       if (e.type === 'fire') for (let k = 0; k < Math.min(3, e.lv || 1); k++) { const c = st.buildings.filter(b => !b.gone && !BT[b.type].open && !(BT[b.type].cost.stone > 1)); if (c.length) { const b = c[Math.floor(rng() * c.length)]; if (well()) log.push({ k: 'new', text: 'Le feu a pris, le puits l’a éteint : ' + BT[b.type].name.toLowerCase() + ' sauvé.' }); else wreck(b, 'Le feu a emporté : '); } }
-      if (e.type === 'rats') { const kept = st.buildings.some(b => (b.type === 'gardemanger' || b.type === 'cellier') && !b.gone), loss = Math.min(st.food, kept ? Math.ceil(st.food * 0.05) : Math.max(2, Math.ceil(st.food * Math.min(0.8, 0.25 + 0.1 * (e.lv || 1))))); if (loss > 0) { gain(19.95, 'food', -loss, SK.x + 40, SK.y - 4); log.push({ k: 'bad', text: 'Les rats ont mangé ' + loss + ' nourriture' + (loss > 1 ? 's' : '') + '.' }); } }
+      if (e.type === 'rats') { const kept = st.buildings.some(b => (b.type === 'gardemanger' || b.type === 'cellier') && !b.gone), sealed = st.buildings.some(b => BT[b.type].store && !b.gone), loss = sealed ? 0 : Math.min(st.food, kept ? Math.ceil(st.food * 0.05) : Math.max(2, Math.ceil(st.food * Math.min(0.8, 0.25 + 0.1 * (e.lv || 1))))); if (loss > 0) { gain(19.95, 'food', -loss, SK.x + 40, SK.y - 4); log.push({ k: 'bad', text: 'Les rats ont mangé ' + loss + ' nourriture' + (loss > 1 ? 's' : '') + '.' }); } }
     }
     if (surv) { /* la réserve ne se garde pas : au-delà de deux jours de vivres (quatre avec un garde-manger ou un cellier), près d'un tiers du surplus se gâte chaque nuit */
       const keep = alive.length * (st.buildings.some(b => (b.type === 'gardemanger' || b.type === 'cellier') && !b.gone) ? 4 : 2), rot = Math.ceil(Math.max(0, st.food - keep) * 0.3);
@@ -772,8 +861,8 @@ const SIM = (() => {
     let prey = null;
     if (surv && today.some(e => e.type === 'wolves')) { if (anti('cold')) log.push({ k: 'new', text: 'Les loups ont rôdé. Le braséro les a tenus loin.' }); else if (out.length) prey = out[Math.floor(rng() * out.length)]; else { const loss = Math.min(st.food, 2 + lvOf(today.find(e => e.type === 'wolves'))); if (loss > 0) { gain(21.9, 'food', -loss, SK.x + 40, SK.y - 4); log.push({ k: 'bad', text: 'Les loups ont pillé ' + loss + ' nourriture' + (loss > 1 ? 's' : '') + '.' }); } } }
     st.lost = lost;
-    for (const v of alive) if (v === prey || v.hunger >= 2 || v.roofless >= 2 || (v.child && out.includes(v)) || (frost && out.includes(v) && !anti('cold')) || (surv && v.sick > 0 && (v.hunger >= 1 || out.includes(v)))) {
-      v.alive = false; const why = v === prey ? 'sous les crocs des loups' : v.hunger >= 2 ? 'de faim' : surv && v.sick > 0 && !(frost && out.includes(v)) && v.roofless < 2 ? 'de maladie' : 'de froid';
+    for (const v of alive) if (v === prey || v.hunger >= 2 || v.roofless >= 2 || (v.child && out.includes(v)) || (frost && out.includes(v) && !anti('cold')) || (v.sick > 0 && !medic && (v.hunger >= 1 || out.includes(v) || (!surv && v.grave && v.sick === 1)))) {
+      v.alive = false; const why = v === prey ? 'sous les crocs des loups' : v.hunger >= 2 ? 'de faim' : v.sick > 0 && !(frost && out.includes(v)) && v.roofless < 2 ? 'de maladie' : 'de froid';
       sum.deaths.push({ id: v.id, name: v.name, why }); st.graves.push({ x: v.pos.x, y: v.pos.y, name: v.name });
       log.push({ k: 'dead', text: v.name + ' est ' + (v.sex === 'f' ? 'morte ' : 'mort ') + why + '.' });
       for (const b of st.buildings) { b.workers = b.workers.filter(id => id !== v.id); if (b.owners) b.owners = b.owners.filter(id => id !== v.id); }
@@ -781,17 +870,27 @@ const SIM = (() => {
     { const need = SCHOOL_DAYS - (st.buildings.some(b => BT[b.type].fast && !b.gone) ? 1 : 0), grown = st.villagers.filter(v => v.alive && v.child && (v.school || 0) >= need);
       for (const v of grown) { v.child = false; v.off = null; delete v.atSchool; }
       if (grown.length) { sum.grown = grown.map(v => v.id); log.push({ k: 'new', text: names(grown.map(v => v.name)) + (grown.length > 1 ? ' ont fini l’école : dès demain, ils travaillent.' : ' a fini l’école : dès demain, ' + (grown[0].sex === 'f' ? 'elle' : 'il') + ' travaille.') }); } }
+    if (st.town === st.day) { E(6.3, 'town', {}); log.push({ k: 'new', text: 'Dix habitants : le village devient un bourg. Deux chantiers par jour, et des routes de pierre.' }); }
+    if (st.sickNew && st.sickNew.length) { const l = st.sickNew.map(id => st.villagers[id]), gr = l.some(v => v.grave); log.push({ k: 'bad', text: names(l.map(v => v.name)) + (l.length > 1 ? ' sont tombés malades' : ' est tombé' + (l[0].sex === 'f' ? 'e' : '') + ' malade') + ' : deux jours sans travailler' + (gr ? ', et la fièvre est grave.' : '.') }); }
+    delete st.sickNew;
+    if (idleShops.length) log.push({ k: 'bad', text: 'Rien à transformer ce matin : ' + names([...new Set(idleShops)]) + '.' });
     const warn = [], live = st.villagers.filter(v => v.alive), wh = live.filter(v => v.hunger === 1).map(v => v.name), wr = live.filter(v => v.roofless === 1).map(v => v.name);
     if (wh.length) warn.push(names(wh) + (wh.length > 1 ? ' doivent' : ' doit') + ' manger demain.');
     if (wr.length) warn.push(names(wr) + (wr.length > 1 ? ' doivent' : ' doit') + ' avoir un toit demain.');
     if (weather(st, st.day + 1).frost && capacity(st) < live.length + eventsOn(st, st.day + 1).filter(e => e.type === 'arrivals').reduce((n, e) => n + e.villagers.length, 0)) warn.push('Sous le gel, une nuit dehors est mortelle.');
     ev.sort((a, b) => a.t - b.t);
+    if (!surv && st.villagers.some(v => v.alive && v.sick > 0)) { /* défis : sans médecin, chaque nuit, un malade contamine un voisin de toit partagé ; puis la maladie recule d'un jour */
+      const by = {}, fresh = []; for (const e of ev) if (e.type === 'bed') (by[e.bid] = by[e.bid] || []).push(st.villagers[e.vid]);
+      if (!medic) for (const bid in by) { const b = st.buildings.find(x => x.id === +bid), src = by[bid].find(v => v.alive && v.sick > 0); if (b && !BT[b.type].own && src) { const c = by[bid].filter(v => v.alive && !(v.sick > 0)).sort((a, q) => a.id - q.id)[0]; if (c) { c.grave = src.grave; fresh.push(c); } } }
+      for (const v of st.villagers) if (v.sick > 0) { v.sick--; if (!v.sick) delete v.grave; }
+      for (const v of fresh) { v.sick = 2; log.push({ k: 'bad', text: v.name + ' est tombé' + (v.sex === 'f' ? 'e' : '') + ' malade à son tour.' }); }
+    }
     if (surv) { /* la maladie passe d'un dormeur à l'autre sous un toit partagé, puis recule d'un jour */
       const by = {}; for (const e of ev) if (e.type === 'bed') (by[e.bid] = by[e.bid] || []).push(st.villagers[e.vid]);
-      const fresh = []; for (const bid in by) { const b = st.buildings.find(x => x.id === +bid); if (b && !BT[b.type].own && by[bid].some(v => v.sick > 0)) for (const v of by[bid]) if (!(v.sick > 0) && v.alive && rng() < (st.buildings.some(x => x.type === 'bains' && !x.gone) ? 0.15 : 0.4)) fresh.push(v); }
+      const fresh = []; for (const bid in by) { const b = st.buildings.find(x => x.id === +bid); if (b && !BT[b.type].own && !medic && by[bid].some(v => v.sick > 0)) for (const v of by[bid]) if (!(v.sick > 0) && v.alive && rng() < (st.buildings.some(x => x.type === 'bains' && !x.gone) ? 0.15 : 0.4)) fresh.push(v); }
       /* la fièvre : au sortir de la maladie, elle emporte parfois — de plus en plus souvent avec les semaines, moitié moins s'il y a des bains */
       { const lv = 1 + Math.floor(st.day / 12), q = Math.min(0.6, 0.08 * lv) * (st.buildings.some(x => x.type === 'bains' && !x.gone) ? 0.5 : 1);
-        for (const v of st.villagers) if (v.alive && v.sick === 1 && rng() < q) { v.alive = false; sum.deaths.push({ id: v.id, name: v.name, why: 'de maladie' }); st.graves.push({ x: v.pos.x, y: v.pos.y, name: v.name }); log.push({ k: 'dead', text: v.name + ' est ' + (v.sex === 'f' ? 'morte' : 'mort') + ' de maladie.' }); for (const b of st.buildings) { b.workers = b.workers.filter(id => id !== v.id); if (b.owners) b.owners = b.owners.filter(id => id !== v.id); } } }
+        for (const v of st.villagers) if (v.alive && v.sick === 1 && !medic && rng() < q) { v.alive = false; sum.deaths.push({ id: v.id, name: v.name, why: 'de maladie' }); st.graves.push({ x: v.pos.x, y: v.pos.y, name: v.name }); log.push({ k: 'dead', text: v.name + ' est ' + (v.sex === 'f' ? 'morte' : 'mort') + ' de maladie.' }); for (const b of st.buildings) { b.workers = b.workers.filter(id => id !== v.id); if (b.owners) b.owners = b.owners.filter(id => id !== v.id); } } }
       for (const v of st.villagers) if (v.sick > 0) v.sick--; for (const v of fresh) { v.sick = 2; log.push({ k: 'bad', text: v.name + ' est tombé' + (v.sex === 'f' ? 'e' : '') + ' malade.' }); }
       for (const e of today) if (e.type === 'sick' && e.who && e.who.length) log.push({ k: 'bad', text: names(e.who.map(id => st.villagers[id].name)) + (e.who.length > 1 ? ' sont malades' : ' est malade') + ' : deux jours sans travailler, et ni faim ni nuit dehors.' });
     }
@@ -802,7 +901,7 @@ const SIM = (() => {
       let stars = 0; while (stars < ok.length && ok[stars]) stars++;
       result = { alive: st.villagers.filter(v => v.alive).length, total: st.villagers.length, ok, stars, days: st.day - 1 };
     }
-    return { start: S, end: st, tracks, events: ev, log, warn, sum, nb, result };
+    return { start: S, end: st, tracks, events: ev, log, warn, sum, nb, nbs, result };
   }
 
   /* ---------- villageois, défis, niveaux ---------- */
@@ -819,6 +918,9 @@ const SIM = (() => {
   const NV = k => Array.from({ length: k }, () => ({}));
   const cab = (n, t) => Array.from({ length: n }, () => ({ type: t || 'cabane' }));
   const G = { alive: n => ({ t: 'Tous en vie au soir du jour ' + n, ok: (st, a) => a }), roof: { t: 'Le dernier soir, un toit pour chacun', ok: (st, a) => a && st.lastRoofOk }, never: { t: 'Personne n’a manqué de rien', ok: (st, a) => a && !st.everLacked }, stockOf: n => ({ t: n + ' nourritures en réserve', ok: (st, a) => a && !st.everLacked && st.food >= n }), joyOf: n => ({ t: n + ' de bonheur', ok: (st, a) => a && !st.everLacked && st.joy >= n }) };
+  /* « 6 briques, 4 planches et 10 de bonheur au dernier soir » */
+  G.have = o => { const l = Object.keys(o).map(k => k === 'joy' ? o[k] + ' de bonheur' : k === 'bloom' ? o[k] + ' d’épanouissement' : k === 'ingen' ? o[k] + ' d’ingéniosité' : k === 'culture' ? o[k] + ' de culture' : k === 'meal' ? o[k] + ' repas' : k === 'wood' ? o[k] + ' bois' : o[k] + ' ' + RNAME[k] + (o[k] > 1 ? 's' : ''));
+    return { t: names(l) + ' au dernier soir', need: o, ok: (st, a) => a && !st.everLacked && Object.keys(o).every(k => (st[k] || 0) >= o[k]) }; };
   G.all = (f, w, s, j) => ({ t: [f + ' nourritures', w + ' bois', s + ' pierres'].join(', ') + (j ? ' et ' + j + ' de bonheur' : '') + ' au dernier soir', ok: (st, a) => a && !st.everLacked && st.food >= f && st.wood >= w && st.stone >= s && (!j || st.joy >= j) });
   const KID = { child: true }, NK = k => Array.from({ length: k }, () => ({ child: true }));
   const ALL3 = d => [d];
@@ -1118,6 +1220,6 @@ const SIM = (() => {
     { id: 'l9', name: 'Tout à la fois', sub: 'De tout, et le même soir', ch: ['c28', 'c29', 'c30'] }
   ];
 
-  return { W, H, EXT, CELL, T, SPEED, RES, BT, JOBNAME, LIGHT, SCHOOL_DAYS, SEATS, CHALLENGES, LEVELS, MAPDEF, rngOf, getMap, cast, popOf, costOf, newGame, planDay, survDraw, survJobs, sample, draw, capacity, door, buildNav, findPath, eventsOn, weather, beginDay, placeBuilding, afford, blocked };
+  return { get W() { return W; }, get H() { return H; }, get EXT() { return EXT; }, world, CELL, T, SPEED, RES, RNAME, RATIO, maxBuilds, affordBoth, options, solid, BT, JOBNAME, LIGHT, SCHOOL_DAYS, SEATS, CHALLENGES, LEVELS, MAPDEF, rngOf, getMap, cast, popOf, costOf, newGame, planDay, survDraw, survJobs, sample, draw, capacity, door, buildNav, findPath, eventsOn, weather, beginDay, placeBuilding, afford, blocked };
 })();
 if (typeof module !== 'undefined') module.exports = SIM;

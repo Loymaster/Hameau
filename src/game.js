@@ -32,7 +32,7 @@ const GAME = (() => {
   }
   /* écran du titre : le soir on s'assoit au feu ; le jour chacun va et vient dans la clairière, à son pas */
   function stroller(v0, hour, dt, F) {
-    const q = SIM.SEATS[v0.id % 8], seat = { x: F.x + q[0], y: F.y + q[1] }, night = hour > 18.4 || hour < 6.8;
+    const sq = G.map.seats[v0.id % G.map.seats.length], seat = { x: sq.x, y: sq.y }, night = hour > 18.4 || hour < 6.8;
     const w = G.walk[v0.id] || (G.walk[v0.id] = { x: seat.x, y: seat.y, path: null, i: 0, wait: Math.random() * 6, dx: -q[0], dy: -q[1], d: 0, home: true });
     if (!w.path) {
       w.wait -= dt;
