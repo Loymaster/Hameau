@@ -11,7 +11,7 @@ const GAME = (() => {
   const say = text => { G.msg = text; G.msgN++; };
 
   function liveFrom(st) {
-    const l = { food: st.food, wood: st.wood, stone: st.stone, joy: st.joy || 0, jobs: {}, hunger: {}, roofless: {}, cut: new Map(), prog: 1 };
+    const l = { joy: st.joy || 0, jobs: {}, hunger: {}, roofless: {}, cut: new Map(), prog: 1 }; for (const r of SIM.RES) l[r] = st[r] || 0;
     st.villagers.forEach(v => { l.jobs[v.id] = v.job; l.hunger[v.id] = v.hunger; l.roofless[v.id] = v.roofless; });
     st.cut.forEach(id => l.cut.set(id, -1e9));
     return l;
@@ -33,7 +33,7 @@ const GAME = (() => {
   /* écran du titre : le soir on s'assoit au feu ; le jour chacun va et vient dans la clairière, à son pas */
   function stroller(v0, hour, dt, F) {
     const sq = G.map.seats[v0.id % G.map.seats.length], seat = { x: sq.x, y: sq.y }, night = hour > 18.4 || hour < 6.8;
-    const w = G.walk[v0.id] || (G.walk[v0.id] = { x: seat.x, y: seat.y, path: null, i: 0, wait: Math.random() * 6, dx: -q[0], dy: -q[1], d: 0, home: true });
+    const w = G.walk[v0.id] || (G.walk[v0.id] = { x: seat.x, y: seat.y, path: null, i: 0, wait: Math.random() * 6, dx: F.x - seat.x, dy: F.y - seat.y, d: 0, home: true });
     if (!w.path) {
       w.wait -= dt;
       if (night ? !w.home : w.wait <= 0) {
@@ -47,7 +47,7 @@ const GAME = (() => {
       while (step > 0 && w.path) { const t = w.path[w.i], dx = t.x - w.x, dy = t.y - w.y, L = Math.hypot(dx, dy); if (L <= step) { w.x = t.x; w.y = t.y; step -= L; w.d += L; if (++w.i >= w.path.length) { w.path = null; w.wait = 2 + Math.random() * 7; } } else { w.x += dx / L * step; w.y += dy / L * step; w.d += step; w.dx = dx; w.dy = dy; step = 0; } }
       if (w.path) return { x: w.x, y: w.y, dx: w.dx, dy: w.dy, moving: true, anim: 'walk', dist: w.d, label: '' };
     }
-    if (w.home) return { x: w.x, y: w.y, dx: -q[0], dy: -q[1], anim: hour > 21.5 || hour < 6.5 ? 'sit' : night ? 'eat' : 'idle', label: '' };
+    if (w.home) return { x: w.x, y: w.y, dx: F.x - seat.x, dy: F.y - seat.y, anim: hour > 21.5 || hour < 6.5 ? 'sit' : night ? 'eat' : 'idle', label: '' };
     return { x: w.x, y: w.y, dx: w.dx, dy: w.dy, anim: 'idle', label: '' };
   }
   function attract(id) { G.walk = {}; G.nav = null; G.st = SIM.newGame(SIM.CHALLENGES[id || 'c2'], seed()); G.plan = null; G.live = liveFrom(G.st); G.phase = 'menu'; G.mind = null; G.th = []; G.bub = []; reset(); scene(G.st); }
@@ -78,10 +78,11 @@ const GAME = (() => {
     if (e.msg && e.type !== 'built') say(e.msg);
     switch (e.type) {
       case 'site': { let i = 0; for (const k of SIM.RES) if (e[k]) { R.float({ x: SK.x + 16 + i * 22, y: SK.y - i * 2, icon: k, text: String(e[k]).replace('-', '−') }); i++; } R.setRoads(G.plan.end); SFX.play('site', R.pan(G.plan.nb.x)); break; }
+      case 'town': { SFX.play('clarion'); R.setRoads(G.plan.end); say('Dix habitants : le village devient un bourg.'); break; }
       case 'fire': { R.burst(e.x, e.y, 'dust'); R.burst(e.x - 8, e.y + 4, 'dust'); R.burst(e.x + 8, e.y - 4, 'dust'); SFX.play('flare', R.pan(e.x)); G.msg = 'Le feu a pris.'; break; }
-      case 'built': { const b = G.plan.nb; G.pop[b.id] = time; R.burst(b.x + b.w / 2, b.y + b.h - 4, 'dust'); R.burst(b.x + 6, b.y + b.h, 'dust'); R.burst(b.x + b.w - 6, b.y + b.h, 'dust'); SFX.play('built', R.pan(b.x + b.w / 2)); break; }
+      case 'built': { const b = (G.plan.nbs || []).find(x => x.id === e.bid) || G.plan.nb; G.pop[b.id] = time; R.burst(b.x + b.w / 2, b.y + b.h - 4, 'dust'); R.burst(b.x + 6, b.y + b.h, 'dust'); R.burst(b.x + b.w - 6, b.y + b.h, 'dust'); SFX.play('built', R.pan(b.x + b.w / 2)); break; }
       case 'job': { L.jobs[e.vid] = e.job; const p = e.job ? vpos(e.vid) : null; if (p) { R.burst(p.x, p.y - 16, 'leaf', ART.OUT[e.job].main); SFX.play('job', R.pan(p.x)); } break; }
-      case 'res': { const k = SIM.RES.find(r => e[r]); R.float({ x: e.x, y: e.y, icon: k, text: (e[k] > 0 ? '+' : '−') + Math.abs(e[k]) }); if (e[k] > 0) SFX.play(k, R.pan(e.x)); break; }
+      case 'res': { const k = SIM.RES.find(r => e[r]); if (!k) break; R.float({ x: e.x, y: e.y, icon: k, text: (e[k] > 0 ? '+' : '−') + Math.abs(e[k]) }); if (e[k] > 0) SFX.play(k, R.pan(e.x)); break; }
       case 'cut': { L.cut.set(e.tree, time); const t = G.map.trees[e.tree]; R.burst(t.x, t.y, 'leaf', ART.TREEPAL[t.pal][0]); R.burst(t.x, t.y, 'leaf', ART.TREEPAL[t.pal][1]); SFX.play('fall', R.pan(t.x)); break; }
       case 'joy': { L.joy = Math.max(0, L.joy + e.n); R.float({ x: e.x, y: e.y, icon: 'joy', text: (e.n > 0 ? '+' : '−') + Math.abs(e.n) }); if (e.n > 0) SFX.play('home', R.pan(e.x)); break; }
       case 'home': { const b = G.plan.end.buildings.find(x => x.id === e.bid); R.float({ x: b.x + b.w / 2, y: b.y + 4, text: 'Chez ' + V[e.vid].name }); R.burst(b.x + b.w / 2, b.y + b.h, 'dust'); SFX.play('home', R.pan(b.x)); break; }
@@ -190,8 +191,8 @@ const GAME = (() => {
     }
     const nightShow = hour >= 20.9 && G.phase !== 'menu';
     const buildings = st.buildings.map(b => {
-      const o = occ[b.id] || [], isNew = nb && nb.id === b.id, asleep = o.some(x => x.bed != null);
-      const progress = isNew ? Math.max(0, Math.min(1, (t - nb.t0) / (nb.t1 - nb.t0))) : 1;
+      const o = occ[b.id] || [], isNew = !!(G.plan && (G.plan.nbs || []).some(x => x.id === b.id)), asleep = o.some(x => x.bed != null);
+      const progress = isNew ? Math.max(0, Math.min(1, (t - 6.5) / (8.85 - 6.5))) : 1;
       const want = !SIM.BT[b.type].open && ((G.tapUntil[b.id] || 0) > time || (nightShow && asleep)) ? 1 : 0;
       const cur = G.reveal[b.id] || 0; G.reveal[b.id] = cur + (want - cur) * Math.min(1, dt * 5);
       return { id: b.id, type: b.type, x: b.x, y: b.y, w: b.w, h: b.h, progress: G.phase === 'morning' && isNew ? 1 : progress, reveal: G.reveal[b.id], occ: o, lit: asleep || !!ART.BDEF[b.type].lamp || (G.phase === 'menu' && b.type === 'cabane'), smoke: (o.some(x => x.bed == null) || !!SIM.BT[b.type].fume) && !!ART.BDEF[b.type].chimney && !isNew, popT: G.pop[b.id] };

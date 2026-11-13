@@ -17,6 +17,9 @@ const ART = (() => {
   const HAIRC = ['#2A211C', '#4E3221', '#7A4E2D', '#A8502A', '#D6B05C', '#A39D94'];
   const OUT = {
     civil: { main: '#B9AE98', sec: '#E9E1CF', low: '#6E5F4E' },
+    argilier: { main: '#B8794F', sec: '#E3C8A8', low: '#6E4A30' }, briquetier: { main: '#C0553D', sec: '#EFD9C4', low: '#5E3A2E' }, charpentier: { main: '#C9A45C', sec: '#F1E6C8', low: '#6E5530' }, commis: { main: '#F1EBDD', sec: '#D9CDB4', low: '#6A6258' },
+    professeur: { main: '#4E6E80', sec: '#DCE6EC', low: '#34424C' }, savant: { main: '#5B5A86', sec: '#E2E0F0', low: '#3A3954' }, artiste: { main: '#B8558E', sec: '#F4DCEA', low: '#5E3A52' }, medecin: { main: '#F4F4F0', sec: '#C8384A', low: '#59636B' },
+    geologue: { main: '#8A7A5A', sec: '#E6DCC2', low: '#4E4636' }, ingenieur: { main: '#3E6C8E', sec: '#E0E9EF', low: '#2E4250' }, cuisinier: { main: '#FBF8F0', sec: '#D94F4F', low: '#4A4A4A' }, psychologue: { main: '#7FA69A', sec: '#E4F0EC', low: '#46605A' },
     bucheron: { main: '#A3402F', sec: '#6E2A1F', low: '#4F4A44' },
     cueilleur: { main: '#C8943B', sec: '#EFE4CC', low: '#8E6A2C' },
     paysan: { main: '#6F8F4E', sec: '#D9CBA8', low: '#56703C' },
@@ -336,6 +339,13 @@ const ART = (() => {
     bergerie: { win: [], lights: [[26, 39]] }, scierie: { win: [], lights: [[30, 41]] }, menuiserie: { win: [8], lights: [[12, 37], [26, 40]] }, pressoir: { win: [8], lights: [[12, 37], [24, 40]] }, cellier: { win: [], lights: [[20, 33]] },
     fumoir: { win: [], lights: [[18, 37]], chimney: [18, 8] }, bains: { win: [30], lights: [[34, 35], [22, 38]], chimney: [12, 8] },
     brasero: { win: [], lights: [[13, 11], [13, 13]], lamp: true }, cloche: { win: [], lights: [] },
+    universite: { win: [8, 46], lights: [[12, 43], [50, 43], [31, 45]] }, outillerie: { win: [8], lights: [[12, 39], [26, 41]] },
+    argiliere: { win: [], lights: [[26, 35]] }, briqueterie: { win: [8], lights: [[12, 39], [27, 41]], chimney: [40, 8], glow: true }, charpenterie: { win: [8], lights: [[12, 39], [28, 41]] },
+    cuisine: { win: [8], lights: [[12, 39], [25, 41]], chimney: [36, 8], glow: true }, lycee: { win: [8, 46], lights: [[12, 43], [50, 43], [31, 45]] }, theatre: { win: [], lights: [[30, 44], [12, 44], [48, 44]], lamp: true },
+    observatoire: { win: [6], lights: [[10, 41], [23, 43]] }, academie: { win: [8, 44], lights: [[12, 43], [48, 43], [30, 45]] }, arts: { win: [8, 38], lights: [[12, 39], [42, 39]] },
+    cabinet: { win: [8], lights: [[12, 39], [24, 41]], lamp: true }, geologue: { win: [8], lights: [[12, 37], [23, 39]] }, ingenieur: { win: [8], lights: [[12, 37], [23, 39]] }, chef: { win: [8], lights: [[12, 37], [23, 39]], chimney: [32, 8], glow: true },
+    psy: { win: [8], lights: [[12, 39], [24, 41]] }, maisonbrique: { beds: [[5, 8], [19, 8], [33, 8], [47, 8]], win: [8, 44], lights: [[12, 41], [48, 41], [30, 43]] },
+    demeure: { beds: [[4, 8], [15, 8], [26, 8], [37, 8], [48, 8], [59, 8]], win: [8, 54], lights: [[12, 47], [58, 47], [35, 49]], lamp: true }, entrepot: { win: [], lights: [[31, 41]] }, halle: { win: [], lights: [[32, 43], [14, 43], [50, 43]], lamp: true },
     four: { win: [30], lights: [[34, 40], [22, 42]], work: [29, 30], chimney: [32, 9], glow: true }
   };
   /* ---------- dix bâtiments de plus ---------- */
@@ -459,7 +469,39 @@ const ART = (() => {
     bibliotheque: ['#CFC3AA', '#6F8E86', '#4F6E66', 'planks'], cantine: ['#E2D2AE', '#C77E3A', '#9C5E26', 'tile'], chevre: ['#B9B1A0', '#B9A26A', '#93803E', 'thatch'], bassecour: ['#C9AE86', '#B0623C', '#84442A', 'planks'], marionnettes: ['#E8DCC2', '#C8384A', '#8E2333', 'planks'],
     grange: ['#B98A5E', '#A6583A', '#7E3F28', 'planks'], chaumiere: ['#DDD2BC', '#DDBE7C', '#BF9C58', 'thatch'], auberge: ['#D9C9A8', '#A5553D', '#7E3A2A', 'tile'],
     bergerie: ['#B9B1A0', '#CDB06E', '#A98A4C', 'thatch'], fumoir: ['#5E4A38', '#6B5644', '#4A3A2C', 'planks'], scierie: ['#B48858', '#B79468', '#8A6A48', 'planks'],
+    universite: ['#D9D0BC', '#7E8E5E', '#5E6E44', 'tile'], outillerie: ['#B5654A', '#8A6A48', '#6A4E32', 'planks'],
+    argiliere: ['#B9A084', '#C08A5C', '#96663E', 'thatch'], briqueterie: ['#B5654A', '#8E877B', '#6C665C', 'tile'], charpenterie: ['#C9A572', '#B79468', '#8A6A48', 'planks'], cuisine: ['#E2D2AE', '#B5553D', '#8A3B2A', 'tile'],
+    lycee: ['#E3D8C2', '#5E7C92', '#44607A', 'tile'], theatre: ['#D9C9A8', '#8C3B4A', '#6A2634', 'planks'], observatoire: ['#B5654A', '#8FA9AE', '#6C8890', 'tile'], academie: ['#DCD3C2', '#6F6A8E', '#524E72', 'tile'],
+    arts: ['#E8DCC2', '#D08A9A', '#A8607A', 'planks'], cabinet: ['#EFE9DA', '#6FA58E', '#4F8570', 'tile'], geologue: ['#C9B79A', '#A0705A', '#7C5040', 'tile'], ingenieur: ['#D2C2A0', '#C9A45C', '#A5823E', 'planks'],
+    chef: ['#E6D7B8', '#D9823A', '#B0622A', 'tile'], psy: ['#E3DCCB', '#9F8FBF', '#7A6A9C', 'tile'], maisonbrique: ['#B5654A', '#7E4A38', '#5E3426', 'tile'], demeure: ['#BE6E52', '#5E6C7A', '#44505E', 'tile'],
+    entrepot: ['#A98862', '#7E8A92', '#5E6A72', 'planks'], halle: ['#C27A5C', '#C9A45C', '#A5823E', 'tile'],
     menuiserie: ['#C9AE86', '#9FB068', '#7B8E4C', 'moss'], bains: ['#C4B49A', '#8FA9AE', '#6C8890', 'planks'], pressoir: ['#D6C7A6', '#A5553D', '#7E3A2A', 'tile'], cellier: ['#A39C8F', '#8DA05E', '#6B7E44', 'moss']
+  };
+  /* la manufacture et le savoir : un signe distinctif par toit, lisible de loin */
+  const bricks = (g, x, y, w, h, c) => { g.strokeStyle = c || 'rgba(70,30,20,.35)'; g.lineWidth = 0.5; for (let j = 0, yy = y; yy < y + h; yy += 3, j++) { g.beginPath(); g.moveTo(x, yy); g.lineTo(x + w, yy); g.stroke(); for (let xx = x + (j % 2 ? 3 : 0); xx < x + w; xx += 6) { g.beginPath(); g.moveTo(xx, yy); g.lineTo(xx, Math.min(y + h, yy + 3)); g.stroke(); } } };
+  const sign = (g, x, y, c, d) => { rr(g, x - 4.5, y - 4.5, 9, 9, 2); FS(g, '#F4EEDC', 0.9); g.strokeStyle = c; g.fillStyle = c; g.lineWidth = 1.5; g.lineCap = 'round'; d(g, x, y); };
+  const cols = (g, w, h) => { for (const x of [4, w - 7]) { g.fillStyle = '#F4EEDC'; g.fillRect(x, h - FH + 1, 3, FH - 1); g.strokeStyle = 'rgba(60,50,40,.5)'; g.lineWidth = 0.5; g.strokeRect(x, h - FH + 1, 3, FH - 1); } };
+  const MANU = {
+    universite: (g, w, h, rh) => { cols(g, w, h); rr(g, w / 2 - 7, 2, 14, 13, 1.5); FS(g, '#D9D0BC', 1.1); g.fillStyle = '#5E6E44'; g.beginPath(); g.moveTo(w / 2 - 8, 3); g.lineTo(w / 2, -3 + 4); g.lineTo(w / 2 + 8, 3); g.fill(); g.fillStyle = '#E9C85A'; g.fillRect(w / 2 - 3.6, 6, 7.2, 5); g.strokeStyle = '#5E4E2C'; g.lineWidth = 0.6; g.beginPath(); g.moveTo(w / 2, 6); g.lineTo(w / 2, 11); g.stroke(); },
+    outillerie: (g, w, h, rh) => { bricks(g, 2, rh + 1, w - 4, FH - 2); sign(g, w - 12, rh + 7, '#5A5F68', (g, x, y) => { g.beginPath(); g.moveTo(x - 2.4, y + 2.4); g.lineTo(x + 1, y - 1); g.stroke(); g.fillRect(x, y - 3, 3, 2.4); }); for (let k = 0; k < 3; k++) { g.save(); g.translate(8 + k * 4.5, h - 1); g.rotate(-0.25 + k * 0.2); g.fillStyle = '#8A6038'; g.fillRect(-0.7, -10, 1.4, 10); g.fillStyle = '#8A8F98'; g.fillRect(-2.2, -11.5, 4.4, 2.4); g.restore(); } },
+    argiliere: (g, w, h, rh) => { for (const q of [[w - 12, h - 4, 5], [w - 20, h - 3, 3.6], [9, h - 3.5, 4]]) { ell(g, q[0], q[1], q[2], q[2] * 0.62); FS(g, '#B5704A', 0.8); } rr(g, w / 2 - 8, 5, 16, rh - 10, 2); FS(g, '#8E5A3A', 1); g.fillStyle = '#B5704A'; rr(g, w / 2 - 6, 7, 12, rh - 14, 1.5); g.fill(); },
+    briqueterie: (g, w, h, rh, chim) => { bricks(g, 2, rh + 1, w - 4, FH - 2); rr(g, w - 18, 3, 9, 11, 1.2); FS(g, '#8E4A38', 1.1); g.fillStyle = '#2A2420'; g.fillRect(w - 16, 5, 5, 4); for (let k = 0; k < 3; k++) { rr(g, 5 + k * 5.5, h - 4.6, 5, 2.6, 0.5); FS(g, '#C0614A', 0.6); } for (let k = 0; k < 2; k++) { rr(g, 7.7 + k * 5.5, h - 7.2, 5, 2.6, 0.5); FS(g, '#C0614A', 0.6); } },
+    charpenterie: (g, w, h, rh) => { for (let k = 0; k < 4; k++) { rr(g, w - 22, h - 3.4 - k * 2.3, 17, 2, 0.5); FS(g, k % 2 ? '#E0C08A' : '#D2AE78', 0.5); } g.strokeStyle = '#C3C9D1'; g.lineWidth = 1.4; g.beginPath(); g.moveTo(8, 6); g.lineTo(20, rh - 5); g.stroke(); g.fillStyle = '#6B4A2E'; rr(g, 5, 3.5, 5, 4, 1); g.fill(); },
+    cuisine: (g, w, h, rh, chim) => { chim(w - 17, 4); for (const q of [[w - 13.5, -1, 3], [w - 10, -5, 2.2]]) { g.fillStyle = 'rgba(244,248,250,.55)'; circ(g, q[0], q[1] + 4, q[2]); g.fill(); } circ(g, w - 10, h - 5, 3.8); FS(g, '#5A5F68', 0.9); g.fillStyle = '#C8662F'; circ(g, w - 10, h - 5, 2.2); g.fill(); },
+    lycee: (g, w, h, rh) => { cols(g, w, h); rr(g, w / 2 - 6, 2, 12, 12, 1.5); FS(g, '#E3D8C2', 1.1); circ(g, w / 2, 8, 3.6); FS(g, '#F4EEDC', 0.8); g.strokeStyle = '#3A4854'; g.lineWidth = 0.8; g.beginPath(); g.moveTo(w / 2, 8); g.lineTo(w / 2, 5.6); g.moveTo(w / 2, 8); g.lineTo(w / 2 + 1.8, 8.8); g.stroke(); },
+    theatre: (g, w, h, rh) => { cols(g, w, h); for (let x = 0; x < w; x += 10) { g.fillStyle = 'rgba(233,200,90,.55)'; g.fillRect(x, 0, 2, rh); } rr(g, w / 2 - 13, rh + 1.5, 26, FH - 3, 1.5); FS(g, '#3A2A30', 1); g.fillStyle = '#C8384A'; g.beginPath(); g.moveTo(w / 2 - 12, rh + 2); g.quadraticCurveTo(w / 2 - 5, rh + 8, w / 2 - 11, h - 2); g.lineTo(w / 2 - 12, h - 2); g.fill(); g.beginPath(); g.moveTo(w / 2 + 12, rh + 2); g.quadraticCurveTo(w / 2 + 5, rh + 8, w / 2 + 11, h - 2); g.lineTo(w / 2 + 12, h - 2); g.fill(); },
+    observatoire: (g, w, h, rh) => { bricks(g, 2, rh + 1, w - 4, FH - 2); circ(g, w / 2, rh / 2, Math.min(w, rh) / 2 - 5); FS(g, '#C9D6DA', 1.3); g.fillStyle = '#2A3440'; g.beginPath(); g.moveTo(w / 2, rh / 2); g.arc(w / 2, rh / 2, Math.min(w, rh) / 2 - 5, -0.9, -0.45); g.fill(); g.fillStyle = '#F2E6A8'; for (const q of [[6, 6], [w - 7, 9], [9, rh - 6], [w - 9, rh - 5]]) { circ(g, q[0], q[1], 0.9); g.fill(); } },
+    academie: (g, w, h, rh) => { cols(g, w, h); g.fillStyle = '#F4EEDC'; g.fillRect(w / 2 - 12, rh + 1, 2.4, FH - 1); g.fillRect(w / 2 + 9.6, rh + 1, 2.4, FH - 1); g.fillStyle = dk('#6F6A8E', 0.25); g.beginPath(); g.moveTo(w / 2 - 14, rh); g.lineTo(w / 2, rh - 9); g.lineTo(w / 2 + 14, rh); g.fill(); circ(g, w / 2, rh - 3.4, 1.8); g.fillStyle = '#E9C85A'; g.fill(); },
+    arts: (g, w, h, rh) => { const C = ['#C8384A', '#E9C85A', '#4E6E80', '#7FA65A', '#D08A9A']; for (let k = 0; k < 5; k++) { g.fillStyle = C[k]; circ(g, 9 + k * 5.2, 8 + (k % 2) * 4, 2.6); g.fill(); } rr(g, w - 17, h - 12, 10, 11, 1); FS(g, '#F4EEDC', 0.8); g.fillStyle = '#D08A9A'; circ(g, w - 12, h - 7, 2.4); g.fill(); },
+    cabinet: (g, w, h, rh) => { sign(g, w - 13, rh + 7.5, '#C8384A', (g, x, y) => { g.beginPath(); g.moveTo(x - 2.6, y); g.lineTo(x + 2.6, y); g.moveTo(x, y - 2.6); g.lineTo(x, y + 2.6); g.stroke(); }); g.fillStyle = 'rgba(244,238,220,.9)'; g.fillRect(w / 2 - 1.6, 4, 3.2, rh - 8); g.fillRect(w / 2 - 7, rh / 2 - 1.6, 14, 3.2); },
+    geologue: (g, w, h, rh) => { bricks(g, 2, rh + 1, w - 4, FH - 2, 'rgba(70,40,25,.22)'); sign(g, w - 12, rh + 7, '#8E4A38', (g, x, y) => { g.beginPath(); g.moveTo(x - 2.6, y + 2.2); g.lineTo(x, y - 2.6); g.lineTo(x + 2.6, y + 2.2); g.closePath(); g.stroke(); }); for (const q of [[6, h - 3, '#8E877B'], [10.5, h - 2.6, '#B5704A'], [14, h - 3.2, '#D9CDB4']]) { g.fillStyle = q[2]; circ(g, q[0], q[1], 2); g.fill(); } },
+    ingenieur: (g, w, h, rh) => { sign(g, w - 12, rh + 7, '#4E6E80', (g, x, y) => { g.beginPath(); g.moveTo(x - 2.6, y + 2.4); g.lineTo(x, y - 2.6); g.lineTo(x + 2.6, y + 2.4); g.stroke(); }); rr(g, 6, 5, w - 12, rh - 10, 1.5); FS(g, '#DCE6EC', 0.8); g.strokeStyle = 'rgba(78,110,128,.7)'; g.lineWidth = 0.5; for (let x = 10; x < w - 8; x += 5) { g.beginPath(); g.moveTo(x, 6); g.lineTo(x, rh - 6); g.stroke(); } },
+    chef: (g, w, h, rh, chim) => { chim(w - 17, 4); sign(g, w - 12, rh + 7, '#C8662F', (g, x, y) => { circ(g, x, y - 0.6, 2.4); g.fill(); g.fillRect(x - 2, y + 1.2, 4, 1.8); }); g.fillStyle = 'rgba(244,248,250,.55)'; circ(g, w - 13.5, 2, 2.8); g.fill(); },
+    psy: (g, w, h, rh) => { sign(g, w - 13, rh + 7.5, '#7A6A9C', (g, x, y) => { g.beginPath(); g.arc(x, y, 2.4, 0.3, Math.PI * 1.7); g.stroke(); }); for (const q of [[8, h - 3.2], [13, h - 4], [18, h - 3]]) { g.fillStyle = q[0] === 13 ? '#D08A9A' : '#B7A6D6'; circ(g, q[0], q[1], 1.5); g.fill(); } },
+    maisonbrique: (g, w, h, rh, chim) => { bricks(g, 2, rh + 1, w - 4, FH - 2); chim(9, 4); chim(w - 16, 4); },
+    demeure: (g, w, h, rh, chim) => { bricks(g, 2, rh + 1, w - 4, FH - 2); chim(8, 4); chim(w - 15, 4); chim(w / 2 - 3.5, 3); g.fillStyle = 'rgba(0,0,0,.14)'; g.fillRect(w / 3, 0, 1.6, rh); g.fillRect(2 * w / 3, 0, 1.6, rh); rr(g, w / 2 - 7, rh + 0.5, 14, 2.4, 0.6); FS(g, '#F4EEDC', 0.6); },
+    entrepot: (g, w, h, rh) => { g.strokeStyle = '#4A3A2C'; g.lineWidth = 1.2; g.strokeRect(w / 2 - 10, rh + 1, 20, FH - 1); g.beginPath(); g.moveTo(w / 2 - 10, rh + 1); g.lineTo(w / 2 + 10, h); g.moveTo(w / 2 + 10, rh + 1); g.lineTo(w / 2 - 10, h); g.stroke(); for (const q of [[7, h - 5.5], [w - 13, h - 5.5], [w - 20, h - 4.5]]) { rr(g, q[0], q[1], 6, 5, 0.8); FS(g, '#B48858', 0.7); } },
+    halle: (g, w, h, rh) => { bricks(g, 2, rh + 1, w - 4, FH - 2); for (let x = 5; x < w - 8; x += 13) { g.fillStyle = '#3A2A30'; g.beginPath(); g.moveTo(x, h); g.lineTo(x, rh + 6); g.quadraticCurveTo(x + 4.5, rh + 1, x + 9, rh + 6); g.lineTo(x + 9, h); g.fill(); g.fillStyle = ['#D9483A', '#E9C85A', '#7FA65A', '#D9823A', '#C8384A'][(x / 13 | 0) % 5]; circ(g, x + 3, h - 2, 1.5); g.fill(); circ(g, x + 6, h - 2.4, 1.5); g.fill(); } }
   };
   function houseExt(g, type, w, h) {
     const H0 = HOUSE[type], rh = h - FH; if (!H0) return false;
@@ -486,6 +528,7 @@ const ART = (() => {
     else if (type === 'bains') { chim(8.500, 4); for (const q of [[w - 14, 9, 5], [w - 22, 16, 3.500]]) { g.fillStyle = 'rgba(244,248,250,.5)'; circ(g, q[0], q[1], q[2]); g.fill(); } }
     else if (type === 'pressoir') { barrel(g, w - 9, h - 5, 4); barrel(g, w - 18, h - 4.500, 3.500); for (const o of [[5, h - 3], [8, h - 4.500], [10.500, h - 2.800]]) { g.fillStyle = '#D9483A'; circ(g, o[0], o[1], 1.500); g.fill(); } }
     else if (type === 'cellier') { g.fillStyle = 'rgba(244,238,220,.5)'; for (let i = 0; i < 9; i++) circ(g, 5 + (i * 7) % (w - 10), 5 + (i * 5) % (rh - 8), 1.100), g.fill(); }
+    else if (MANU[type]) MANU[type](g, w, h, rh, chim, H0);
     return true;
   }
   function houseInt(g, type, w, h) {
@@ -504,8 +547,34 @@ const ART = (() => {
     else if (type === 'bains') { circ(g, w / 2, h / 2 - 2, 12); FS(g, '#9C7146', 1.4); circ(g, w / 2, h / 2 - 2, 9); g.fillStyle = '#7FB4C4'; g.fill(); g.strokeStyle = 'rgba(240,250,252,.7)'; g.lineWidth = 0.800; g.beginPath(); g.arc(w / 2 - 2, h / 2 - 3, 4, 0.4, 2.4); g.stroke(); for (const q of [[9, h - 10], [w - 9, h - 10]]) { rr(g, q[0] - 3, q[1] - 2, 6, 4, 1); FS(g, '#EFE6D2', 0.700); } }
     else if (type === 'pressoir') { rr(g, w / 2 - 9, 7, 18, 14, 2); FS(g, '#8A6038', 1.3); circ(g, w / 2, 14, 5.500); FS(g, '#C99A62', 1); g.fillStyle = '#4A3A2C'; g.fillRect(w / 2 - 1.200, 5, 2.400, 18); barrel(g, 9, h - 12, 4.600); barrel(g, 19, h - 10, 4); circ(g, w - 11, h - 12, 5); FS(g, '#B5833F', 1); for (const o of [[-1.800, -1], [1.500, 0], [0, 1.800]]) { g.fillStyle = '#D9483A'; circ(g, w - 11 + o[0], h - 12 + o[1], 1.500); g.fill(); } }
     else if (type === 'cellier') { for (const y of [7, 16]) { rr(g, 5, y, w - 10, 5, 1); FS(g, '#8A6038', 1); for (let x = 9; x < w - 6; x += 5.500) { rr(g, x - 1.800, y - 2.500, 3.600, 4.500, 1.200); FS(g, ['#D9A441', '#C8384A', '#7FA65A'][(x | 0) % 3], 0.600); } } barrel(g, 10, h - 10, 4.500); barrel(g, w - 10, h - 10, 4.500); }
+    else if (MANU[type]) manuInt(g, type, w, h);
     wallsPlan(g, w, h, dk(H0[0], 0.35));
     return true;
+  }
+  /* intérieurs de la manufacture : un établi, et ce qu'on y fait */
+  function manuInt(g, type, w, h) {
+    const bench = (x, y, bw, c) => { rr(g, x, y, bw, 7, 1.5); FS(g, c || '#A87A4A', 1); };
+    const dots = (x, y, n, cs, r) => { for (let k = 0; k < n; k++) { g.fillStyle = cs[k % cs.length]; circ(g, x + k * (r * 2 + 1.4), y, r); g.fill(); } };
+    const shelf = (y, cs) => { rr(g, 5, y, w - 10, 5, 1); FS(g, '#8A6038', 1); for (let x = 7; x < w - 8; x += 3) { g.fillStyle = cs[(x | 0) % cs.length]; g.fillRect(x, y + 0.6, 2.2, 3.8); } };
+    const rug = (c) => { rr(g, w / 2 - 12, h / 2 - 4, 24, 14, 3); FS(g, c, 0.8); };
+    if (type === 'argiliere') { for (const q of [[12, 12, 7], [w - 14, 14, 6], [w / 2, 24, 5]]) { ell(g, q[0], q[1], q[2], q[2] * 0.7); FS(g, '#B5704A', 1); } }
+    else if (type === 'briqueterie') { rr(g, w - 24, 6, 18, 16, 3); FS(g, '#8E4A38', 1.3); g.fillStyle = '#FF9A3C'; rr(g, w - 20, 11, 10, 7, 2); g.fill(); for (let j = 0; j < 3; j++) for (let k = 0; k < 3 - j; k++) { rr(g, 6 + k * 6 + j * 3, 22 - j * 3.2, 5.4, 2.8, 0.5); FS(g, '#C0614A', 0.6); } }
+    else if (type === 'charpenterie') { bench(8, 9, w - 16); rr(g, 6, 11, w - 20, 3, 1); FS(g, '#D2AE78', 0.7); for (let k = 0; k < 4; k++) { rr(g, 7, h - 18 + k * 2.6, 20, 2.1, 0.5); FS(g, k % 2 ? '#E0C08A' : '#D2AE78', 0.5); } }
+    else if (type === 'cuisine' || type === 'chef') { rr(g, w - 20, 6, 14, 12, 2); FS(g, '#5A5F68', 1.2); g.fillStyle = '#FF9A3C'; circ(g, w - 13, 12, 3); g.fill(); bench(7, 8, w - 32, '#C9A572'); dots(10, 11.5, type === 'chef' ? 4 : 3, ['#D9483A', '#E9C85A', '#7FA65A', '#F4EEDC'], 1.7); }
+    else if (type === 'lycee') { rr(g, w / 2 - 16, 5, 32, 5, 1); FS(g, '#3A4854', 1); for (const x of [12, 26, 40, 54]) if (x < w - 8) { rr(g, x - 5, 18, 10, 5, 1); FS(g, '#A87A4A', 0.9); rr(g, x - 3, 19, 6, 3, 0.6); FS(g, '#EFE6D2', 0.5); } }
+    else if (type === 'theatre') { rr(g, 5, 5, w - 10, 11, 2); FS(g, '#6A2634', 1.2); g.fillStyle = '#E9C85A'; g.fillRect(5, 15, w - 10, 1.4); for (let j = 0; j < 2; j++) for (let x = 9; x < w - 12; x += 8) { rr(g, x, 22 + j * 8, 6, 4, 1.5); FS(g, '#8C3B4A', 0.7); } }
+    else if (type === 'observatoire') { circ(g, w / 2, h / 2 - 4, 12); FS(g, '#2A3440', 1.3); g.fillStyle = '#F2E6A8'; for (const q of [[-5, -3], [4, -6], [6, 3], [-3, 5], [0, -1]]) { circ(g, w / 2 + q[0], h / 2 - 4 + q[1], 0.9); g.fill(); } g.strokeStyle = '#C3C9D1'; g.lineWidth = 2.2; g.beginPath(); g.moveTo(w / 2 - 9, h / 2 + 7); g.lineTo(w / 2 + 3, h / 2 - 5); g.stroke(); }
+    else if (type === 'universite') { shelf(6, ['#7FA65A', '#D9A441', '#4E6E80', '#C8384A']); for (const x of [14, 30, 46]) if (x < w - 8) { rr(g, x - 6, 20, 12, 6, 1); FS(g, '#A87A4A', 0.9); rr(g, x - 3, 21.4, 6, 3, 0.6); FS(g, '#EFE6D2', 0.5); } }
+    else if (type === 'outillerie') { bench(7, 8, w - 14); for (let k = 0; k < 4; k++) { g.fillStyle = '#8A8F98'; g.fillRect(10 + k * 8, 9.5, 4.4, 2.2); g.fillStyle = '#8A6038'; g.fillRect(11.6 + k * 8, 11.6, 1.3, 3); } }
+    else if (type === 'academie') { shelf(6, ['#C8384A', '#D9A441', '#4E6E80', '#7FA65A', '#8C3B4A']); bench(w / 2 - 14, 20, 28); rr(g, w / 2 - 6, 21.5, 7, 4, 0.6); FS(g, '#EFE6D2', 0.5); g.fillStyle = '#E9C85A'; circ(g, w / 2 + 8, 23.5, 2); g.fill(); }
+    else if (type === 'arts') { rr(g, 8, 6, 12, 15, 1); FS(g, '#F4EEDC', 0.9); dots(10.5, 10, 3, ['#C8384A', '#4E6E80', '#E9C85A'], 1.6); rr(g, w - 22, 7, 13, 13, 1); FS(g, '#F4EEDC', 0.9); g.fillStyle = '#D08A9A'; circ(g, w - 15.5, 13.5, 3.6); g.fill(); bench(w / 2 - 9, h - 22, 18); dots(w / 2 - 6, h - 18.5, 4, ['#C8384A', '#E9C85A', '#4E6E80', '#7FA65A'], 1.4); }
+    else if (type === 'cabinet') { bed(g, w - 18, 7); rr(g, 7, 7, 12, 8, 1.5); FS(g, '#F4EEDC', 1); g.fillStyle = '#C8384A'; g.fillRect(12, 8.5, 2, 5); g.fillRect(10.5, 10, 5, 2); }
+    else if (type === 'geologue') { bench(7, 8, w - 14); dots(11, 11.5, 5, ['#8E877B', '#B5704A', '#D9CDB4', '#6B8E9A', '#C0614A'], 1.8); }
+    else if (type === 'ingenieur') { rr(g, 7, 6, w - 14, 13, 1.5); FS(g, '#DCE6EC', 1); g.strokeStyle = 'rgba(78,110,128,.8)'; g.lineWidth = 0.6; g.beginPath(); g.moveTo(11, 16); g.lineTo(w / 2, 8.5); g.lineTo(w - 11, 16); g.closePath(); g.stroke(); }
+    else if (type === 'psy') { rug('#B7A6D6'); rr(g, 7, 8, 9, 16, 3); FS(g, '#7A6A9C', 1); rr(g, w - 22, 8, 15, 9, 3); FS(g, '#D08A9A', 1); }
+    else if (type === 'entrepot') { for (let j = 0; j < 3; j++) for (let x = 6; x < w - 10; x += 9) { rr(g, x, 6 + j * 9, 7.4, 7.4, 1); FS(g, j % 2 ? '#B48858' : '#A87A4A', 0.8); g.strokeStyle = 'rgba(60,40,22,.4)'; g.lineWidth = 0.5; g.beginPath(); g.moveTo(x, 6 + j * 9); g.lineTo(x + 7.4, 13.4 + j * 9); g.stroke(); } }
+    else if (type === 'halle') { for (let x = 7; x < w - 14; x += 14) { rr(g, x, 8, 11, 7, 1.5); FS(g, '#C9A572', 1); dots(x + 2.4, 11.5, 3, ['#D9483A', '#E9C85A', '#7FA65A'], 1.5); rr(g, x, 22, 11, 7, 1.5); FS(g, '#C9A572', 1); dots(x + 2.4, 25.5, 3, ['#D9823A', '#F4EEDC', '#C8384A'], 1.5); } }
+    else if (type === 'demeure') { rug('#8C3B4A'); }
   }
   function tent(g, w, h, inside) {
     if (inside) { rr(g, 0, 0, w, h, 5); FS(g, '#B79E72', 1.2); for (const b of BDEF.tente.beds) { rr(g, b[0], b[1], 10, 21, 3); FS(g, '#C9B79A', 0.900); rr(g, b[0] + 1, b[1] + 1, 8, 6, 2); FS(g, '#EFE6D2', 0.700); } g.strokeStyle = '#D9CDB4'; g.lineWidth = 2; g.setLineDash([5, 3]); rr(g, 1.500, 1.500, w - 3, h - 3, 4); g.stroke(); g.setLineDash([]); return; }

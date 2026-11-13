@@ -34,18 +34,21 @@ const UI = (() => {
     espoir: P('espoir', 'i k-hope'), crainte: P('crainte', 'i k-fear'), content: P('contentement', 'i k-calm'), peine: P('peine', 'i k-sad'), amitie: P('amitie', 'i k-friend'), heart: P('amour', 'i k-love'), amour: P('amour', 'i k-love'), rancoeur: P('rancoeur', 'i k-grudge'),
     grave: P('mort', 'i k-death'), village: P('village', 'i k-roof')
   };
+  for (const k in STROKES) I[k] = S('<path d="' + STROKES[k] + '"/>', 'i k-' + (k === 'tornado' ? 'storm' : k === 'town' || k === 'build2' ? 'roof' : k));
   /* ce que l'on dit des événements : leur nom, et en une ligne ce qu'ils empêchent */
   const EV = {
     arrivals: { icon: 'ppl2', ic: e => e.villagers.length > 1 ? I.ppl2 : I.ppl, name: e => { const n = e.villagers.length, k = e.villagers.filter(x => x && x.child).length; return (n > 1 ? n + ' nouveaux venus' : 'Un nouveau venu') + (k === n ? (n > 1 ? ' (des enfants)' : ' (un enfant)') : k ? ', dont ' + (k > 1 ? k + ' enfants' : 'un enfant') : ''); } },
     storm: { icon: 'storm', name: () => 'Orage', tip: 'la rivière ne se passe plus, on ne pêche pas' },
     frost: { icon: 'frost', name: e => e.len ? 'Gel de ' + e.len + ' jours' : 'Gel', tip: 'plus de récoltes, et une nuit dehors tue' },
+    heat: { icon: 'sun', name: () => 'Canicule', tip: 'cette nuit, la moitié de la nourriture crue se gâte ; les repas se gardent' },
+    tornado: { icon: 'tornado', name: () => 'Tornade', tip: 'ce soir, elle emporte tout ce qui est bâti sans pierre ni brique' },
     sick: { icon: 'malade', name: () => 'Maladie', tip: 'un villageois alité deux jours ; elle passe à qui dort sous le même toit' },
     fire: { icon: 'fire', name: () => 'Incendie', tip: 'un bâtiment de bois brûle ce soir, sauf si un puits l’éteint' },
     wolves: { icon: 'loups', name: () => 'Loups', tip: 'ils emportent qui dort dehors, sinon des vivres ; un braséro les tient loin' },
     drought: { icon: 'sun', name: e => 'Sécheresse' + (e.len > 1 ? ' de ' + e.len + ' jours' : ''), tip: 'plus de pêche, et les potagers à moitié sans puits' },
     wind: { icon: 'vent', name: () => 'Grand vent', tip: 'ce soir, il emporte tentes, abris et constructions légères' },
     flood: { icon: 'storm', name: () => 'Crue', tip: 'ce soir, elle emporte les bâtiments proches de l’eau, sauf s’il y a une digue' },
-    rats: { icon: 'rats', name: () => 'Rats', tip: 'ils pillent la réserve cette nuit, sauf garde-manger ou cellier' },
+    rats: { icon: 'rats', name: () => 'Rats', tip: 'ils pillent la réserve cette nuit, sauf garde-manger, cellier ou entrepôt' },
     fog: { icon: 'fog', name: () => 'Brume', tip: 'ni forêt, ni rochers, ni bois mort' }
   };
   /* la définition d'un événement : ce qu'il fait, ce qui l'empêche — dite sans détour. Les listes de bâtiments viennent des règles elles-mêmes. */
@@ -59,15 +62,18 @@ const UI = (() => {
     wind: () => 'Le soir, il détruit les constructions légères — toutes dans les défis, quelques-unes en survie : ' + names(SIM.LIGHT.map(t => SIM.BT[t].name.toLowerCase())) + '.',
     flood: () => 'Le soir, elle détruit les bâtiments les plus proches de la rivière. Une digue l’empêche.',
     fire: () => 'Le soir, un bâtiment en bois brûle. Un puits l’empêche.',
-    rats: () => 'La nuit, ils mangent une partie de la réserve. Un garde-manger ou un cellier l’empêche.',
+    rats: () => 'La nuit, ils mangent une partie de la réserve. Un garde-manger ou un cellier réduit la perte à presque rien ; un entrepôt l’annule.',
     wolves: () => 'La nuit, ils tuent quelqu’un qui dort dehors. Si tout le monde est à l’abri, ils volent de la nourriture. Un braséro les éloigne.',
-    sick: () => 'Des villageois sont malades deux jours et ne travaillent pas. La maladie passe à ceux qui dorment sous le même toit ; des bains la freinent. Un malade qui a faim ou dort dehors meurt, et la fièvre peut tuer.'
+    heat: () => 'La nuit, la moitié de la nourriture en réserve se gâte. Les repas cuisinés se conservent.',
+    tornado: () => 'Le soir, elle emporte tous les bâtiments dont le coût ne compte ni pierre ni brique. Ceux qui y dormaient se retrouvent dehors.',
+    sick: (e, c) => c && !c.survival ? (e.n > 1 ? e.n + ' villageois tombent malades' : 'Un villageois tombe malade') + ' ce matin, pour deux jours : on ne sait pas qui. Un malade ne travaille pas. Chaque nuit, sous un toit partagé, il contamine un voisin de chambrée. Un malade qui a faim ou dort dehors meurt.' + (e.grave ? ' <b>Fièvre grave :</b> sans médecin, le malade meurt au second soir.' : '') + ' Avec un médecin à son poste, personne ne meurt de maladie et elle ne se transmet plus.'
+      : 'Des villageois sont malades deux jours et ne travaillent pas. La maladie passe à ceux qui dorment sous le même toit ; des bains la freinent. Un malade qui a faim ou dort dehors meurt, et la fièvre peut tuer. Un médecin à son poste empêche l’une et l’autre.'
   };
-  const EVG = { arrivals: 'Nouveaux venus', storm: 'Orage', frost: 'Gel', fog: 'Brume', drought: 'Sécheresse', wind: 'Grand vent', flood: 'Crue', fire: 'Incendie', rats: 'Rats', wolves: 'Loups', sick: 'Maladie' };
+  const EVG = { arrivals: 'Nouveaux venus', storm: 'Orage', frost: 'Gel', fog: 'Brume', drought: 'Sécheresse', wind: 'Grand vent', flood: 'Crue', fire: 'Incendie', rats: 'Rats', wolves: 'Loups', sick: 'Maladie', tornado: 'Tornade', heat: 'Canicule' };
   const evName = e => e.type === 'arrivals' && !e.gen ? EV.arrivals.name(e) : EVG[e.type];
   const evIcon = e => EV[e.type].ic ? EV[e.type].ic(e) : I[EV[e.type].icon];
   const evDur = (e, c) => e.cont ? 'jour ' + e.cont + (e.len ? ' sur ' + e.len : '') : e.len > 1 ? 'dure ' + e.len + ' jours' : e.type === 'frost' && e.len == null && !c.survival ? 'jusqu’à la fin du défi' : '';
-  const evDefs = (ev, c) => ev.map(e => '<div class="evd"><span class="evc">' + evIcon(e) + '</span><div><b>' + evName(e) + '</b>' + (evDur(e, c) ? '<small>' + evDur(e, c) + '</small>' : '') + '<p>' + EVD[e.type]() + '</p></div></div>').join('');
+  const evDefs = (ev, c) => ev.map(e => '<div class="evd"><span class="evc">' + evIcon(e) + '</span><div><b>' + evName(e) + '</b>' + (evDur(e, c) ? '<small>' + evDur(e, c) + '</small>' : '') + '<p>' + EVD[e.type](e, c) + '</p></div></div>').join('');
   const pile = ev => '<span class="pile">' + ev.map((e, k) => '<span class="evc" style="z-index:' + (9 - k) + '">' + evIcon(e) + '</span>').join('') + '</span>';
   const INFO = { foyer: 'Quatre places, pour de bon.', longere: 'Trois places en dur, à qui en a besoin.', ferme: 'Trois places, pour de bon, et une nourriture par jour.', ecole: 'Trois enfants y vont chaque jour. Au bout de quatre jours, ils sont adultes.', bibliotheque: 'L’école ne prend plus que trois jours.',
     cantine: 'Trois enfants y mangent chaque soir sans toucher à la réserve.', chevre: 'Un enfant y boit son lait chaque soir, sans toucher à la réserve.', bassecour: 'Chaque enfant qui n’est pas à l’école rapporte un œuf par jour, deux au plus.', jeux: 'Un bonheur par enfant chaque jour, trois au plus.', marionnettes: 'Deux bonheurs chaque soir, tant qu’il reste un enfant.', cabane: 'Deux places, à qui en a besoin.', cabanon: 'Une place, à qui en a besoin.', maison: 'Deux places, pour de bon.', cueillette: 'Baies de l’autre rive.', potager: 'Légumes du village.', bucheron: 'Arbres de la lisière.', pecheur: 'Poisson de la rivière.', carriere: 'Pierre des rochers.', four: 'Pain cuit sur place.', table: 'Si tous mangent, la joie monte.', abri: 'Quatre places, pour deux nuits seulement.', dortoir: 'Quatre places, à qui en a besoin.', poulailler: 'Des œufs, par tous les temps.', champi: 'Peu de chose, sauf dans la brume ou après la pluie.', rucher: 'Du miel, sans personne. Craint le gel.', serre: 'Garde du gel potagers, ruches et fleurs.', fanal: 'Dans la brume, il guide vers la forêt et les rochers.', jardin: 'Un peu de joie chaque jour. Craint le gel.', kiosque: 'De la musique, et de la joie chaque soir.', moulin: 'Chaque four donne deux pains de plus.', cloche: 'On la sonne : dans deux jours, quelqu’un l’aura entendue.',
@@ -77,8 +83,12 @@ const UI = (() => {
     taillerie: 'Chaque chantier coûte une pierre de moins.', bucher: 'Qui glane rapporte un bois de plus.', digue: 'Sous l’orage, le pont tient et la rivière se laisse approcher.', brasero: 'Une nuit de gel dehors n’est plus mortelle.',
     rubans: 'Un peu de joie chaque jour, même sous le gel.', bains: 'Chaque jour, un bois contre deux joies.', pressoir: 'Du cidre, et de la joie chaque soir.', cellier: 'Une joie par soir, tant que la réserve est pleine.' };
   const RESD = [[I.food, 'Nourriture', 'Chaque villageois en mange 1 chaque soir. Deux soirs de suite sans manger, il meurt.'], [I.wood, 'Bois', 'Sert à payer les bâtiments. Un villageois sans poste en ramasse 1 par jour.'], [I.stone, 'Pierre', 'Sert à payer certains bâtiments. Elle vient de la carrière.'],
-    [I.roof, 'Toits', 'Une place par villageois. Deux nuits de suite dehors, il meurt ; par gel, une seule nuit suffit.'], [I.joy, 'Bonheur', 'Ne compte que dans certains défis, où il sert d’objectif. Les bâtiments de la famille « Se réjouir » en donnent.'], [I.ppl, 'Villageois', 'Ils agissent seuls. Un bâtiment à postes ne produit que s’il a quelqu’un pour y travailler.'], [I.ppl2, 'Enfants', 'Ils mangent comme les autres mais ne travaillent pas et ne bâtissent pas. Ils passent avant les adultes pour les lits. Sans lit, un enfant dort dans n’importe quel bâtiment couvert ; s’il n’y en a aucun, il meurt dans la nuit. Quatre jours d’école en font un adulte.']];
-  const RESN = { food: 'Nourriture', wood: 'Bois', stone: 'Pierre' }, LACK = { food: 'Nourriture insuffisante', wood: 'Bois insuffisant', stone: 'Pierre insuffisante' };
+    [I.roof, 'Toits', 'Une place par villageois. Deux nuits de suite dehors, il meurt ; par gel, une seule nuit suffit.'], [I.joy, 'Bonheur', 'Ne compte que dans certains défis, où il sert d’objectif. Les bâtiments de la famille « Se réjouir » en donnent.'], [I.ppl, 'Villageois', 'Ils agissent seuls. Un bâtiment à postes ne produit que s’il a quelqu’un pour y travailler.'], [I.ppl2, 'Enfants', 'Ils mangent comme les autres mais ne travaillent pas et ne bâtissent pas. Ils passent avant les adultes pour les lits. Sans lit, un enfant dort dans n’importe quel bâtiment couvert ; s’il n’y en a aucun, il meurt dans la nuit. Quatre jours d’école en font un adulte.'],
+    [I.clay, 'Argile', 'Elle vient de l’argilière. La briqueterie en fait des briques.'], [I.brick, 'Briques', 'Deux argiles donnent une brique. Elles paient les bâtiments qui tiennent sous la tornade.'], [I.plank, 'Planches', 'Deux bois donnent une planche, à la charpenterie.'], [I.meal, 'Repas', 'Deux nourritures donnent un repas, à la cuisine. Le soir, on mange les repas d’abord : un repas nourrit une personne et donne 1 bonheur.'],
+    [I.culture, 'Culture', 'Elle vient du lycée, de la bibliothèque, du théâtre, de l’observatoire. L’académie en fait de l’ingéniosité.'], [I.ingen, 'Ingéniosité', 'Deux cultures donnent une ingéniosité. Elle paie les bâtiments des maîtres : médecin, géologue, ingénieur, cuisinier, psychologue.'], [I.bloom, 'Épanouissement', 'Deux bonheurs donnent un épanouissement, à l’atelier des arts. Le bonheur ainsi changé est dépensé.'],
+    [I.town, 'Bourg', 'À dix habitants, le village devient un bourg : ses chemins sont pavés, et il peut mener deux chantiers par jour.'], [I.build2, 'Atelier', 'Un atelier ne transforme que ce qui était en réserve le matin, une fois les chantiers payés. Sans personne à son poste, ou sans matière, il reste à l’arrêt.']];
+  const RESN = { food: 'Nourriture', wood: 'Bois', stone: 'Pierre', clay: 'Argile', brick: 'Briques', plank: 'Planches', meal: 'Repas', culture: 'Culture', ingen: 'Ingéniosité', bloom: 'Épanouissement', joy: 'Bonheur' }, LACK = { food: 'Nourriture insuffisante', wood: 'Bois insuffisant', stone: 'Pierre insuffisante', clay: 'Argile insuffisante', brick: 'Briques insuffisantes', plank: 'Planches insuffisantes', meal: 'Repas insuffisants', culture: 'Culture insuffisante', ingen: 'Ingéniosité insuffisante', bloom: 'Épanouissement insuffisant' };
+  const XRES = ['clay', 'brick', 'plank', 'meal', 'culture', 'ingen', 'bloom']; let xres = [];
   const VOLS = [['music', 'Musique', 'note'], ['nature', 'Nature', 'splash'], ['village', 'Village', 'hammer'], ['ui', 'Interface', 'card']];
   const ORDER = SIM.LEVELS.reduce((a, l) => a.concat(l.ch), []);
   const lvlOf = id => SIM.LEVELS.findIndex(l => l.ch.includes(id));
@@ -114,22 +124,29 @@ const UI = (() => {
   const stars = (n, big) => { let s = ''; for (let i = 0; i < 3; i++) s += i < n ? I.star : I.star0; return '<span class="' + (big ? 'bigstars' : 'stars') + '" role="img" aria-label="' + n + ' étoile' + (n > 1 ? 's' : '') + ' sur 3">' + s + '</span>'; };
   /* ce que fait un bâtiment, en un chiffre, une icône et quelques mots */
   const FAM = [['Dormir', ['cabane', 'cabanon', 'maison', 'dortoir', 'chaumiere', 'grange', 'auberge', 'abri', 'tente']], ['Manger', ['cueillette', 'potager', 'pecheur', 'four', 'poulailler', 'bergerie', 'champi', 'rucher', 'verger', 'moulin', 'fumoir', 'puits', 'etal', 'gardemanger']],
-    ['Bâtir', ['bucheron', 'carriere', 'scierie', 'bucher', 'menuiserie', 'taillerie']], ['Se réjouir', ['table', 'jardin', 'rubans', 'kiosque', 'pressoir', 'bains', 'cellier']], ['Tenir tête au ciel', ['serre', 'fanal', 'digue', 'brasero', 'cloche']], ['Vie de famille', ['foyer', 'longere', 'ferme', 'ecole', 'bibliotheque', 'cantine', 'chevre', 'bassecour', 'jeux', 'marionnettes']]];
+    ['Bâtir', ['bucheron', 'carriere', 'scierie', 'bucher', 'menuiserie', 'taillerie']], ['Se réjouir', ['table', 'jardin', 'rubans', 'kiosque', 'pressoir', 'bains', 'cellier']], ['Tenir tête au ciel', ['serre', 'fanal', 'digue', 'brasero', 'cloche']], ['Vie de famille', ['foyer', 'longere', 'ferme', 'ecole', 'bibliotheque', 'cantine', 'chevre', 'bassecour', 'jeux', 'marionnettes']],
+    ['Manufacture', ['argiliere', 'briqueterie', 'charpenterie', 'cuisine', 'maisonbrique', 'demeure', 'entrepot', 'halle', 'outillerie']], ['Savoir', ['lycee', 'universite', 'theatre', 'observatoire', 'academie', 'arts']], ['Maîtres de leur art', ['cabinet', 'geologue', 'ingenieur', 'chef', 'psy']]];
   const BOOSTL = { four: 'par boulanger', pecheur: 'par pêcheur', potager: 'par jardinier', glean: 'par glaneur' }, ANTIL = { frost: ['frost', 'abrite les jardins'], fog: ['fog', 'guide dans la brume'], storm: ['storm', 'retient la rivière'], cold: ['frost', 'le gel ne tue plus'] };
+  const CONVOF = {}; for (const t in SIM.BT) if (SIM.BT[t].conv) CONVOF[SIM.BT[t].conv.to] = SIM.BT[t].conv.from;
   const resOf = o => Object.keys(o).map(k => o[k] + I[k]).join(' ');
   /* ce que fait une carte : [valeur, icône, précision] */
   function effect(type, small) {
     const d = SIM.BT[type], jy = SIM.CHALLENGES[chId].joy, bk = d.boost && Object.keys(d.boost)[0], gk = d.give && Object.keys(d.give)[0];
     const m = d.beds ? ['+' + d.beds, I.roof, d.own ? 'à demeure' : d.life ? d.life + ' nuits' : '']
+      : d.conv ? [small ? SIM.RATIO + I[d.conv.from] + ' › 1' : '', small ? I[d.conv.to] : '<b class="sw">' + SIM.RATIO + I[d.conv.from] + ' › 1' + I[d.conv.to] + '</b>', d.conv.cap / SIM.RATIO + ' par jour au plus']
+      : d.expert ? [small ? '1' + I[CONVOF[d.expert]] + ' › 1' : '', small ? I[d.expert] : '<b class="sw">1' + I[CONVOF[d.expert]] + ' › 1' + I[d.expert] + '</b>', 'au lieu de ' + SIM.RATIO + ' pour 1']
+      : d.medic ? ['', I.malade, 'plus de mort ni de contagion']
+      : d.store ? ['', I.rats, 'les rats ne prennent rien']
+      : d.tools ? ['+' + d.tools, I.work, 'par travailleur, ' + d.toolCap + ' au plus']
       : d.school ? ['', I.ppl, d.school + ' enfants : adultes en ' + SIM.SCHOOL_DAYS + ' jours']
-      : d.fast ? ['−' + d.fast, I.ppl, 'jour d’école']
+      : d.fast ? ['−' + d.fast, I.ppl, 'jour d’école' + (d.give && xres.includes('culture') ? ', +' + d.give.culture + ' culture par jour' : '')]
       : d.feedKids ? ['+' + d.feedKids, I.food, d.feedKids > 1 ? 'repas d’enfants offerts' : 'repas d’enfant offert']
       : d.kidFood ? ['+' + d.kidFood, I.food, 'par enfant, ' + d.kidCap + ' au plus']
       : d.kidJoy ? ['+' + d.kidJoy, I.joy, 'par enfant, ' + d.kidCap + ' au plus']
       : d.ifKid ? ['+' + d.ifKid, I.joy, 's’il y a un enfant']
       : d.joy ? ['+' + d.joy, I.joy, 'si tous mangent']
       : d.play ? ['+' + d.play, I.joy, 'par soir']
-      : d.give ? ['+' + d.give[gk], I[gk], 'par jour' + (d.wait ? ', après ' + d.wait + ' jours' : '')]
+      : d.give ? [Object.keys(d.give).map(k => '+' + d.give[k] + (small || k !== gk || Object.keys(d.give).length > 1 ? I[k] : '')).join(' '), Object.keys(d.give).length > 1 || small ? '' : I[gk], 'par jour' + (d.wait ? ', après ' + d.wait + ' jours' : '')]
       : d.boost ? ['+' + d.boost[bk], I[bk === 'glean' ? 'wood' : SIM.BT[bk].out], BOOSTL[bk]]
       : d.swap ? [small ? resOf(d.swap.take) + ' › ' : '', small ? resOf(d.swap.give) : '<b class="sw">' + resOf(d.swap.take) + ' › ' + resOf(d.swap.give) + '</b>', 'par jour']
       : d.discount ? ['−' + d.discount[Object.keys(d.discount)[0]], I[Object.keys(d.discount)[0]], 'par chantier']
@@ -139,7 +156,7 @@ const UI = (() => {
       : d.anti ? ['', I[ANTIL[d.anti][0]], ANTIL[d.anti][1]]
       : ['+' + d.per * d.posts + (d.wet ? ' à ' + d.wet : ''), I[d.out], 'par jour'];
     if (small) return m[0] + m[1];
-    return '<span class="ce">' + (m[0] ? '<b>' + m[0] + '</b>' : '') + m[1] + (m[2] ? '<small>' + m[2] + '</small>' : '') + '</span>' + (d.posts ? '<span class="cw">' + I.ppl + '<span>× ' + d.posts + '</span></span>' : '') + (d.own && jy ? '<span class="cw">' + I.joy + '<span>+1 par habitant</span></span>' : '') + (d.welcome ? '<span class="cw">' + I.food + '<span>+' + d.welcome + ' par nouveau venu</span></span>' : '') + (d.beds && d.give ? '<span class="cw">' + I.food + '<span>+' + d.give.food + ' par jour</span></span>' : '');
+    return '<span class="ce">' + (m[0] ? '<b>' + m[0] + '</b>' : '') + m[1] + (m[2] ? '<small>' + m[2] + '</small>' : '') + '</span>' + (d.posts ? '<span class="cw">' + I.ppl + '<span>× ' + d.posts + '</span></span>' : '') + ((SIM.CHALLENGES[chId].events || []).some(e => e.type === 'tornado') && SIM.solid(type) ? '<span class="cw">' + I.tornado + '<span>tient sous la tornade</span></span>' : '') + (d.own && jy ? '<span class="cw">' + I.joy + '<span>+1 par habitant</span></span>' : '') + (d.welcome ? '<span class="cw">' + I.food + '<span>+' + d.welcome + ' par nouveau venu</span></span>' : '') + (d.beds && d.give ? '<span class="cw">' + I.food + '<span>+' + d.give.food + ' par jour</span></span>' : '');
   }
   /* le sommaire : de grandes entrées, un titre et une ligne claire */
   const big = (go, title, desc, ic, soon) => '<button class="tl big' + (soon ? ' soon' : '') + '" data-go="' + go + '"><span class="ti">' + ic + '</span><span class="tb"><b>' + title + '</b><em>' + desc + '</em></span><span class="chev" aria-hidden="true">›</span></button>';
@@ -252,7 +269,7 @@ const UI = (() => {
       return back + '<h2>Métiers</h2><p class="plain">Un métier s’ajoute ici quand tu as rencontré son bâtiment. Dans les défis, chacun garde son poste ; en survie, tu peux choisir.</p><div class="evbox reg">' + regRow(I.none, 'Sans poste', 'Ramasse 1 bois mort par jour, sauf dans la brume. Prend le premier poste qui se libère.') +
         Object.keys(by).map(j => { const ts = by[j].filter(t => save.seen[t]); if (!ts.length) return LOCK; const n = SIM.JOBNAME[j], cap = x => x[0].toUpperCase() + x.slice(1);
           return regRow(I[j] || I.work, cap(n.m) + (n.f !== n.m ? ' · ' + n.f : ''), ts.map(t => { const d = SIM.BT[t], st = [d.storm && 'l’orage', d.fog && 'la brume', d.frost && 'le gel', d.dryStop && 'la sécheresse'].filter(Boolean);
-            return cap(d.name.toLowerCase()) + ' : ' + (d.out ? d.per + ' ' + RESN[d.out].toLowerCase() + ' par jour et par personne' : d.play ? 'de la joie chaque soir' : 'un poste') + (d.posts > 1 ? ', ' + d.posts + ' postes' : '') + '.' + (st.length ? ' Arrêté par ' + names(st) + '.' : ''); }).join(' ')); }).join('') + '</div>'; },
+            return cap(d.name.toLowerCase()) + ' : ' + (d.conv ? 'change ' + SIM.RATIO + ' ' + RESN[d.conv.from].toLowerCase() + ' en 1 ' + RESN[d.conv.to].toLowerCase() + ', ' + d.conv.cap + ' ' + RESN[d.conv.from].toLowerCase() + ' par jour au plus' : d.expert ? 'tant qu’il est à son poste, 1 ' + RESN[CONVOF[d.expert]].toLowerCase() + ' suffit pour 1 ' + RESN[d.expert].toLowerCase() : d.medic ? 'tant qu’il est à son poste, personne ne meurt de maladie et elle ne se transmet plus' : d.out ? d.per + ' ' + RESN[d.out].toLowerCase() + ' par jour et par personne' : d.play ? 'de la joie chaque soir' : 'un poste') + (d.posts > 1 ? ', ' + d.posts + ' postes' : '') + '.' + (st.length ? ' Arrêté par ' + names(st) + '.' : ''); }).join(' ')); }).join('') + '</div>'; },
     options: () => back + '<h2>Options</h2><div class="h3">Son</div>' + volsHtml() +
       '<div class="h3">Bulles des villageois</div><div class="segs">' + BUBS.map(b => '<button class="seg" data-bub="' + b[0] + '" aria-pressed="' + (save.bub === b[0]) + '">' + b[1] + '</button>').join('') + '</div>' +
       '<div class="h3">Progression</div><p class="note">' + Object.values(save.stars).reduce((a, b) => a + b, 0) + ' étoiles sur ' + ORDER.length * 3 + '</p><div class="pfoot">Prototype 0.23</div>'
@@ -302,8 +319,11 @@ const UI = (() => {
     chId = id; closeModal(); book.hidden = true; titleEl.hidden = true; hud.hidden = false; bottom.hidden = false; cache.clear(); seen = {};
     tuto = !!c.tutorial && !save.tuto[id];
     usesStone = !!c.stone || c.deck.some(t => SIM.BT[t].cost.stone || SIM.BT[t].out === 'stone');
-    $('#res').innerHTML = [['food', 'rFood', 'Nourriture'], ['wood', 'rWood', 'Bois'], usesStone && ['stone', 'rStone', 'Pierre'], c.joy && ['joy', 'rJoy', 'Bonheur'], ['roof', 'rRoof', 'Places pour dormir']].filter(Boolean).map(r => '<span class="r" id="' + r[1] + '" title="' + r[2] + '" role="img" aria-label="' + r[2] + '">' + I[r[0]] + '<b>0</b></span>').join('');
-    $('#res').classList.toggle('four', (usesStone ? 1 : 0) + (c.joy ? 1 : 0) > 0); vbtn = []; $('#vbar').innerHTML = ''; const sd = nextSeed[id]; delete nextSeed[id];
+    /* les ressources de la manufacture ne s'affichent que dans les défis qui s'en servent */
+    xres = XRES.filter(k => c[k] || c.deck.some(t => { const d = SIM.BT[t]; return d.cost[k] || d.out === k || (d.give && d.give[k]) || (d.conv && (d.conv.to === k || d.conv.from === k)); }));
+    const cell = r => '<span class="r" id="' + r[1] + '" title="' + r[2] + '" role="img" aria-label="' + r[2] + '">' + I[r[0]] + '<b>0</b></span>';
+    $('#res').innerHTML = '<span class="rrow">' + [['food', 'rFood', 'Nourriture'], ['wood', 'rWood', 'Bois'], usesStone && ['stone', 'rStone', 'Pierre'], c.joy && ['joy', 'rJoy', 'Bonheur'], ['roof', 'rRoof', 'Places pour dormir']].filter(Boolean).map(cell).join('') + '</span>' + (xres.length ? '<span class="rrow x">' + xres.map(k => cell([k, 'rx-' + k, RESN[k]])).join('') + '</span>' : '');
+    $('#res').classList.toggle('four', (usesStone ? 1 : 0) + (c.joy ? 1 : 0) > 0); $('#res').classList.toggle('wide', xres.length > 0); vbtn = []; $('#vbar').innerHTML = ''; const sd = nextSeed[id]; delete nextSeed[id];
     if (c.survival && !again) { delete save.surv; persist(); } // une nouvelle survie remplace la partie gardée
     if (again) { try { GAME.resume(again); return; } catch (e) { delete save.surv; persist(); } } // sauvegarde illisible : on repart de zéro
     GAME.start(id, sd);
@@ -313,7 +333,7 @@ const UI = (() => {
   /* un bouton qui efface une partie demande d'être touché deux fois */
   const twice = (b, ask, go) => { let armed = false; b.onclick = () => { if (armed || !kept()) return go(); armed = true; b.textContent = ask; b.classList.add('warn'); setTimeout(() => { if (b.isConnected && armed) { armed = false; b.textContent = b.dataset.lab; b.classList.remove('warn'); } }, 4000); }; b.dataset.lab = b.textContent; };
   function buildHud(villagers) {
-    const vb = $('#vbar'); vb.classList.toggle('many', villagers.length > 7);
+    const vb = $('#vbar'); vb.classList.toggle('many', villagers.length > 7); vb.classList.toggle('crowd', villagers.length > 8); vb.classList.toggle('throng', villagers.length > 20);
     villagers.forEach((v, i) => {
       if (vbtn[i]) { vbtn[i].b.classList.toggle('kid', !!v.child); vbtn[i].b.setAttribute('aria-label', v.name + (v.child ? ', enfant' : '')); return; } // un enfant devenu adulte retrouve un portrait d'adulte
       const b = document.createElement('button'); b.className = 'vb' + (v.child ? ' kid' : ''); b.dataset.snd = '1'; b.setAttribute('aria-label', v.name + (v.child ? ', enfant' : '')); b.innerHTML = '<canvas aria-hidden="true"></canvas><span class="vn">' + v.name + '</span><span class="bad"></span>';
@@ -337,7 +357,7 @@ const UI = (() => {
     { const c0 = SIM.CHALLENGES[chId]; if (st.day === 1 && !c0.food && !c0.wood && !c0.stone && GAME.cards.every(t => SIM.blocked(st, t))) {
       bottom.innerHTML = '<div class="mhead"><h2>Jour 1</h2><em>Les mains vides : ce matin, on ne bâtit rien.</em></div>'; R.setView('day');
       setTimeout(() => { if (GAME.phase === 'morning' && GAME.st === st) GAME.choose(null); }, 2100); return; } }
-    let h = '<div class="mhead"><h2>Jour ' + st.day + '</h2>' + evBtns(st) + (surv ? jb : evBtns(st) ? '' : '<em>Que bâtir aujourd’hui ?</em>') + '</div><div class="fan">';
+    let h = '<div class="mhead"><h2>Jour ' + st.day + '</h2>' + evBtns(st) + (surv ? jb : evBtns(st) ? '' : '<em>' + (SIM.maxBuilds(st) > 1 ? 'Deux chantiers possibles.' : 'Que bâtir aujourd’hui ?') + '</em>') + '</div><div class="fan">';
     GAME.cards.forEach((type, i) => {
       const d = SIM.BT[type], bk = SIM.blocked(st, type), cst = SIM.costOf(st, type), tag = bk === 'cost' ? LACK[SIM.RES.find(r => st[r] < (cst[r] || 0))] : bk === 'room' ? 'Plus de place' : '', o = i - (n - 1) / 2;
       const cost = Object.keys(cst).map(k => '<span class="cc' + (cst[k] < d.cost[k] ? ' less' : '') + '" aria-label="' + cst[k] + ' ' + RESN[k].toLowerCase() + '">' + I[k] + cst[k] + '</span>').join('');
@@ -345,14 +365,20 @@ const UI = (() => {
     });
     h += '</div><div class="mfoot"><button class="tlink quiet" id="bskip">Ne rien bâtir</button><span class="hint" id="mhint"></span><button class="tlink" id="bbuild" data-snd="1" hidden>Bâtir</button></div>';
     bottom.innerHTML = h; paint(bottom);
-    const fan = bottom.querySelector('.fan'), clear = () => { bottom.querySelectorAll('.card').forEach(o => { o.classList.remove('sel'); o.setAttribute('aria-pressed', false); }); fan.classList.remove('has-sel'); selCard = null; $('#bbuild').hidden = true; };
-    const hint = t => { clear(); const e = $('#mhint'); e.textContent = t; e.hidden = false; };
+    /* un village bâtit une carte par jour ; un bourg (dix habitants) peut en bâtir deux */
+    const two = SIM.maxBuilds(st) > 1, fan = bottom.querySelector('.fan'); let picks = [];
+    const show = () => { bottom.querySelectorAll('.card').forEach(o => { const on = picks.includes(o.dataset.type); o.classList.toggle('sel', on); o.setAttribute('aria-pressed', on); }); fan.classList.toggle('has-sel', picks.length > 0); selCard = picks.length > 1 ? picks.slice() : picks[0] || null; $('#bbuild').hidden = !picks.length; $('#bbuild').textContent = picks.length > 1 ? 'Bâtir les deux' : 'Bâtir'; };
+    const clear = () => { picks = []; show(); };
+    const say = t => { const e = $('#mhint'); e.textContent = t; e.hidden = false; }, hint = t => { clear(); say(t); };
     bindEv(st);
     bottom.querySelectorAll('.card').forEach(cd => {
       cd.onclick = () => {
         if (cd.classList.contains('off')) { SFX.play('back'); return hint(cd.querySelector('.tag').textContent + '.'); }
-        if (cd.classList.contains('sel')) return clear();
-        SFX.play('card'); clear(); selCard = cd.dataset.type; cd.classList.add('sel'); cd.setAttribute('aria-pressed', true); fan.classList.add('has-sel'); $('#mhint').hidden = true; $('#bbuild').hidden = false;
+        const ty = cd.dataset.type;
+        if (picks.includes(ty)) { picks = picks.filter(x => x !== ty); show(); if (two && picks.length) say('Un second chantier est possible.'); return; }
+        if (two && picks.length === 1 && !SIM.affordBoth(st, picks[0], ty)) { SFX.play('back'); return say('Pas de quoi bâtir les deux. Touche la carte choisie pour la retirer.'); }
+        SFX.play('card'); if (!two) picks = []; else if (picks.length > 1) picks.shift(); picks.push(ty); show();
+        if (two && picks.length === 1) say('Un second chantier est possible.'); else $('#mhint').hidden = true;
       };
     });
     R.setView('plan', bottom.offsetHeight - 26, planY());
@@ -388,12 +414,12 @@ const UI = (() => {
   function renderBilan(p) {
     closeInspect();
     const S = p.start, E = p.end, last = !!p.result, noFood = Object.values(p.sum.v).some(r => !r.ate), noRoof = Object.values(p.sum.v).some(r => !r.roof);
-    let h = '<span class="sub">Soir du jour ' + p.sum.day + '</span><h2>' + (p.sum.deaths.length ? 'Le village est en deuil' : !noFood && !noRoof ? (p.end.lost && p.end.lost.length ? 'Des bâtisses en moins' : 'Une journée douce') : noFood && noRoof ? 'Une soirée difficile' : noFood ? 'Des ventres vides' : 'Une nuit dehors') + '</h2><div class="vgrid">';
+    let h = '<span class="sub">Soir du jour ' + p.sum.day + '</span><h2>' + (p.sum.deaths.length ? 'Le village est en deuil' : !noFood && !noRoof ? (p.end.lost && p.end.lost.length ? 'Des bâtisses en moins' : 'Une journée douce') : noFood && noRoof ? 'Une soirée difficile' : noFood ? 'Des ventres vides' : 'Une nuit dehors') + '</h2><div class="vgrid' + (Object.keys(p.sum.v).length > 12 ? ' dense' : '') + '">';
     S.villagers.forEach(v => {
       const r = p.sum.v[v.id]; if (!r) return;
       h += '<div class="vcell' + (!r.ate || !r.roof ? ' bad' : '') + '"><canvas data-v="' + v.id + '" aria-hidden="true"></canvas><b>' + v.name + '</b><div class="ck"><span class="' + (r.ate ? 'yes' : '') + '" role="img" aria-label="' + (r.ate ? 'A mangé' : 'N’a pas mangé') + '">' + (r.ate ? I.food : I.faim) + '</span><span class="' + (r.roof ? 'yes' : '') + '" role="img" aria-label="' + (r.roof ? 'A dormi sous un toit' : 'A dormi dehors') + '">' + (r.roof ? I.roof : I.dehors) + '</span></div></div>';
     });
-    h += '</div><div class="delta">' + SIM.RES.filter(k => k !== 'stone' || usesStone).concat(SIM.CHALLENGES[chId].joy ? ['joy'] : []).map(k => '<span>' + I[k] + S[k] + ' <i>→</i> ' + E[k] + '</span>').join('') + '</div>';
+    h += '</div><div class="delta">' + ['food', 'wood'].concat(usesStone ? ['stone'] : [], SIM.CHALLENGES[chId].joy ? ['joy'] : [], xres).map(k => '<span>' + I[k] + S[k] + ' <i>→</i> ' + E[k] + '</span>').join('') + '</div>';
     const lines = p.log.filter(l => l.k === 'bad' || l.k === 'dead');
     if (lines.length) h += '<ul class="journal">' + lines.map(l => '<li class="bad">' + esc(l.text) + '</li>').join('') + '</ul>';
     if (!last && p.warn.length) h += '<div class="alert"><span><b>Demain :</b> ' + p.warn.map(esc).join(' ') + '</span></div>';
@@ -544,13 +570,14 @@ const UI = (() => {
   /* ---------- mise à jour continue ---------- */
   function updateHud() {
     const G = GAME, st = G.st, L = G.live, t = G.t, n = G.alive().length;
-    const cur = G.plan ? G.plan.end : st, nb = G.plan && G.plan.nb;
-    const cap = cur.buildings.reduce((a, b) => a + ((nb && nb.id === b.id && t < nb.t1) ? 0 : (SIM.BT[b.type].beds || 0)), 0);
+    const cur = G.plan ? G.plan.end : st, nbs = (G.plan && G.plan.nbs) || [];
+    const cap = cur.buildings.reduce((a, b) => a + (nbs.some(nb => nb.id === b.id && t < nb.t1) ? 0 : (SIM.BT[b.type].beds || 0)), 0);
     const bump = id => { const e = $(id); e.classList.remove('bump'); void e.offsetWidth; e.classList.add('bump'); };
     if (set($('#rFood b'), 'food', String(L.food))) bump('#rFood');
     if (set($('#rWood b'), 'wood', String(L.wood))) bump('#rWood');
     if (usesStone && set($('#rStone b'), 'stone', String(L.stone))) bump('#rStone');
     if ($('#rJoy') && set($('#rJoy b'), 'joy', String(L.joy))) bump('#rJoy');
+    for (const k of xres) if (set($('#rx-' + k + ' b'), k, String(L[k] || 0))) bump('#rx-' + k);
     if (set($('#rRoof b'), 'roof', cap + '/' + n)) bump('#rRoof');
     set(null, 'foodLow', L.food < n && t < 18.9, v => $('#rFood').classList.toggle('low', v));
     set(null, 'roofLow', cap < n, v => $('#rRoof').classList.toggle('low', v));

@@ -82,7 +82,8 @@ const R = (() => {
     }
     return p;
   }
-  function setRoads(st) { roadPts = st.roadLines.map(l => chaikin(l, 3)); redrawRoads(); }
+  let paved = false; // à dix habitants, les chemins de terre deviennent des routes de pierre
+  function setRoads(st) { roadPts = st.roadLines.map(l => chaikin(l, 3)); paved = !!st.town; redrawRoads(); }
   function redrawRoads() {
     if (!rctx) return;
     const S = map.stock, wd = 8.5;
@@ -94,7 +95,7 @@ const R = (() => {
       ell(g, F.x - (grow < 0 ? 3 : 0), F.y + 2, 42 + k, 35.5 + k * 0.9); g.fill();
       if (grow >= 0) { rr(g, S.x - 7 - grow * 0.5, S.y - 3 - grow * 0.5, S.w + 13 + grow, S.h + 11 + grow, 9); g.fill(); }
     };
-    for (const [grow, col, a] of [[9, '#5E4E2C', 0.26], [3.4, '#967C52', 0.78], [0, '#B79E72', 1], [-4.6, '#D9C69C', 0.5]]) {
+    for (const [grow, col, a] of paved ? [[9, '#3E3E3A', 0.28], [3.4, '#74777A', 0.85], [0, '#A4A7A8', 1], [-4.6, '#C4C7C8', 0.45]] : [[9, '#5E4E2C', 0.26], [3.4, '#967C52', 0.78], [0, '#B79E72', 1], [-4.6, '#D9C69C', 0.5]]) {
       tctx.setTransform(1, 0, 0, 1, 0, 0); tctx.clearRect(0, 0, tmp.width, tmp.height); tctx.setTransform(RS, 0, 0, RS, -X.x * RS, -X.y * RS);
       tctx.strokeStyle = tctx.fillStyle = col; shape(tctx, grow);
       rctx.globalAlpha = a; rctx.drawImage(tmp, 0, 0);
@@ -103,7 +104,7 @@ const R = (() => {
     const r = SIM.rngOf(5);
     for (const p of roadPts) for (let i = 1; i < p.length; i++) {
       const a = p[i - 1], b = p[i], n = Math.hypot(b[0] - a[0], b[1] - a[1]) / 8;
-      for (let k = 0; k < n; k++) { if (r() > n - k) break; const q = r(); rctx.fillStyle = r() < 0.5 ? 'rgba(120,98,62,.5)' : 'rgba(230,214,176,.6)'; circ(rctx, a[0] + (b[0] - a[0]) * q + (r() - 0.5) * wd, a[1] + (b[1] - a[1]) * q + (r() - 0.5) * wd, 0.6 + r() * 0.7); rctx.fill(); }
+      for (let k = 0; k < n; k++) { if (r() > n - k) break; const q = r(); rctx.fillStyle = paved ? (r() < 0.5 ? 'rgba(70,72,76,.5)' : 'rgba(226,228,230,.6)') : (r() < 0.5 ? 'rgba(120,98,62,.5)' : 'rgba(230,214,176,.6)'); circ(rctx, a[0] + (b[0] - a[0]) * q + (r() - 0.5) * wd, a[1] + (b[1] - a[1]) * q + (r() - 0.5) * wd, 0.6 + r() * 0.7); rctx.fill(); }
     }
     for (let i = 0; i < 90; i++) { const a = r() * 6.28, d = Math.sqrt(r()) * 40; rctx.fillStyle = r() < 0.5 ? 'rgba(120,98,62,.45)' : 'rgba(226,210,172,.6)'; circ(rctx, F.x + Math.cos(a) * d, F.y + 2 + Math.sin(a) * d * 0.84, 0.6 + r() * 0.8); rctx.fill(); }
     for (const s of SIM.SEATS.slice(0, 4)) { // bancs autour du feu
@@ -272,6 +273,7 @@ const R = (() => {
   const RSH = { cloche: [0.4, 0.14, 8, 0.86], rubans: [0.4, 0.36, 9, 0.52], fanal: [0.3, 0.2, 10, 0.72], brasero: [0.34, 0.22, 5, 0.74], puits: [0.38, 0.33, 5, 0.54], kiosque: [0.44, 0.4, 9, 0.52], verger: [0.47, 0.43, 6, 0.5], rucher: [0.42, 0.3, 5, 0.62], gardemanger: [0.4, 0.3, 7, 0.6], bucher: [0.46, 0.34, 6, 0.62], digue: [0.5, 0.42, 3, 0.5], abri: [0.48, 0.4, 5, 0.55], tente: [0.5, 0.46, 8, 0.5] };
   /* les icônes de la planche, dessinées sur l'image : mêmes dessins que dans l'interface */
   const GLY = { food: ['nourriture', '#FFD08A'], joy: ['bonheur', '#FFD0DA'], roof: ['toit', '#FBF3E2'], heart: ['amour', '#FFC2D0'], faim: ['faim', '#A63A2E'], dehors: ['dehors', '#A63A2E'],
+    clay: [[STROKES.clay], '#E6B894'], brick: [[STROKES.brick], '#F0A890'], plank: [[STROKES.plank], '#F4DDAA'], meal: [[STROKES.meal], '#FFE2AC'], culture: [[STROKES.culture], '#D4E2FF'], ingen: [[STROKES.ingen], '#FFF2A8'], bloom: [[STROKES.bloom], '#F8CCEA'],
     wood: [['M11.8 13a4.3 4.3 0 11-8.6 0a4.3 4.3 0 018.6 0zM8.8 13a1.3 1.3 0 11-2.6 0a1.3 1.3 0 012.6 0zM7.5 8.7h9.2a4.3 4.3 0 010 8.6H7.5M13.2 12h3M12.2 14.6h2.2'], '#F0CFA6'], stone: [['M4.2 17.8l2-7.6 5.6-4 6.6 3 1.6 8.6zM6.2 10.2l5.2 2.8 7-3.8M11.4 13l-.5 4.8'], '#E3E6EA'] }, GP = {};
   function glyph(kind, x, y, size, color) {
     const q = GLY[kind]; if (!q) return false; const stroke = Array.isArray(q[0]), p = GP[kind] || (GP[kind] = new Path2D(stroke ? q[0][0] : ICONS[q[0]].d)), k = size / 24;

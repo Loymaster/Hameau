@@ -77,6 +77,14 @@ const SFX = (() => {
     g.gain.setValueAtTime(0.0001, t0); g.gain.linearRampToValueAtTime(o.v, t0 + (o.a || 0.006)); g.gain.exponentialRampToValueAtTime(0.0001, t0 + o.d);
     osc.connect(g); out(g, o.pan); osc.start(t0); osc.stop(t0 + o.d + 0.05);
   }
+  /* un cuivre doux : dent de scie passée dans un filtre qui s'ouvre puis se referme, avec un soupçon de vibrato */
+  function brass(f, at, d, v) {
+    const t0 = ac.currentTime + at, o1 = ac.createOscillator(), o2 = ac.createOscillator(), lp = ac.createBiquadFilter(), g = ac.createGain(), vib = ac.createOscillator(), vg = ac.createGain();
+    o1.type = 'sawtooth'; o2.type = 'triangle'; o1.frequency.value = f; o2.frequency.value = f * 2.002; vib.frequency.value = 5.5; vg.gain.value = f * 0.004; vib.connect(vg); vg.connect(o1.frequency);
+    lp.type = 'lowpass'; lp.Q.value = 0.9; lp.frequency.setValueAtTime(500, t0); lp.frequency.linearRampToValueAtTime(2400, t0 + 0.05); lp.frequency.exponentialRampToValueAtTime(900, t0 + d);
+    g.gain.setValueAtTime(0.0001, t0); g.gain.linearRampToValueAtTime(v, t0 + 0.03); g.gain.setValueAtTime(v, t0 + d * 0.55); g.gain.exponentialRampToValueAtTime(0.0001, t0 + d);
+    o1.connect(lp); o2.connect(lp); lp.connect(g); out(g, 0); for (const o of [o1, o2, vib]) { o.start(t0); o.stop(t0 + d + 0.05); }
+  }
   function hiss(o) {
     const t0 = ac.currentTime + (o.at || 0), s = ac.createBufferSource(), q = ac.createBiquadFilter(), g = ac.createGain();
     s.buffer = o.brown ? noiseB : noiseW; q.type = o.type || 'bandpass'; q.frequency.setValueAtTime(o.f, t0); if (o.f2) q.frequency.exponentialRampToValueAtTime(o.f2, t0 + o.d); q.Q.value = o.q || 1;
@@ -96,6 +104,7 @@ const SFX = (() => {
     card: () => pluck(4, 0.09),
     go: () => { pluck(2, 0.08); pluck(7, 0.08, { at: 0.09 }); },
     back: () => pluck(0, 0.06),
+    clarion: () => { [[392, 0, 0.17], [523.25, 0.17, 0.17], [659.25, 0.34, 0.17], [783.99, 0.51, 0.75]].forEach(n => brass(n[0], n[1], n[2], 0.075)); brass(523.25, 0.51, 0.75, 0.04); }, // le village devient un bourg : sol, do, mi, sol tenu
     site: p => { tone({ f: 150, f2: 90, d: 0.16, v: 0.12, pan: p }); hiss({ f: 900, q: 0.6, d: 0.12, v: 0.05, pan: p }); },
     built: p => [0, 2, 4, 7].forEach((d, i) => pluck(d + 5, 0.085, { at: i * 0.085, pan: p })),
     job: p => { pluck(4, 0.07, { pan: p }); pluck(7, 0.07, { at: 0.11, pan: p }); },

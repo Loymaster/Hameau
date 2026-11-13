@@ -11,7 +11,7 @@ const SIM = (() => {
      Le bonheur (joy) se compte à part, comme avant. */
   const RES = ['food', 'wood', 'stone', 'clay', 'brick', 'plank', 'meal', 'culture', 'ingen', 'bloom'];
   const RNAME = { food: 'nourriture', wood: 'bois', stone: 'pierre', clay: 'argile', brick: 'brique', plank: 'planche', meal: 'repas', culture: 'culture', ingen: 'ingéniosité', bloom: 'épanouissement', joy: 'bonheur' };
-  const RATIO = 2; // deux pour un, un pour un avec le spécialiste du domaine
+  const RATIO = 2, TOOLED = ['food', 'wood', 'stone', 'clay']; // deux pour un, un pour un avec le spécialiste du domaine
   function rngOf(seed) {
     let a = seed >>> 0;
     return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
@@ -71,7 +71,7 @@ const SIM = (() => {
     longere: { name: 'Longère', w: 66, h: 42, cost: { wood: 4, stone: 1 }, beds: 3 },
     ferme: { name: 'Ferme familiale', w: 64, h: 48, cost: { wood: 5, stone: 2 }, beds: 3, own: true, give: { food: 1 } },
     ecole: { name: 'École', w: 56, h: 46, cost: { wood: 4, stone: 2 }, school: 3 },
-    bibliotheque: { name: 'Bibliothèque', w: 48, h: 44, cost: { wood: 3, stone: 2 }, fast: 1 },
+    bibliotheque: { name: 'Bibliothèque', w: 48, h: 44, cost: { wood: 3, stone: 2 }, fast: 1, give: { culture: 1 } },
     cantine: { name: 'Cantine', w: 54, h: 44, cost: { wood: 3, stone: 1 }, feedKids: 3 },
     chevre: { name: 'Enclos à chèvre', w: 44, h: 40, cost: { wood: 2 }, feedKids: 1 },
     bassecour: { name: 'Basse-cour', w: 48, h: 42, cost: { wood: 3 }, kidFood: 1, kidCap: 2 },
@@ -85,17 +85,19 @@ const SIM = (() => {
     lycee: { name: 'Lycée', w: 62, h: 48, cost: { wood: 4, stone: 3 }, posts: 1, job: 'professeur', out: 'culture', per: 3, indoor: true, verb: 'Fait la classe' },
     theatre: { name: 'Théâtre', w: 60, h: 48, cost: { plank: 3, brick: 1 }, give: { culture: 1, joy: 2 } },
     observatoire: { name: 'Observatoire', w: 46, h: 46, cost: { brick: 3, plank: 1 }, give: { culture: 2 } },
-    academie: { name: 'Académie', w: 60, h: 48, cost: { plank: 2, brick: 2 }, posts: 1, job: 'savant', conv: { from: 'culture', to: 'ingen', cap: 4 }, verb: 'Cherche' },
+    academie: { name: 'Académie', w: 60, h: 48, cost: { plank: 2, brick: 2 }, posts: 1, job: 'savant', conv: { from: 'culture', to: 'ingen', cap: 8 }, verb: 'Cherche' },
     arts: { name: 'Atelier des arts', w: 54, h: 44, cost: { plank: 2, stone: 1 }, posts: 1, job: 'artiste', conv: { from: 'joy', to: 'bloom', cap: 4 }, verb: 'Crée' },
-    cabinet: { name: 'Cabinet du médecin', w: 48, h: 44, cost: { ingen: 3, plank: 1 }, posts: 1, job: 'medecin', medic: true, indoor: true, verb: 'Soigne' },
+    cabinet: { name: 'Cabinet du médecin', w: 48, h: 44, cost: { ingen: 3, wood: 2 }, posts: 1, job: 'medecin', medic: true, indoor: true, verb: 'Soigne' },
     geologue: { name: 'Bureau du géologue', w: 46, h: 42, cost: { ingen: 2, wood: 2 }, posts: 1, job: 'geologue', expert: 'brick', indoor: true, verb: 'Étudie les terres' },
     ingenieur: { name: 'Bureau de l’ingénieur', w: 46, h: 42, cost: { ingen: 2, wood: 2 }, posts: 1, job: 'ingenieur', expert: 'plank', indoor: true, verb: 'Trace des plans' },
     chef: { name: 'Fourneau du cuisinier', w: 46, h: 42, cost: { ingen: 2, stone: 1 }, posts: 1, job: 'cuisinier', expert: 'meal', indoor: true, verb: 'Invente des plats' },
-    psy: { name: 'Cabinet du psychologue', w: 48, h: 44, cost: { ingen: 3, plank: 1 }, posts: 1, job: 'psychologue', expert: 'bloom', indoor: true, verb: 'Écoute' },
-    maisonbrique: { name: 'Maison de brique', w: 60, h: 46, cost: { brick: 3, plank: 1 }, beds: 4 },
+    psy: { name: 'Cabinet du psychologue', w: 48, h: 44, cost: { ingen: 3, wood: 2 }, posts: 1, job: 'psychologue', expert: 'bloom', indoor: true, verb: 'Écoute' },
+    maisonbrique: { name: 'Maison de brique', w: 60, h: 46, cost: { brick: 3, wood: 1 }, beds: 4 },
     demeure: { name: 'Grande demeure', w: 70, h: 52, cost: { brick: 4, plank: 3 }, beds: 6 },
     entrepot: { name: 'Entrepôt', w: 62, h: 46, cost: { plank: 3, brick: 1 }, store: true },
-    halle: { name: 'Halle du marché', w: 64, h: 48, cost: { brick: 2, plank: 2 }, give: { food: 2, wood: 1 } },
+    halle: { name: 'Halle du marché', w: 64, h: 48, cost: { plank: 4 }, give: { food: 2, wood: 1 } },
+    universite: { name: 'Université', w: 62, h: 48, cost: { wood: 4, stone: 3 }, posts: 1, job: 'savant', conv: { from: 'culture', to: 'ingen', cap: 4 }, verb: 'Cherche' },
+    outillerie: { name: 'Outillerie', w: 52, h: 44, cost: { plank: 2, brick: 2 }, tools: 1, toolCap: 4 },
     cloche: { name: 'Cloche', w: 30, h: 36, cost: { wood: 3, stone: 2 }, open: true, call: 2 },
     table: { name: 'Grande table', w: 58, h: 34, cost: { wood: 3 }, open: true, joy: 2 },
   };
@@ -114,7 +116,10 @@ const SIM = (() => {
   }
   const afford = (st, type) => { const c = costOf(st, type); return RES.every(r => st[r] >= (c[r] || 0)); };
   /* pourquoi une carte ne peut pas être jouée : 'cost' (ressources), 'room' (plus de place), sinon null */
-  const blocked = (st, type) => !afford(st, type) ? 'cost' : !placeBuilding(st, type, () => 0) ? 'room' : null;
+  /* « y a-t-il la place ? » ne dépend que de ce qui est déjà bâti et tracé : on s'en souvient */
+  const ROOM = new Map();
+  const hasRoom = (st, type) => { const k = st.map + '|' + type + '|' + st.buildings.map(b => b.x + ',' + b.y + ',' + b.w + ',' + b.h).join(';') + '|' + st.roadCells.join(); let v = ROOM.get(k); if (v == null) { if (ROOM.size > 20000) ROOM.clear(); v = !!placeBuilding(st, type, () => 0); ROOM.set(k, v); } return v; };
+  const blocked = (st, type) => !afford(st, type) ? 'cost' : !hasRoom(st, type) ? 'room' : null;
   /* à partir de dix habitants, le village est un bourg : deux chantiers par jour */
   const maxBuilds = st => st.town ? 2 : 1;
   const affordBoth = (st, a, b) => { const ca = costOf(st, a), cb = costOf(st, b); return RES.every(r => st[r] >= (ca[r] || 0) + (cb[r] || 0)); };
@@ -263,13 +268,18 @@ const SIM = (() => {
   /* A* générique : `goal` est une cellule ou une fonction ; `useCost` fait préférer les chemins */
   function astar(nav, s, goal, useCost) {
     const isFn = typeof goal === 'function', ex = isFn ? 0 : goal % GW, ey = isFn ? 0 : Math.floor(goal / GW);
-    const cost = new Float32Array(N).fill(1e9), from = new Int32Array(N).fill(-1), closed = new Uint8Array(N), open = [s];
+    const cost = new Float32Array(N).fill(1e9), from = new Int32Array(N).fill(-1), closed = new Uint8Array(N);
     cost[s] = 0; let end = -1;
     const hf = i => isFn ? 0 : hyp((i % GW) - ex, Math.floor(i / GW) - ey) * (useCost ? 0.6 : 1);
-    while (open.length) {
-      let bi = 0, bf = 1e9;
-      for (let k = 0; k < open.length; k++) { const fv = cost[open[k]] + hf(open[k]); if (fv < bf) { bf = fv; bi = k; } }
-      const cur = open.splice(bi, 1)[0];
+    /* file de priorité : la plus petite estimation d'abord ; à égalité, la case entrée la première dans la file
+       (exactement l'ordre de l'ancienne recherche linéaire, en bien plus rapide sur les grandes cartes) */
+    const first = new Int32Array(N).fill(-1), hF = [], hS = [], hC = []; let seq = 0;
+    const push = i => { if (first[i] < 0) first[i] = seq++; const f = cost[i] + hf(i), q = first[i]; let k = hF.length; hF.push(f); hS.push(q); hC.push(i);
+      while (k > 0) { const p = (k - 1) >> 1; if (hF[p] < f || (hF[p] === f && hS[p] <= q)) break; hF[k] = hF[p]; hS[k] = hS[p]; hC[k] = hC[p]; k = p; } hF[k] = f; hS[k] = q; hC[k] = i; };
+    const pop = () => { const top = hC[0], f = hF.pop(), q = hS.pop(), c = hC.pop(), n = hF.length; if (n) { let k = 0; for (;;) { let m = 2 * k + 1; if (m >= n) break; if (m + 1 < n && (hF[m + 1] < hF[m] || (hF[m + 1] === hF[m] && hS[m + 1] < hS[m]))) m++; if (f < hF[m] || (f === hF[m] && q <= hS[m])) break; hF[k] = hF[m]; hS[k] = hS[m]; hC[k] = hC[m]; k = m; } hF[k] = f; hS[k] = q; hC[k] = c; } return top; };
+    push(s);
+    while (hF.length) {
+      const cur = pop();
       if (closed[cur]) continue; closed[cur] = 1;
       if (isFn ? goal(cur) : cur === goal) { end = cur; break; }
       const x0 = cur % GW, y0 = Math.floor(cur / GW);
@@ -279,7 +289,7 @@ const SIM = (() => {
         const ni = ny * GW + nx; if (nav.g[ni] || closed[ni]) continue;
         if (dx && dy && (nav.g[y0 * GW + nx] || nav.g[ny * GW + x0])) continue;
         const c = cost[cur] + (dx && dy ? 1.42 : 1) * (useCost ? (nav.c[ni] + nav.c[cur]) / 2 : 1);
-        if (c < cost[ni]) { cost[ni] = c; from[ni] = cur; open.push(ni); }
+        if (c < cost[ni]) { cost[ni] = c; from[ni] = cur; push(ni); }
       }
     }
     if (end < 0) return null;
@@ -336,6 +346,9 @@ const SIM = (() => {
     world(st.map);
     const map = getMap(st.map), def = BT[type], F = map.fire, S = map.stock, GX = 12, GY = 18;
     const road = new Uint8Array(N); for (const i of st.roadCells) road[i] = 1;
+    /* la clairière ne change pas : on retient, point par point, où l'on peut bâtir */
+    const CW = W + 8, CL = map._cl || (map._cl = new Int8Array(CW * (H + 8)));
+    const clr = (x, y) => { if (x !== (x | 0) || y !== (y | 0) || x < 0 || y < 0 || x >= CW || y >= H + 8) return map.clear(x, y); const i = y * CW + x; let v = CL[i]; if (!v) CL[i] = v = map.clear(x, y) ? 1 : 2; return v === 1; };
     /* distance (en cases) au chemin le plus proche */
     const dr = new Int16Array(N).fill(999); let q = st.roadCells.slice(); for (const i of q) dr[i] = 0;
     while (q.length) { const nq = []; for (const i of q) { const x0 = i % GW, y0 = Math.floor(i / GW); for (const o of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const nx = x0 + o[0], ny = y0 + o[1]; if (nx < 0 || ny < 0 || nx >= GW || ny >= GH) continue; const ni = ny * GW + nx; if (dr[ni] > dr[i] + 1) { dr[ni] = dr[i] + 1; nq.push(ni); } } } q = nq; }
@@ -344,7 +357,7 @@ const SIM = (() => {
     let best = null, bs = -1e9;
     for (let y = 140; y + def.h <= H - 40; y += 4) for (let x = 16; x + def.w <= W - 16; x += 4) {
       const mx = x + def.w / 2, my = y + def.h / 2;
-      if (!map.clear(x - 3, y - 3) || !map.clear(x + def.w + 3, y - 3) || !map.clear(x - 3, y + def.h + 3) || !map.clear(x + def.w + 3, y + def.h + 3) || !map.clear(mx, y + def.h + 14)) continue;
+      if (!clr(x - 3, y - 3) || !clr(x + def.w + 3, y - 3) || !clr(x - 3, y + def.h + 3) || !clr(x + def.w + 3, y + def.h + 3) || !clr(mx, y + def.h + 14)) continue;
       let ok = true;
       for (const b of st.buildings) if (x < b.x + b.w + GX && x + def.w + GX > b.x && y < b.y + b.h + GY && y + def.h + GY > b.y) { ok = false; break; }
       if (!ok) continue;
@@ -752,12 +765,13 @@ const SIM = (() => {
     for (const id of usedTrees) if (!st.cut.includes(id)) st.cut.push(id);
     nav = buildNav(st, storm && !anti('storm'));
 
+    const learned = (CHALLENGES[st.ch].deck || []).some(t => BT[t].conv && BT[t].conv.from === 'culture') || CHALLENGES[st.ch].culture != null; // la culture ne compte que là où l'on sait quoi en faire
     const staffed = f => st.buildings.some(b => !b.gone && f(BT[b.type]) && b.workers.some(id => st.villagers[id].alive && !st.villagers[id].off));
     const expert = k => staffed(d => d.expert === k), medic = staffed(d => d.medic), made = {}, idleShops = [];
     /* ce qui agit sans personne : ruches, fleurs, verger (après quelques jours), troc, et ce qui améliore le travail des autres */
     for (const b of st.buildings) {
       const def = BT[b.type], x = b.x + b.w / 2, y = b.y + 6; if (b.gone) continue;
-      if (def.give && !frostOn(def) && st.day - b.day >= (def.wait || 0)) { for (const r of RES) if (def.give[r]) gain(16.5, r, def.give[r], x, y); if (def.give.joy) joyQ.push([16.52, def.give.joy, x, y]); }
+      if (def.give && !frostOn(def) && st.day - b.day >= (def.wait || 0)) { for (const r of RES) if (def.give[r] && (r !== 'culture' || learned)) gain(16.5, r, def.give[r], x, y); if (def.give.joy) joyQ.push([16.52, def.give.joy, x, y]); }
       const crewN = b.workers.filter(id => st.villagers[id].alive && !st.villagers[id].off).length;
       if (def.indoor && def.out && crewN) gain(16.4, def.out, def.per * crewN, x, y);
       if (def.conv && crewN) { /* l'atelier ne transforme que ce qui était en réserve ce matin : deux pour un, un pour un si le spécialiste du domaine est à son poste */
@@ -769,6 +783,7 @@ const SIM = (() => {
       if (def.kidJoy && kids.length) joyQ.push([16.62, def.kidJoy * Math.min(kids.length, def.kidCap), x, y]);
       if (def.ifKid && kids.length) joyQ.push([19.44, def.ifKid, x, y]);
       if (def.boost) for (const k in def.boost) if (worked[k]) gain(16.8, k === 'glean' ? 'wood' : BT[k].out, def.boost[k] * worked[k], x, y);
+      if (def.tools) { let left = def.toolCap; for (const k in worked) if (BT[k] && TOOLED.includes(BT[k].out) && left > 0) { const n = Math.min(left, worked[k]); left -= n; gain(16.82, BT[k].out, def.tools * n, x, y); } } // de bons outils : un de plus par travailleur aux champs, au bois, à la carrière
       if (def.swap && RES.every(r => st[r] >= (def.swap.take[r] || 0))) { for (const r of RES) { if (def.swap.take[r]) gain(16.9, r, -def.swap.take[r], x - 8, y); if (def.swap.give[r]) gain(16.92, r, def.swap.give[r], x + 8, y); } if (def.swap.give.joy) joyQ.push([16.94, def.swap.give.joy, x, y]); } // après toutes les récoltes du jour, pour ne jamais donner ce qui n'est pas encore rentré
     }
     /* 4. repas */
@@ -814,6 +829,7 @@ const SIM = (() => {
       if (e.type === 'wind') for (let k = 0; k < lvOf(e) + 1; k++) { const c = st.buildings.filter(b => !b.gone && LIGHT.includes(b.type)); if (!c.length) break; wreck(c[Math.floor(rng() * c.length)], 'Le vent a emporté : '); }
       if (e.type === 'flood') { if (anti('storm')) log.push({ k: 'new', text: 'La rivière est montée. La digue a tenu.' }); else { const c = st.buildings.filter(b => !b.gone && map.rdist(b.x + b.w / 2, b.y + b.h / 2) < 150).sort((a, b) => map.rdist(a.x + a.w / 2, a.y + a.h / 2) - map.rdist(b.x + b.w / 2, b.y + b.h / 2)); c.slice(0, lvOf(e)).forEach(b => wreck(b, 'La crue a emporté : ')); } }
       if (e.type === 'fire') for (let k = 0; k < Math.min(3, e.lv || 1); k++) { const c = st.buildings.filter(b => !b.gone && !BT[b.type].open && !(BT[b.type].cost.stone > 1)); if (c.length) { const b = c[Math.floor(rng() * c.length)]; if (well()) log.push({ k: 'new', text: 'Le feu a pris, le puits l’a éteint : ' + BT[b.type].name.toLowerCase() + ' sauvé.' }); else wreck(b, 'Le feu a emporté : '); } }
+      if (e.type === 'heat') { const loss = Math.floor(st.food / 2); if (loss > 0) { gain(19.93, 'food', -loss, SK.x + 40, SK.y - 4); log.push({ k: 'bad', text: 'La chaleur a gâté ' + loss + ' nourriture' + (loss > 1 ? 's' : '') + '. Les repas cuisinés, eux, se sont gardés.' }); } else log.push({ k: 'new', text: 'La chaleur n’a rien trouvé à gâter.' }); }
       if (e.type === 'rats') { const kept = st.buildings.some(b => (b.type === 'gardemanger' || b.type === 'cellier') && !b.gone), sealed = st.buildings.some(b => BT[b.type].store && !b.gone), loss = sealed ? 0 : Math.min(st.food, kept ? Math.ceil(st.food * 0.05) : Math.max(2, Math.ceil(st.food * Math.min(0.8, 0.25 + 0.1 * (e.lv || 1))))); if (loss > 0) { gain(19.95, 'food', -loss, SK.x + 40, SK.y - 4); log.push({ k: 'bad', text: 'Les rats ont mangé ' + loss + ' nourriture' + (loss > 1 ? 's' : '') + '.' }); } }
     }
     if (surv) { /* la réserve ne se garde pas : au-delà de deux jours de vivres (quatre avec un garde-manger ou un cellier), près d'un tiers du surplus se gâte chaque nuit */
@@ -1200,6 +1216,89 @@ const SIM = (() => {
       endMsg: ['Il ne leur est rien resté.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Un pré, dix jours, sept ciels contraires — et un village à leur laisser.']
     }
   });
+  /* ---------- niveaux 10 et suivants : le bourg, le savoir, la manufacture ---------- */
+  Object.assign(CHALLENGES, {
+    c31: {
+      id: 'c31', n: 31, map: 'bourg', title: 'Le bourg', days: 8, seed: 20270101, food: 10, wood: 9, stone: 0,
+      voice: { text: 'Un matin, nous étions dix. Les chemins n’ont plus suffi : on les a pavés.', by: '' },
+      start: cab(3).concat([{ type: 'cueillette', workers: [0, 1] }, { type: 'bucheron', workers: [2, 3] }]), villagers: NV(6),
+      draws: [['cabane', 'potager', 'cueillette'], ['cabane', 'pecheur', 'carriere'], ['dortoir', 'cueillette', 'potager'], ['maison', 'four', 'bucheron'], ['grange', 'cabane', 'pecheur'], ['four', 'potager', 'verger'], ['dortoir', 'cabane', 'cueillette'], ['rucher', 'cabanon', 'potager']],
+      events: [{ day: 2, type: 'arrivals', villagers: NV(2) }, { day: 3, type: 'arrivals', villagers: NV(2) }, { day: 5, type: 'arrivals', villagers: NV(3) }, { day: 7, type: 'arrivals', villagers: NV(2) }],
+      goals: [G.alive(8), G.never, G.stockOf(34)]
+    },
+    c32: {
+      id: 'c32', n: 32, map: 'plaine', title: 'La grand-rue', days: 9, seed: 20270102, food: 14, wood: 10, stone: 2,
+      voice: { text: 'On ne connaissait plus tous les prénoms. On saluait quand même.', by: '' },
+      start: cab(4).concat(cab(1, 'cabanon'), [{ type: 'cueillette', workers: [0, 1] }, { type: 'cueillette', workers: [2, 3] }, { type: 'bucheron', workers: [4, 5] }]), villagers: NV(9),
+      draws: [['dortoir', 'potager', 'carriere'], ['cabane', 'pecheur', 'cueillette'], ['fanal', 'four', 'grange'], ['dortoir', 'bergerie', 'potager'], ['digue', 'four', 'maison'], ['grange', 'moulin', 'verger'], ['puits', 'potager', 'cabane'], ['chaumiere', 'poulailler', 'cueillette'], ['brasero', 'serre', 'cabanon']],
+      events: [{ day: 2, type: 'arrivals', villagers: NV(2) }, { day: 3, type: 'fog' }, { day: 4, type: 'arrivals', villagers: NV(3) }, { day: 5, type: 'storm' }, { day: 6, type: 'arrivals', villagers: NV(2) }, { day: 7, type: 'drought', len: 2 }, { day: 8, type: 'arrivals', villagers: NV(2) }, { day: 9, type: 'frost' }],
+      goals: [G.alive(9), G.never, G.stockOf(54)]
+    },
+    c33: {
+      id: 'c33', n: 33, map: 'confluent', title: 'Ce qui s’écrit', days: 8, seed: 20270103, food: 12, wood: 8, stone: 3,
+      voice: { text: 'Le pain se mange. Ce qu’on apprend reste.', by: '' },
+      start: cab(4).concat([{ type: 'cueillette', workers: [0, 1] }, { type: 'bucheron', workers: [2, 3] }, { type: 'carriere', workers: [4] }]), villagers: NV(8),
+      draws: [['bibliotheque', 'potager', 'cabane'], ['lycee', 'pecheur', 'cueillette'], ['dortoir', 'lycee', 'potager'], ['bibliotheque', 'four', 'cabane'], ['maison', 'lycee', 'pecheur'], ['bibliotheque', 'cueillette', 'grange'], ['lycee', 'potager', 'cabanon'], ['bibliotheque', 'rucher', 'cabane']],
+      events: [{ day: 3, type: 'arrivals', villagers: NV(2) }, { day: 5, type: 'arrivals', villagers: NV(2) }],
+      goals: [G.alive(8), G.never, G.have({ culture: 34 })]
+    },
+    c34: {
+      id: 'c34', n: 34, map: 'bourg', title: 'L’idée', days: 9, seed: 20270104, food: 14, wood: 9, stone: 4,
+      voice: { text: 'Savoir ne suffisait pas. Il fallait en faire quelque chose.', by: '' },
+      start: cab(4).concat(cab(1, 'cabanon'), [{ type: 'cueillette', workers: [0, 1] }, { type: 'bucheron', workers: [2, 3] }, { type: 'carriere', workers: [4] }, { type: 'lycee', workers: [5] }]), villagers: NV(9),
+      draws: [['universite', 'potager', 'cabane'], ['pecheur', 'bibliotheque', 'cueillette'], ['universite', 'lycee', 'dortoir'], ['fanal', 'four', 'bibliotheque'], ['lycee', 'potager', 'cabane'], ['digue', 'universite', 'pecheur'], ['bibliotheque', 'grange', 'cueillette'], ['universite', 'potager', 'cabanon'], ['lycee', 'rucher', 'cabane']],
+      events: [{ day: 2, type: 'arrivals', villagers: NV(1) }, { day: 4, type: 'fog' }, { day: 5, type: 'arrivals', villagers: NV(2) }, { day: 6, type: 'storm' }],
+      goals: [G.alive(9), G.never, G.have({ ingen: 17 })]
+    },
+    c35: {
+      id: 'c35', n: 35, map: 'plaine', title: 'La fièvre', days: 9, seed: 20270105, food: 14, wood: 9, stone: 4,
+      voice: { text: 'Elle est entrée par une porte, et le soir elle dormait dans tous les lits.', by: '' },
+      start: cab(4).concat(cab(1, 'cabanon'), [{ type: 'cueillette', workers: [0, 1] }, { type: 'bucheron', workers: [2, 3] }, { type: 'carriere', workers: [4] }, { type: 'lycee', workers: [5] }]), villagers: NV(9),
+      draws: [['universite', 'potager', 'cabane'], ['pecheur', 'maison', 'cueillette'], ['universite', 'cabanon', 'potager'], ['cabinet', 'four', 'maison'], ['cabinet', 'potager', 'cabane'], ['cabinet', 'pecheur', 'cabanon'], ['cabinet', 'cueillette', 'maison'], ['cabinet', 'potager', 'rucher'], ['verger', 'rucher', 'cabanon']],
+      events: [{ day: 3, type: 'sick', n: 1 }, { day: 4, type: 'arrivals', villagers: NV(2) }, { day: 7, type: 'sick', n: 2, grave: true }],
+      goals: [G.alive(9), G.never, G.stockOf(20)]
+    },
+    c36: {
+      id: 'c36', n: 36, map: 'confluent', title: 'La terre cuite', days: 9, seed: 20270106, food: 16, wood: 10, stone: 4, culture: 4,
+      voice: { text: 'La terre de la rive ne valait rien. Passée au feu, elle valait une maison.', by: '' },
+      start: cab(5).concat([{ type: 'cueillette', workers: [0, 1] }, { type: 'cueillette', workers: [2, 3] }, { type: 'bucheron', workers: [4, 5] }, { type: 'carriere', workers: [6] }, { type: 'lycee', workers: [7] }, { type: 'universite', workers: [8] }]), villagers: NV(10),
+      draws: [['argiliere', 'potager', 'cabane'], ['briqueterie', 'argiliere', 'pecheur'], ['briqueterie', 'geologue', 'cueillette'], ['maisonbrique', 'argiliere', 'potager'], ['geologue', 'maisonbrique', 'four'], ['maisonbrique', 'briqueterie', 'pecheur'], ['argiliere', 'maisonbrique', 'bibliotheque'], ['geologue', 'maisonbrique', 'potager'], ['maisonbrique', 'rucher', 'cabanon']],
+      events: [{ day: 3, type: 'arrivals', villagers: NV(2) }, { day: 5, type: 'fog' }, { day: 6, type: 'arrivals', villagers: NV(2) }],
+      goals: [G.alive(9), G.never, G.have({ brick: 12 })]
+    },
+    c37: {
+      id: 'c37', n: 37, map: 'bourg', title: 'Le fil du bois', days: 9, seed: 20270107, food: 16, wood: 10, stone: 3, culture: 4,
+      voice: { text: 'Un tronc fait un feu. Une planche fait un plancher, un toit, une halle.', by: '' },
+      start: cab(5).concat([{ type: 'cueillette', workers: [0, 1] }, { type: 'cueillette', workers: [2, 3] }, { type: 'bucheron', workers: [4, 5] }, { type: 'carriere', workers: [6] }, { type: 'lycee', workers: [7] }, { type: 'universite', workers: [8] }]), villagers: NV(10),
+      draws: [['charpenterie', 'bucheron', 'potager'], ['charpenterie', 'scierie', 'pecheur'], ['ingenieur', 'cabane', 'cueillette'], ['fanal', 'halle', 'charpenterie'], ['halle', 'ingenieur', 'dortoir'], ['halle', 'bucheron', 'four'], ['digue', 'halle', 'cabane'], ['ingenieur', 'halle', 'potager'], ['halle', 'rucher', 'cabanon']],
+      events: [{ day: 3, type: 'arrivals', villagers: NV(2) }, { day: 4, type: 'fog' }, { day: 6, type: 'arrivals', villagers: NV(2) }, { day: 7, type: 'storm' }],
+      goals: [G.alive(9), G.never, G.have({ plank: 20 })]
+    },
+    c38: {
+      id: 'c38', n: 38, map: 'plaine', title: 'Ce qui nous dépasse', days: 9, seed: 20270108, food: 16, wood: 10, stone: 4, culture: 4, plank: 4, joy: true,
+      voice: { text: 'Être content, nous savions. Il restait à apprendre quoi en faire.', by: '' },
+      start: cab(5).concat([{ type: 'cueillette', workers: [0, 1] }, { type: 'cueillette', workers: [2, 3] }, { type: 'bucheron', workers: [4, 5] }, { type: 'carriere', workers: [6] }, { type: 'lycee', workers: [7] }, { type: 'universite', workers: [8] }]), villagers: NV(10),
+      draws: [['table', 'jardin', 'potager'], ['arts', 'cabane', 'pecheur'], ['arts', 'bains', 'cueillette'], ['psy', 'pressoir', 'kiosque'], ['psy', 'jardin', 'four'], ['arts', 'rubans', 'dortoir'], ['psy', 'kiosque', 'potager'], ['bains', 'jardin', 'cabane'], ['rubans', 'rucher', 'cabanon']],
+      events: [{ day: 3, type: 'arrivals', villagers: NV(2) }, { day: 6, type: 'arrivals', villagers: NV(2) }],
+      goals: [G.alive(9), G.never, G.have({ bloom: 34 })]
+    },
+    c39: {
+      id: 'c39', n: 39, map: 'confluent', title: 'Le corps et l’âme', days: 10, seed: 20270109, food: 16, wood: 10, stone: 4, culture: 4, plank: 4, joy: true,
+      voice: { text: 'Guérir ne suffit pas à vivre. Mais il faut bien commencer par là.', by: '' },
+      start: cab(5).concat([{ type: 'cueillette', workers: [0, 1] }, { type: 'cueillette', workers: [2, 3] }, { type: 'bucheron', workers: [4, 5] }, { type: 'carriere', workers: [6] }, { type: 'lycee', workers: [7] }, { type: 'universite', workers: [8] }]), villagers: NV(10),
+      draws: [['table', 'potager', 'maison'], ['arts', 'cabinet', 'pecheur'], ['cabinet', 'jardin', 'maison'], ['arts', 'kiosque', 'cabinet'], ['psy', 'bains', 'four'], ['cabinet', 'psy', 'pressoir'], ['psy', 'jardin', 'cabane'], ['kiosque', 'rubans', 'potager'], ['bains', 'jardin', 'cabanon'], ['rubans', 'rucher', 'cabane']],
+      events: [{ day: 3, type: 'sick', n: 2 }, { day: 4, type: 'arrivals', villagers: NV(2) }, { day: 6, type: 'sick', n: 2, grave: true }, { day: 7, type: 'arrivals', villagers: NV(2) }],
+      goals: [G.alive(10), G.never, G.have({ bloom: 20 })]
+    },
+    c40: {
+      id: 'c40', n: 40, map: 'bourg', title: 'Ce qui tient', days: 12, seed: 20270110, food: 24, wood: 14, stone: 5, culture: 4,
+      voice: { text: 'Le vent a tout pris, sauf ce que nous avions cuit et ajusté.', by: '' },
+      start: cab(7).concat([{ type: 'cueillette', workers: [0, 1] }, { type: 'cueillette', workers: [2, 3] }, { type: 'cueillette', workers: [4, 5] }, { type: 'bucheron', workers: [6, 7] }, { type: 'carriere', workers: [8] }, { type: 'lycee', workers: [9] }, { type: 'universite', workers: [10] }]), villagers: NV(14),
+      draws: [['argiliere', 'charpenterie', 'four'], ['briqueterie', 'argiliere', 'pecheur'], ['charpenterie', 'four', 'argiliere'], ['entrepot', 'geologue', 'maisonbrique'], ['maisonbrique', 'ingenieur', 'four'], ['demeure', 'maisonbrique', 'moulin'], ['maisonbrique', 'outillerie', 'four'], ['demeure', 'maisonbrique', 'four'], ['cueillette', 'argiliere', 'pecheur'], ['potager', 'cueillette', 'entrepot'], ['halle', 'bucheron', 'potager'], ['brasero', 'four', 'maisonbrique']],
+      events: [{ day: 4, type: 'arrivals', villagers: NV(2) }, { day: 4, type: 'rats', lv: 3 }, { day: 6, type: 'arrivals', villagers: NV(2) }, { day: 8, type: 'tornado' }, { day: 10, type: 'rats', lv: 4 }, { day: 12, type: 'frost' }],
+      goals: [G.alive(12), G.never, G.stockOf(20)]
+    }
+  });
   CHALLENGES.survie = {
     id: 'survie', n: 0, survival: true, map: 'pre', title: 'Survie', days: 1e9, seed: 20261201, food: 4, wood: 2, stone: 0,
     voice: { text: 'Nous ne savions pas combien de jours. Nous avons compté quand même.', by: '' },
@@ -1217,7 +1316,11 @@ const SIM = (() => {
     { id: 'l6', name: 'Le ciel contre nous', sub: 'La crue, le vent, et ce qui reste', ch: ['c18', 'c19', 'c20'] },
     { id: 'l7', name: 'Sans toit', sub: 'Rien de bâti, mais de quoi commencer', ch: ['c21', 'c22', 'c23', 'c24'] },
     { id: 'l8', name: 'Les enfants', sub: 'Des bouches, puis des bras', ch: ['c25', 'c26', 'c27'] },
-    { id: 'l9', name: 'Tout à la fois', sub: 'De tout, et le même soir', ch: ['c28', 'c29', 'c30'] }
+    { id: 'l9', name: 'Tout à la fois', sub: 'De tout, et le même soir', ch: ['c28', 'c29', 'c30'] },
+    { id: 'l10', name: 'Le bourg', sub: 'Dix habitants, deux chantiers par jour', ch: ['c31', 'c32'] },
+    { id: 'l11', name: 'Le savoir', sub: 'Lire, chercher, soigner', ch: ['c33', 'c34', 'c35'] },
+    { id: 'l12', name: 'La manufacture', sub: 'La brique et la planche', ch: ['c36', 'c37'] },
+    { id: 'l13', name: 'Les maîtres', sub: 'S’épanouir, guérir, tenir sous le vent', ch: ['c38', 'c39', 'c40'] }
   ];
 
   return { get W() { return W; }, get H() { return H; }, get EXT() { return EXT; }, world, CELL, T, SPEED, RES, RNAME, RATIO, maxBuilds, affordBoth, options, solid, BT, JOBNAME, LIGHT, SCHOOL_DAYS, SEATS, CHALLENGES, LEVELS, MAPDEF, rngOf, getMap, cast, popOf, costOf, newGame, planDay, survDraw, survJobs, sample, draw, capacity, door, buildNav, findPath, eventsOn, weather, beginDay, placeBuilding, afford, blocked };

@@ -268,10 +268,10 @@ details .opts{display:flex;flex-direction:column;gap:4px;padding-bottom:6px}
 
 /* ---------- icônes : une seule couleur par icône, choisie selon le fond ---------- */
 /* sur papier (livre, cartes, feuilles, bulles, pastilles claires) : teintes foncées, contraste ≥ 4,9:1 */
-#app,.card,.evb,.vb .bad,.sb,.insp,.sheet{--k-food:#8A4410;--k-wood:#6B4729;--k-stone:#4F5660;--k-roof:#2F3B2C;--k-joy:#8C3B4A;--k-ppl:#2F3B2C;--k-storm:#3D4A63;--k-frost:#27608A;--k-fog:#55626A;--k-sun:#855407;--k-moon:#3D4A63;--k-love:#A2304A;--k-death:#3A3A40;--k-work:#5A4630;--k-hope:#855407;--k-fear:#3D4A63;--k-calm:#33622F;--k-sad:#55626A;--k-grudge:#7A3B2E;--k-friend:#8C3B4A;--k-bad:#A63A2E}
+#app,.card,.evb,.vb .bad,.sb,.insp,.sheet{--k-clay:#8E4A2A;--k-brick:#9A3A28;--k-plank:#7A5A2A;--k-meal:#8A4410;--k-culture:#3D4A63;--k-ingen:#855407;--k-bloom:#8C3B6A;--k-food:#8A4410;--k-wood:#6B4729;--k-stone:#4F5660;--k-roof:#2F3B2C;--k-joy:#8C3B4A;--k-ppl:#2F3B2C;--k-storm:#3D4A63;--k-frost:#27608A;--k-fog:#55626A;--k-sun:#855407;--k-moon:#3D4A63;--k-love:#A2304A;--k-death:#3A3A40;--k-work:#5A4630;--k-hope:#855407;--k-fear:#3D4A63;--k-calm:#33622F;--k-sad:#55626A;--k-grudge:#7A3B2E;--k-friend:#8C3B4A;--k-bad:#A63A2E}
 /* sur l'image du jeu (voiles sombres du haut et du bas) et sur les pastilles foncées : teintes claires */
-.hud,.bottom,.card .cc,.daytitle{--k-food:#FFD08A;--k-wood:#F0CFA6;--k-stone:#E3E6EA;--k-roof:#FBF3E2;--k-joy:#FFD0DA;--k-ppl:#FBF3E2;--k-storm:#D5DEF0;--k-frost:#CDEBFF;--k-fog:#E6ECEE;--k-sun:#FFE08A;--k-moon:#DCE4FF;--k-love:#FFC2D0;--k-death:#E6E6EA;--k-work:#F0DFC0;--k-hope:#FFE08A;--k-fear:#D5DEF0;--k-calm:#D2EBC0;--k-sad:#E6ECEE;--k-grudge:#FFC9B8;--k-friend:#FFD0DA;--k-bad:#FFB7A2}
-svg.k-food{color:var(--k-food)}svg.k-wood{color:var(--k-wood)}svg.k-stone{color:var(--k-stone)}svg.k-roof{color:var(--k-roof)}svg.k-joy{color:var(--k-joy)}svg.k-ppl{color:var(--k-ppl)}svg.k-storm{color:var(--k-storm)}svg.k-frost{color:var(--k-frost)}svg.k-fog{color:var(--k-fog)}svg.k-sun{color:var(--k-sun)}svg.k-moon{color:var(--k-moon)}svg.k-love{color:var(--k-love)}svg.k-death{color:var(--k-death)}svg.k-work{color:var(--k-work)}svg.k-hope{color:var(--k-hope)}svg.k-fear{color:var(--k-fear)}svg.k-calm{color:var(--k-calm)}svg.k-sad{color:var(--k-sad)}svg.k-grudge{color:var(--k-grudge)}svg.k-friend{color:var(--k-friend)}svg.k-bad{color:var(--k-bad)}
+.hud,.bottom,.card .cc,.daytitle{--k-clay:#F2B48E;--k-brick:#FFA98C;--k-plank:#F3D89A;--k-meal:#FFD9A0;--k-culture:#CFE0FF;--k-ingen:#FFE89A;--k-bloom:#FFC6E6;--k-food:#FFD08A;--k-wood:#F0CFA6;--k-stone:#E3E6EA;--k-roof:#FBF3E2;--k-joy:#FFD0DA;--k-ppl:#FBF3E2;--k-storm:#D5DEF0;--k-frost:#CDEBFF;--k-fog:#E6ECEE;--k-sun:#FFE08A;--k-moon:#DCE4FF;--k-love:#FFC2D0;--k-death:#E6E6EA;--k-work:#F0DFC0;--k-hope:#FFE08A;--k-fear:#D5DEF0;--k-calm:#D2EBC0;--k-sad:#E6ECEE;--k-grudge:#FFC9B8;--k-friend:#FFD0DA;--k-bad:#FFB7A2}
+svg.k-clay{color:var(--k-clay)}svg.k-brick{color:var(--k-brick)}svg.k-plank{color:var(--k-plank)}svg.k-meal{color:var(--k-meal)}svg.k-culture{color:var(--k-culture)}svg.k-ingen{color:var(--k-ingen)}svg.k-bloom{color:var(--k-bloom)}svg.k-food{color:var(--k-food)}svg.k-wood{color:var(--k-wood)}svg.k-stone{color:var(--k-stone)}svg.k-roof{color:var(--k-roof)}svg.k-joy{color:var(--k-joy)}svg.k-ppl{color:var(--k-ppl)}svg.k-storm{color:var(--k-storm)}svg.k-frost{color:var(--k-frost)}svg.k-fog{color:var(--k-fog)}svg.k-sun{color:var(--k-sun)}svg.k-moon{color:var(--k-moon)}svg.k-love{color:var(--k-love)}svg.k-death{color:var(--k-death)}svg.k-work{color:var(--k-work)}svg.k-hope{color:var(--k-hope)}svg.k-fear{color:var(--k-fear)}svg.k-calm{color:var(--k-calm)}svg.k-sad{color:var(--k-sad)}svg.k-grudge{color:var(--k-grudge)}svg.k-friend{color:var(--k-friend)}svg.k-bad{color:var(--k-bad)}
 svg.i{width:20px;height:20px}
 .hud svg,.bottom svg{filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.8))}.card svg,.evb svg,.vb .bad svg,.sb svg{filter:none}
 .res .r svg.i{width:25px;height:25px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.75))}.res.four .r svg.i{width:22px;height:22px}.res .r{gap:3px}.res.four{gap:9px}
@@ -425,3 +425,14 @@ h2.big{font-size:54px!important}.center{text-align:center}
 .tlink.more{position:absolute;right:24px;top:92px;font-size:19px;min-height:40px;padding:4px 2px}
 #spn{margin-left:4px;color:rgba(251,243,226,.82)}#spn svg{width:22px;height:22px;stroke-width:1.9}
 .speed button{min-width:38px}
+
+/* ---- 0.30 : la manufacture — beaucoup de ressources, beaucoup d'habitants ---- */
+.res .rrow{display:flex;gap:inherit;align-items:center;justify-content:flex-end}
+.res.wide{flex-direction:column;align-items:flex-end;gap:3px}.res.wide .rrow{gap:10px}.res.wide .rrow.x{gap:9px;background:rgba(22,12,5,.38);border-radius:11px;padding:2px 8px}
+.res.wide .r b{font-size:19px}.res.wide .r svg.i{width:21px;height:21px}.res.wide .rrow.x .r b{font-size:17px}.res.wide .rrow.x .r svg.i{width:19px;height:19px}
+.hud-top:has(.res.wide){align-items:flex-start}
+.vbar.crowd{flex-wrap:wrap;gap:2px 2px}.vbar.crowd .vb{width:34px}.vbar.crowd .vb canvas{width:32px;height:32px}.vbar.crowd .vb .vn{display:none}
+.vbar.throng .vb{width:28px}.vbar.throng .vb canvas{width:27px;height:27px}
+.card .ce b.sw svg.i{width:15px;height:15px;vertical-align:-3px}
+.vgrid.dense{gap:7px 3px}.vgrid.dense .vcell{width:calc(20% - 3px)}.vgrid.dense .vcell canvas{width:34px;height:34px}.vgrid.dense .vcell b{font-size:calc(15.5px*var(--hs))}.vgrid.dense .vcell .ck svg{width:15px;height:15px}
+.delta{flex-wrap:wrap}

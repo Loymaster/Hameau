@@ -55,6 +55,10 @@ const MIND = (() => {
     ev_maladie: L('malade', 'crainte', ['Une fièvre, ça passe. On le veillera.'], ['La fièvre est au village. Qui sera le suivant ?'], ['Un malade. Mauvais.'], ['Je porterai sa soupe au malade.'], ['La fièvre, maintenant. Il ne manquait que ça.']),
     malade: L('malade', 'peine', ['Deux jours au lit, et je repars.'], ['Je brûle. Ne me laissez pas dehors.'], ['Fièvre.'], ['Ne vous approchez pas, gardez-vous.'], ['Malade. Et qui fera mon travail ?']),
     ev_feu: L('fire', 'crainte', ['S’il y a le feu, on rebâtira.'], ['Ça sent le roussi. Où est le puits ?'], ['Le feu rôde.'], ['Je veillerai près des toits ce soir.'], ['Du bois sec partout. Ça finira en torche.']),
+    ev_tornade: L('vent', 'crainte', ['Le ciel tourne. Ce qui est de brique tiendra.'], ['Ce vent-là arrache les toits de bois.'], ['Tornade ce soir.'], ['Que chacun dorme derrière un mur de brique.'], ['Du bois, du chaume : ce soir, il n’en restera rien.']),
+    ev_canicule: L('food', 'crainte', ['Quelle chaleur ! Ce qui est cuit se gardera.'], ['La réserve tourne déjà, par cette chaleur.'], ['Chaleur. Les vivres.'], ['Cuisinons ce qui peut l’être, vite.'], ['On ramasse, et le soleil gâte tout.']),
+    fievre_grave: L('malade', 'crainte', ['Cette fièvre est mauvaise. Un médecin m’en tirerait.'], ['Je brûle. Sans médecin, je ne passerai pas demain soir.'], ['Mauvaise fièvre. Il faut un médecin.'], ['Ne m’approchez pas. Trouvez un médecin.'], ['Je crève de fièvre, et pas un médecin ici.']),
+    bourg: L('village', 'espoir', ['Dix ! Nous voilà un bourg.'], ['Dix déjà… Saurons-nous nourrir tout ce monde ?'], ['Dix. Un bourg.'], ['Plus on est, mieux on bâtit.'], ['Dix. Et autant de bouches.']),
     ev_rats: L('rats', 'crainte', ['Des rats ? Ils ne mangeront pas tout.'], ['Les rats sont dans la réserve, j’en suis sûr.'], ['Des rats.'], ['Mettons les vivres à l’abri, vite.'], ['On trime, et les rats se servent.']),
     ev_loups: L('loups', 'crainte', ['Les loups craignent le feu. On tiendra.'], ['J’ai entendu hurler. Personne dehors cette nuit.'], ['Des loups.'], ['Que personne ne dorme dehors. Serrons-nous.'], ['Des loups, à présent. Charmant voisinage.']),
     ev_secheresse: L('sun', 'crainte', ['La rivière baisse. Elle reviendra.'], ['Plus d’eau, plus de poisson. Et après ?'], ['Tout sèche.'], ['Je porterai l’eau du puits aux potagers.'], ['Pas une goutte. Les potagers grillent.']),
@@ -127,8 +131,9 @@ const MIND = (() => {
     };
     if (st.food < n) share('faim_soir', 2, 2, 'inquiet'); else if (st.food < 2 * n) share('faim_loin', 1, 1, 'inquiet');
     if (st.wood === 0) share('bois_zero', 1, 1);
-    const SV = { sick: 'ev_maladie', fire: 'ev_feu', rats: 'ev_rats', wolves: 'ev_loups', drought: 'ev_secheresse', wind: 'ev_vent', flood: 'ev_crue' };
-    for (const v of st.villagers) if (v.alive && v.sick > 0) add(v, 'malade', 2);
+    const SV = { sick: 'ev_maladie', fire: 'ev_feu', rats: 'ev_rats', wolves: 'ev_loups', drought: 'ev_secheresse', wind: 'ev_vent', flood: 'ev_crue', tornado: 'ev_tornade', heat: 'ev_canicule' };
+    for (const v of st.villagers) if (v.alive && v.sick > 0) add(v, v.grave ? 'fievre_grave' : 'malade', v.grave ? 3 : 2);
+    if (st.town === st.day) share('bourg', 1, 1);
     if (st.lost && st.lost.length) share('ruine', 1, 1);
     for (const e of evT) {
       if (SV[e.type]) share(SV[e.type], 2, 2);
