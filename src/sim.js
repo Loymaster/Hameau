@@ -1223,7 +1223,7 @@ const SIM = (() => {
   /* ---------- niveaux 10 et suivants : le bourg, le savoir, la manufacture ---------- */
   Object.assign(CHALLENGES, {
     c31: {
-      id: 'c31', n: 31, rule: 'À dix habitants, le village devient un bourg : il peut mener deux chantiers par jour.', map: 'bourg', title: 'Le bourg', days: 8, seed: 20270101, food: 10, wood: 9, stone: 0,
+      id: 'c31', n: 31, endMsg: ['Dix habitants, et rien pour les garder.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Dix, puis quinze, et la réserve pleine : le bourg est né.'], rule: 'À dix habitants, le village devient un bourg : il peut mener deux chantiers par jour.', map: 'bourg', title: 'Nous étions dix', days: 8, seed: 20270101, food: 10, wood: 9, stone: 0,
       voice: { text: 'Un matin, nous étions dix. Les chemins n’ont plus suffi : on les a pavés.', by: '' },
       start: cab(3).concat([{ type: 'cueillette', workers: [0, 1] }, { type: 'bucheron', workers: [2, 3] }]), villagers: NV(6),
       draws: [['cabane', 'potager', 'cueillette'], ['cabane', 'pecheur', 'carriere'], ['dortoir', 'cueillette', 'potager'], ['maison', 'four', 'bucheron'], ['grange', 'cabane', 'pecheur'], ['four', 'potager', 'verger'], ['dortoir', 'cabane', 'cueillette'], ['rucher', 'cabanon', 'potager']],
@@ -1231,7 +1231,7 @@ const SIM = (() => {
       goals: [G.alive(8), G.never, G.stockOf(34)]
     },
     c32: {
-      id: 'c32', n: 32, rule: 'Un bourg bâtit vite, mais chaque nouveau poste demande un adulte libre.', map: 'plaine', title: 'La grand-rue', days: 9, seed: 20270102, food: 14, wood: 10, stone: 2,
+      id: 'c32', n: 32, endMsg: ['La grand-rue ne mène plus nulle part.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Dix-huit à table, et du pain d’avance.'], rule: 'Un bourg bâtit vite, mais chaque nouveau poste demande un adulte libre.', map: 'plaine', title: 'La grand-rue', days: 9, seed: 20270102, food: 14, wood: 10, stone: 2,
       voice: { text: 'On ne connaissait plus tous les prénoms. On saluait quand même.', by: '' },
       start: cab(4).concat(cab(1, 'cabanon'), [{ type: 'cueillette', workers: [0, 1] }, { type: 'cueillette', workers: [2, 3] }, { type: 'bucheron', workers: [4, 5] }]), villagers: NV(9),
       draws: [['dortoir', 'potager', 'carriere'], ['cabane', 'pecheur', 'cueillette'], ['fanal', 'four', 'grange'], ['dortoir', 'bergerie', 'potager'], ['digue', 'four', 'maison'], ['grange', 'moulin', 'verger'], ['puits', 'potager', 'cabane'], ['chaumiere', 'poulailler', 'cueillette'], ['brasero', 'serre', 'cabanon']],
@@ -1239,7 +1239,7 @@ const SIM = (() => {
       goals: [G.alive(9), G.never, G.stockOf(54)]
     },
     c33: {
-      id: 'c33', n: 33, rule: 'La culture. Le lycée en donne 3 par jour avec un professeur, la bibliothèque 1 par jour.', map: 'confluent', title: 'Ce qui s’écrit', days: 8, seed: 20270103, food: 12, wood: 8, stone: 3,
+      id: 'c33', n: 33, endMsg: ['Personne n’est resté pour lire.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Des rayons pleins : ce qu’ils savent ne se perdra plus.'], rule: 'La culture. Le lycée en donne 3 par jour avec un professeur, la bibliothèque 1 par jour.', map: 'confluent', title: 'Ce qui s’écrit', days: 8, seed: 20270103, food: 12, wood: 8, stone: 3,
       voice: { text: 'Le pain se mange. Ce qu’on apprend reste.', by: '' },
       start: cab(4).concat([{ type: 'cueillette', workers: [0, 1] }, { type: 'bucheron', workers: [2, 3] }, { type: 'carriere', workers: [4] }]), villagers: NV(8),
       draws: [['bibliotheque', 'potager', 'cabane'], ['lycee', 'pecheur', 'cueillette'], ['dortoir', 'lycee', 'potager'], ['bibliotheque', 'four', 'cabane'], ['maison', 'lycee', 'pecheur'], ['bibliotheque', 'cueillette', 'grange'], ['lycee', 'potager', 'cabanon'], ['bibliotheque', 'rucher', 'cabane']],
@@ -1247,7 +1247,7 @@ const SIM = (() => {
       goals: [G.alive(8), G.never, G.have({ culture: 40 })]
     },
     c34: {
-      id: 'c34', n: 34, rule: 'L’ingéniosité. L’université change 2 cultures en 1 ingéniosité — celles qui étaient en réserve le matin, 4 par jour au plus.', map: 'bourg', title: 'L’idée', days: 9, seed: 20270104, food: 14, wood: 9, stone: 4,
+      id: 'c34', n: 34, endMsg: ['L’idée est restée sans personne pour l’avoir.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Ils savaient. Maintenant, ils inventent.'], rule: 'L’ingéniosité. L’université change 2 cultures en 1 ingéniosité — celles qui étaient en réserve le matin, 4 par jour au plus.', map: 'bourg', title: 'L’idée', days: 9, seed: 20270104, food: 14, wood: 9, stone: 4,
       voice: { text: 'Savoir ne suffisait pas. Il fallait en faire quelque chose.', by: '' },
       start: cab(4).concat(cab(1, 'cabanon'), [{ type: 'cueillette', workers: [0, 1] }, { type: 'bucheron', workers: [2, 3] }, { type: 'carriere', workers: [4] }, { type: 'lycee', workers: [5] }]), villagers: NV(9),
       draws: [['universite', 'potager', 'cabane'], ['pecheur', 'bibliotheque', 'cueillette'], ['universite', 'lycee', 'dortoir'], ['fanal', 'four', 'bibliotheque'], ['lycee', 'potager', 'cabane'], ['digue', 'universite', 'pecheur'], ['bibliotheque', 'grange', 'cueillette'], ['universite', 'potager', 'cabanon'], ['lycee', 'rucher', 'cabane']],
@@ -1255,7 +1255,7 @@ const SIM = (() => {
       goals: [G.alive(9), G.never, G.have({ ingen: 17 })]
     },
     c35: {
-      id: 'c35', n: 35, rule: 'Le médecin. Son cabinet se paie en ingéniosité. Tant qu’il est à son poste, personne ne meurt de maladie et elle ne se transmet plus.', map: 'plaine', title: 'La fièvre', days: 9, seed: 20270105, food: 14, wood: 9, stone: 4,
+      id: 'c35', n: 35, endMsg: ['La fièvre a fermé les portes une à une.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'La fièvre est passée, et la réserve est pleine.'], rule: 'Le médecin. Son cabinet se paie en ingéniosité. Tant qu’il est à son poste, personne ne meurt de maladie et elle ne se transmet plus.', map: 'plaine', title: 'La fièvre', days: 9, seed: 20270105, food: 14, wood: 9, stone: 4,
       voice: { text: 'Elle est entrée par une porte, et le soir elle dormait dans tous les lits.', by: '' },
       start: cab(4).concat(cab(1, 'cabanon'), [{ type: 'cueillette', workers: [0, 1] }, { type: 'bucheron', workers: [2, 3] }, { type: 'carriere', workers: [4] }, { type: 'lycee', workers: [5] }]), villagers: NV(9),
       draws: [['universite', 'potager', 'cabane'], ['pecheur', 'maison', 'cueillette'], ['universite', 'cabanon', 'potager'], ['cabinet', 'four', 'maison'], ['cabinet', 'potager', 'cabane'], ['cabinet', 'pecheur', 'cabanon'], ['cabinet', 'cueillette', 'maison'], ['cabinet', 'potager', 'rucher'], ['verger', 'rucher', 'cabanon']],
@@ -1263,7 +1263,7 @@ const SIM = (() => {
       goals: [G.alive(9), G.never, G.stockOf(21)]
     },
     c36: {
-      id: 'c36', n: 36, rule: 'La brique. 2 argiles en réserve le matin donnent 1 brique. Avec un géologue à son poste, 1 argile suffit.', map: 'confluent', title: 'La terre cuite', days: 9, seed: 20270106, food: 16, wood: 10, stone: 4, culture: 4,
+      id: 'c36', n: 36, endMsg: ['La terre a gardé ceux qui la creusaient.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Des briques par piles : de quoi bâtir pour longtemps.'], rule: 'La brique. 2 argiles en réserve le matin donnent 1 brique. Avec un géologue à son poste, 1 argile suffit.', map: 'confluent', title: 'La terre cuite', days: 9, seed: 20270106, food: 16, wood: 10, stone: 4, culture: 4,
       voice: { text: 'La terre de la rive ne valait rien. Passée au feu, elle valait une maison.', by: '' },
       start: cab(5).concat([{ type: 'cueillette', workers: [0, 1] }, { type: 'cueillette', workers: [2, 3] }, { type: 'bucheron', workers: [4, 5] }, { type: 'carriere', workers: [6] }, { type: 'lycee', workers: [7] }, { type: 'universite', workers: [8] }]), villagers: NV(10),
       draws: [['argiliere', 'potager', 'cabane'], ['briqueterie', 'argiliere', 'pecheur'], ['briqueterie', 'geologue', 'cueillette'], ['maisonbrique', 'argiliere', 'potager'], ['geologue', 'maisonbrique', 'four'], ['maisonbrique', 'briqueterie', 'pecheur'], ['argiliere', 'maisonbrique', 'bibliotheque'], ['geologue', 'maisonbrique', 'potager'], ['maisonbrique', 'rucher', 'cabanon']],
@@ -1271,7 +1271,7 @@ const SIM = (() => {
       goals: [G.alive(9), G.never, G.have({ brick: 12 })]
     },
     c37: {
-      id: 'c37', n: 37, rule: 'La planche. 2 bois en réserve le matin donnent 1 planche, une fois les chantiers payés. Avec un ingénieur à son poste, 1 bois suffit.', map: 'bourg', title: 'Le fil du bois', days: 9, seed: 20270107, food: 16, wood: 10, stone: 3, culture: 4,
+      id: 'c37', n: 37, endMsg: ['Le bois n’a servi qu’au feu.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Des planches par piles, droites et sèches.'], rule: 'La planche. 2 bois en réserve le matin donnent 1 planche, une fois les chantiers payés. Avec un ingénieur à son poste, 1 bois suffit.', map: 'bourg', title: 'Le fil du bois', days: 9, seed: 20270107, food: 16, wood: 10, stone: 3, culture: 4,
       voice: { text: 'Un tronc fait un feu. Une planche fait un plancher, un toit, une halle.', by: '' },
       start: cab(5).concat([{ type: 'cueillette', workers: [0, 1] }, { type: 'cueillette', workers: [2, 3] }, { type: 'bucheron', workers: [4, 5] }, { type: 'carriere', workers: [6] }, { type: 'lycee', workers: [7] }, { type: 'universite', workers: [8] }]), villagers: NV(10),
       draws: [['charpenterie', 'bucheron', 'potager'], ['charpenterie', 'scierie', 'pecheur'], ['ingenieur', 'cabane', 'cueillette'], ['fanal', 'halle', 'charpenterie'], ['halle', 'ingenieur', 'dortoir'], ['halle', 'bucheron', 'four'], ['digue', 'halle', 'cabane'], ['ingenieur', 'halle', 'potager'], ['halle', 'rucher', 'cabanon']],
@@ -1279,7 +1279,7 @@ const SIM = (() => {
       goals: [G.alive(9), G.never, G.have({ plank: 20 })]
     },
     c38: {
-      id: 'c38', n: 38, rule: 'L’épanouissement. L’atelier des arts change 2 bonheurs en 1 épanouissement. Avec un psychologue à son poste, 1 bonheur suffit.', map: 'plaine', title: 'Ce qui nous dépasse', days: 9, seed: 20270108, food: 16, wood: 10, stone: 4, culture: 4, plank: 4, joy: true,
+      id: 'c38', n: 38, endMsg: ['Il n’est resté personne pour être heureux.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Ils étaient contents. Les voilà épanouis.'], rule: 'L’épanouissement. L’atelier des arts change 2 bonheurs en 1 épanouissement. Avec un psychologue à son poste, 1 bonheur suffit.', map: 'plaine', title: 'Ce qui nous dépasse', days: 9, seed: 20270108, food: 16, wood: 10, stone: 4, culture: 4, plank: 4, joy: true,
       voice: { text: 'Être content, nous savions. Il restait à apprendre quoi en faire.', by: '' },
       start: cab(5).concat([{ type: 'cueillette', workers: [0, 1] }, { type: 'cueillette', workers: [2, 3] }, { type: 'bucheron', workers: [4, 5] }, { type: 'carriere', workers: [6] }, { type: 'lycee', workers: [7] }, { type: 'universite', workers: [8] }]), villagers: NV(10),
       draws: [['table', 'jardin', 'potager'], ['arts', 'cabane', 'pecheur'], ['arts', 'bains', 'cueillette'], ['psy', 'pressoir', 'kiosque'], ['psy', 'jardin', 'four'], ['arts', 'rubans', 'dortoir'], ['psy', 'kiosque', 'potager'], ['bains', 'jardin', 'cabane'], ['rubans', 'rucher', 'cabanon']],
@@ -1287,7 +1287,7 @@ const SIM = (() => {
       goals: [G.alive(9), G.never, G.have({ bloom: 38 })]
     },
     c39: {
-      id: 'c39', n: 39, rule: 'Deux cabinets, une seule ingéniosité : le médecin garde en vie, le psychologue épanouit.', map: 'confluent', title: 'Le corps et l’âme', days: 10, seed: 20270109, food: 16, wood: 10, stone: 4, culture: 4, plank: 4, joy: true,
+      id: 'c39', n: 39, endMsg: ['Ni le corps ni l’âme n’ont tenu.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Guéris, et épanouis : le corps et l’âme.'], rule: 'Deux cabinets, une seule ingéniosité : le médecin garde en vie, le psychologue épanouit.', map: 'confluent', title: 'Le corps et l’âme', days: 10, seed: 20270109, food: 16, wood: 10, stone: 4, culture: 4, plank: 4, joy: true,
       voice: { text: 'Guérir ne suffit pas à vivre. Mais il faut bien commencer par là.', by: '' },
       start: cab(5).concat([{ type: 'cueillette', workers: [0, 1] }, { type: 'cueillette', workers: [2, 3] }, { type: 'bucheron', workers: [4, 5] }, { type: 'carriere', workers: [6] }, { type: 'lycee', workers: [7] }, { type: 'universite', workers: [8] }]), villagers: NV(10),
       draws: [['table', 'potager', 'maison'], ['arts', 'cabinet', 'pecheur'], ['cabinet', 'jardin', 'maison'], ['arts', 'kiosque', 'cabinet'], ['psy', 'bains', 'four'], ['cabinet', 'psy', 'pressoir'], ['psy', 'jardin', 'cabane'], ['kiosque', 'rubans', 'potager'], ['bains', 'jardin', 'cabanon'], ['rubans', 'rucher', 'cabane']],
@@ -1295,7 +1295,7 @@ const SIM = (() => {
       goals: [G.alive(10), G.never, G.have({ bloom: 22 })]
     },
     c40: {
-      id: 'c40', n: 40, rule: 'La tornade emporte tout bâtiment dont le coût ne compte ni pierre ni brique. L’entrepôt met la réserve hors d’atteinte des rats.', map: 'bourg', title: 'Ce qui tient', days: 12, seed: 20270110, food: 26, wood: 16, stone: 5, culture: 4,
+      id: 'c40', n: 40, endMsg: ['Le vent n’a rien laissé debout, ni personne.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'La tornade est passée. La brique a tenu, et la réserve aussi.'], rule: 'La tornade emporte tout bâtiment dont le coût ne compte ni pierre ni brique. L’entrepôt met la réserve hors d’atteinte des rats.', map: 'bourg', title: 'Ce qui tient', days: 12, seed: 20270110, food: 26, wood: 16, stone: 5, culture: 4,
       voice: { text: 'Le vent a tout pris, sauf ce que nous avions cuit et ajusté.', by: '' },
       start: cab(8).concat([{ type: 'cueillette', workers: [0, 1] }, { type: 'cueillette', workers: [2, 3] }, { type: 'cueillette', workers: [4, 5] }, { type: 'bucheron', workers: [6, 7] }, { type: 'carriere', workers: [8] }, { type: 'lycee', workers: [9] }, { type: 'universite', workers: [10] }]), villagers: NV(16),
       draws: [['argiliere', 'charpenterie', 'four'], ['briqueterie', 'argiliere', 'pecheur'], ['charpenterie', 'four', 'argiliere'], ['entrepot', 'geologue', 'maisonbrique'], ['maisonbrique', 'ingenieur', 'four'], ['demeure', 'maisonbrique', 'moulin'], ['maisonbrique', 'outillerie', 'four'], ['demeure', 'maisonbrique', 'four'], ['cueillette', 'argiliere', 'pecheur'], ['potager', 'cueillette', 'entrepot'], ['halle', 'bucheron', 'potager'], ['brasero', 'four', 'maisonbrique']],

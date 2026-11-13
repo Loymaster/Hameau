@@ -78,7 +78,7 @@ const GAME = (() => {
     if (e.msg && e.type !== 'built') say(e.msg);
     switch (e.type) {
       case 'site': { let i = 0; for (const k of SIM.RES) if (e[k]) { R.float({ x: SK.x + 16 + i * 22, y: SK.y - i * 2, icon: k, text: String(e[k]).replace('-', '−') }); i++; } R.setRoads(G.plan.end); SFX.play('site', R.pan(G.plan.nb.x)); break; }
-      case 'town': { SFX.play('clarion'); R.setRoads(G.plan.end); say('Dix habitants : le village devient un bourg, le feu a sa place de pierre.'); break; }
+      case 'town': { R.setRoads(G.plan.end); say('Dix habitants : le village devient un bourg, le feu a sa place de pierre.'); break; } // le clairon a sonné dès le matin, avec l'annonce des deux chantiers
       case 'fire': { R.burst(e.x, e.y, 'dust'); R.burst(e.x - 8, e.y + 4, 'dust'); R.burst(e.x + 8, e.y - 4, 'dust'); SFX.play('flare', R.pan(e.x)); G.msg = 'Le feu a pris.'; break; }
       case 'built': { const b = (G.plan.nbs || []).find(x => x.id === e.bid) || G.plan.nb; G.pop[b.id] = time; R.burst(b.x + b.w / 2, b.y + b.h - 4, 'dust'); R.burst(b.x + 6, b.y + b.h, 'dust'); R.burst(b.x + b.w - 6, b.y + b.h, 'dust'); SFX.play('built', R.pan(b.x + b.w / 2)); break; }
       case 'job': { L.jobs[e.vid] = e.job; const p = e.job ? vpos(e.vid) : null; if (p) { R.burst(p.x, p.y - 16, 'leaf', ART.OUT[e.job].main); SFX.play('job', R.pan(p.x)); } break; }

@@ -278,7 +278,7 @@ const UI = (() => {
             return cap(d.name.toLowerCase()) + ' : ' + (d.conv ? 'change ' + SIM.RATIO + ' ' + RESN[d.conv.from].toLowerCase() + ' en 1 ' + RESN[d.conv.to].toLowerCase() + ', ' + d.conv.cap + ' ' + RESN[d.conv.from].toLowerCase() + ' par jour au plus' : d.expert ? 'tant qu’il est à son poste, 1 ' + RESN[CONVOF[d.expert]].toLowerCase() + ' suffit pour 1 ' + RESN[d.expert].toLowerCase() : d.medic ? 'tant qu’il est à son poste, personne ne meurt de maladie et elle ne se transmet plus' : d.out ? d.per + ' ' + RESN[d.out].toLowerCase() + ' par jour et par personne' : d.play ? 'de la joie chaque soir' : 'un poste') + (d.posts > 1 ? ', ' + d.posts + ' postes' : '') + '.' + (st.length ? ' Arrêté par ' + names(st) + '.' : ''); }).join(' ')); }).join('') + '</div>'; },
     options: () => back + '<h2>Options</h2><div class="h3">Son</div>' + volsHtml() +
       '<div class="h3">Bulles des villageois</div><div class="segs">' + BUBS.map(b => '<button class="seg" data-bub="' + b[0] + '" aria-pressed="' + (save.bub === b[0]) + '">' + b[1] + '</button>').join('') + '</div>' +
-      '<div class="h3">Progression</div><p class="note">' + Object.values(save.stars).reduce((a, b) => a + b, 0) + ' étoiles sur ' + ORDER.length * 3 + '</p><div class="pfoot">Prototype 0.30</div>'
+      '<div class="h3">Progression</div><p class="note">' + Object.values(save.stars).reduce((a, b) => a + b, 0) + ' étoiles sur ' + ORDER.length * 3 + '</p><div class="pfoot">Prototype 0.31</div>'
   };
   function bindPage(name, arg) {
     paint(pageEl);
@@ -363,7 +363,10 @@ const UI = (() => {
     { const c0 = SIM.CHALLENGES[chId]; if (st.day === 1 && !c0.food && !c0.wood && !c0.stone && GAME.cards.every(t => SIM.blocked(st, t))) {
       bottom.innerHTML = '<div class="mhead"><h2>Jour 1</h2><em>Les mains vides : ce matin, on ne bâtit rien.</em></div>'; R.setView('day');
       setTimeout(() => { if (GAME.phase === 'morning' && GAME.st === st) GAME.choose(null); }, 2100); return; } }
-    let h = '<div class="mhead"><h2>Jour ' + st.day + '</h2>' + evBtns(st) + (surv ? jb : evBtns(st) ? '' : '<em>' + (SIM.maxBuilds(st) > 1 ? 'Deux chantiers possibles.' : 'Que bâtir aujourd’hui ?') + '</em>') + '</div><div class="fan">';
+    /* le matin où le village devient un bourg : la place et les routes changent, le clairon sonne, et on le dit en toutes lettres */
+    const newTown = SIM.maxBuilds(st) > 1 && st.town === st.day;
+    if (newTown && seen.town !== st.day) { seen.town = st.day; R.setRoads(st); if (st.day > 1) setTimeout(() => SFX.play('clarion'), 500); }
+    let h = '<div class="mhead"><h2>Jour ' + st.day + '</h2>' + evBtns(st) + (surv ? jb : evBtns(st) ? '' : SIM.maxBuilds(st) > 1 ? '' : '<em>Que bâtir aujourd’hui ?</em>') + '</div>' + (SIM.maxBuilds(st) > 1 ? '<div class="two' + (newTown ? ' first' : '') + '" role="status">' + I.build2 + '<span>' + (newTown ? 'Tu peux construire 2 bâtiments maintenant !' : '2 bâtiments par jour') + '</span></div>' : '') + '<div class="fan">';
     GAME.cards.forEach((type, i) => {
       const d = SIM.BT[type], bk = SIM.blocked(st, type), cst = SIM.costOf(st, type), tag = bk === 'cost' ? LACK[SIM.RES.find(r => st[r] < (cst[r] || 0))] : bk === 'room' ? 'Plus de place' : '', o = i - (n - 1) / 2;
       const cost = Object.keys(cst).map(k => '<span class="cc' + (cst[k] < d.cost[k] ? ' less' : '') + '" aria-label="' + cst[k] + ' ' + RESN[k].toLowerCase() + '">' + I[k] + cst[k] + '</span>').join('');
@@ -381,10 +384,10 @@ const UI = (() => {
       cd.onclick = () => {
         if (cd.classList.contains('off')) { SFX.play('back'); return hint(cd.querySelector('.tag').textContent + '.'); }
         const ty = cd.dataset.type;
-        if (picks.includes(ty)) { picks = picks.filter(x => x !== ty); show(); if (two && picks.length) say('Un second chantier est possible.'); return; }
+        if (picks.includes(ty)) { picks = picks.filter(x => x !== ty); show(); if (two && picks.length) say('Choisis-en un second, ou bâtis celui-ci.'); return; }
         if (two && picks.length === 1 && !SIM.affordBoth(st, picks[0], ty)) { SFX.play('back'); return say('Pas de quoi bâtir les deux. Touche la carte choisie pour la retirer.'); }
         SFX.play('card'); if (!two) picks = []; else if (picks.length > 1) picks.shift(); picks.push(ty); show();
-        if (two && picks.length === 1) say('Un second chantier est possible.'); else $('#mhint').hidden = true;
+        if (two && picks.length === 1) say('Choisis-en un second, ou bâtis celui-ci.'); else $('#mhint').hidden = true;
       };
     });
     R.setView('plan', bottom.offsetHeight - 26, planY());
@@ -446,7 +449,7 @@ const UI = (() => {
     if ((save.stars[chId] || 0) < r.stars) save.stars[chId] = r.stars;
     if (c.tutorial) save.tuto[chId] = true; persist(); tuto = false;
     const goNext = r.stars > 0 && nextId;
-    openModal('end', '<div class="center"><span class="sub">' + c.title + '</span></div>' + stars(r.stars, true) + '<p class="voice center">' + c.endMsg[r.stars] + '</p>' + goalsHtml(c, r.ok) +
+    openModal('end', '<div class="center"><span class="sub">' + c.title + '</span></div>' + stars(r.stars, true) + '<p class="voice center">' + (c.endMsg || ['Le village s’est tu.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Rien n’a manqué, et la réserve est pleine.'])[r.stars] + '</p>' + goalsHtml(c, r.ok) +
       '<div class="acts"><button class="tlink quiet" id="eagain">Rejouer</button><button class="tlink" id="elist">' + (goNext ? 'Défi suivant' : 'Retour au livre') + '</button></div>');
     if (r.stars) for (let i = 0; i < r.stars; i++) setTimeout(() => SFX.play('star', 0, i), 180 + i * 250); else SFX.play('fail');
     $('#eagain').onclick = () => startChallenge(chId);
