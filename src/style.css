@@ -423,3 +423,5 @@ h2.big{font-size:54px!important}.center{text-align:center}
 .pgn{display:block;margin-top:6px}
 /* la suite des niveaux : un lien en haut de page, à droite du titre */
 .tlink.more{position:absolute;right:24px;top:92px;font-size:19px;min-height:40px;padding:4px 2px}
+#spn{margin-left:4px;color:rgba(251,243,226,.82)}#spn svg{width:22px;height:22px;stroke-width:1.9}
+.speed button{min-width:38px}

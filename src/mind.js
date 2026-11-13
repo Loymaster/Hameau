@@ -86,7 +86,9 @@ const MIND = (() => {
   }
   const lover = (m, st, v) => { const o = m.love[v.id]; return o != null && st.villagers[o] && st.villagers[o].alive ? st.villagers[o] : null; };
   function friend(m, st, v, min) { let b = null, ba = (min || 2) - 1; for (const o of st.villagers) if (o.alive && o.id !== v.id) { const a = aff(m, v.id, o.id); if (a > ba) { ba = a; b = o; } } return b; }
+  const ADULT = /^(bois|pierre|ruine|chantier|metier|oisif|brume_perdue|pont_coupe|gel_perdu)/;
   function mk(m, st, v, sit, force, o, moment, t0, t1) {
+    if (v.child && ADULT.test(sit)) return null; // un enfant ne parle ni de bois à ramasser, ni de chantier, ni de métier
     const P = PH[sit], ch = charOf(v), ls = P.lines[ch], raw = ls[(st.day + v.id) % ls.length]; if (!raw) return null;
     const jn = SIM.JOBNAME[v.job || 'none'][v.sex];
     return { id: ++m.n, vid: v.id, sit, subj: P.subj, tone: P.tone, force, text: raw.replace(/\b([dD]e|[qQ]ue) \{o\}/g, (x, w0) => /^[AEIOUYHÉÈÊ]/.test(o ? o.name : '') ? w0.slice(0, -1) + '’' + o.name : w0 + ' ' + (o ? o.name : '')).replace(/\{o\}/g, o ? o.name : '').replace(/\{M\}/g, cap(jn)), other: o && o.id != null ? o.id : null, moment, day: st.day, t0: t0 == null ? 0 : t0, t1: t1 == null ? 99 : t1, reply: null };

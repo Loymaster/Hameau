@@ -22,7 +22,7 @@ const UI = (() => {
     deuil: S('<path d="M7 19.500V10a5 5 0 0110 0v9.500M4.500 19.500h15M12 8.600v5M10 10.400h4"/>', 'i k-death'),
     star: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + ICONS['etoile-pleine'].d + '" fill="#D99A2B"/><path fill-rule="evenodd" d="' + ICONS['etoile-vide'].d + '" fill="#6E4706"/></svg>',
     star0: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="' + ICONS['etoile-vide'].d + '" fill="currentColor" fill-opacity=".45"/></svg>',
-    back: P('retour'), menu: P('carnet'), pause: P('pause'), play: P('lecture'), x: P('fermer', '', 24), book: P('livre'), sp1: P('vitesse-1'), sp2: P('vitesse-2'), sp4: P('vitesse-4'),
+    back: P('retour'), menu: P('carnet'), pause: P('pause'), play: P('lecture'), x: P('fermer', '', 24), book: P('livre'), sp1: P('vitesse-1'), sp2: P('vitesse-2'), sp4: P('vitesse-4'), skip: S('<path d="M5 5l7 7-7 7M12 5l7 7-7 7"/><path d="M21 5v14"/>', 'i'),
     ok: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.500l3.200 3.200L13 4.800" fill="none" stroke="currentColor" stroke-width="2.200" stroke-linecap="round" stroke-linejoin="round"/></svg>', no: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" fill="none" stroke="currentColor" stroke-width="2.200" stroke-linecap="round"/></svg>', snd: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.500h3.500L12 5.500v13l-4.500-4H4z" fill="currentColor"/><path d="M15.500 9a4.200 4.200 0 010 6M18 6.500a8 8 0 010 11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>', mute: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.500h3.500L12 5.500v13l-4.500-4H4z" fill="currentColor"/><path d="M16 9.500l5 5M21 9.500l-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
     ppl: P('villageois', 'i k-ppl'), ppl2: P('nouveaux-venus', 'i k-ppl'), soi: P('soi', 'i k-ppl'), autre: P('autre', 'i k-ppl'),
     storm: P('orage', 'i k-storm'), frost: P('gel', 'i k-frost'), fog: P('brume', 'i k-fog'), sun: P('soleil', 'i k-sun'), moon: P('lune', 'i k-moon'),
@@ -255,7 +255,7 @@ const UI = (() => {
             return cap(d.name.toLowerCase()) + ' : ' + (d.out ? d.per + ' ' + RESN[d.out].toLowerCase() + ' par jour et par personne' : d.play ? 'de la joie chaque soir' : 'un poste') + (d.posts > 1 ? ', ' + d.posts + ' postes' : '') + '.' + (st.length ? ' Arrêté par ' + names(st) + '.' : ''); }).join(' ')); }).join('') + '</div>'; },
     options: () => back + '<h2>Options</h2><div class="h3">Son</div>' + volsHtml() +
       '<div class="h3">Bulles des villageois</div><div class="segs">' + BUBS.map(b => '<button class="seg" data-bub="' + b[0] + '" aria-pressed="' + (save.bub === b[0]) + '">' + b[1] + '</button>').join('') + '</div>' +
-      '<div class="h3">Progression</div><p class="note">' + Object.values(save.stars).reduce((a, b) => a + b, 0) + ' étoiles sur ' + ORDER.length * 3 + '</p><div class="pfoot">Prototype 0.22</div>'
+      '<div class="h3">Progression</div><p class="note">' + Object.values(save.stars).reduce((a, b) => a + b, 0) + ' étoiles sur ' + ORDER.length * 3 + '</p><div class="pfoot">Prototype 0.23</div>'
   };
   function bindPage(name, arg) {
     paint(pageEl);
@@ -315,7 +315,7 @@ const UI = (() => {
   function buildHud(villagers) {
     const vb = $('#vbar'); vb.classList.toggle('many', villagers.length > 7);
     villagers.forEach((v, i) => {
-      if (vbtn[i]) return;
+      if (vbtn[i]) { vbtn[i].b.classList.toggle('kid', !!v.child); vbtn[i].b.setAttribute('aria-label', v.name + (v.child ? ', enfant' : '')); return; } // un enfant devenu adulte retrouve un portrait d'adulte
       const b = document.createElement('button'); b.className = 'vb' + (v.child ? ' kid' : ''); b.dataset.snd = '1'; b.setAttribute('aria-label', v.name + (v.child ? ', enfant' : '')); b.innerHTML = '<canvas aria-hidden="true"></canvas><span class="vn">' + v.name + '</span><span class="bad"></span>';
       b.onclick = () => { SFX.play('voice', 0, i); showVillager(i); }; vb.appendChild(b); vbtn.push({ b, cv: b.querySelector('canvas'), bad: b.querySelector('.bad') });
     });
@@ -369,11 +369,12 @@ const UI = (() => {
   function renderDay() {
     const st = GAME.st, J = [[T.BUILD, GAME.plan.nb ? 'Chantier' : 'Matin'], [T.WORK, 'Travail'], [T.MEAL, 'Repas'], [T.BED, 'Coucher'], [T.NIGHT, 'Nuit']];
     bottom.innerHTML = '<div class="daybar"><div class="dayline"><b class="dj">Jour ' + st.day + '</b>' + evBtns(st) +
-      '<div class="speed" role="group" aria-label="Vitesse du temps"><button id="sp0" aria-label="Pause">' + I.pause + '</button><button id="sp1" aria-label="Vitesse normale">' + I.sp1 + '</button><button id="sp2" aria-label="Vitesse double">' + I.sp2 + '</button><button id="sp4" aria-label="Vitesse quadruple">' + I.sp4 + '</button></div></div>' +
+      '<div class="speed" role="group" aria-label="Vitesse du temps"><button id="sp0" aria-label="Pause">' + I.pause + '</button><button id="sp1" aria-label="Vitesse normale">' + I.sp1 + '</button><button id="sp2" aria-label="Vitesse double">' + I.sp2 + '</button><button id="sp4" aria-label="Vitesse quadruple">' + I.sp4 + '</button><button id="spn" aria-label="Passer à la phase suivante" title="Passer à la phase suivante">' + I.skip + '</button></div></div>' +
       '<div class="track" role="img" aria-label="Déroulement de la journée"><div class="tg"></div>' + J.map((j, i) => '<i class="jal" style="left:' + SEG[i][1] + '%"></i><span class="jl" data-j="' + i + '" style="left:' + SEG[i][1] + '%;width:' + (SEG[i + 1][1] - SEG[i][1]) + '%" title="' + j[1] + '">' + I[JI[i]] + '<em>' + j[1] + '</em></span>').join('') + '<i class="jal" style="left:100%"></i><i id="fmk">' + I.sun + I.moon + '</i></div>' +
       '<div class="msg" id="msg" aria-live="polite"></div></div>';
     $('#sp0').onclick = () => { GAME.paused = !GAME.paused; syncSpeed(); };
     [1, 2, 4].forEach(s => { $('#sp' + s).onclick = () => { GAME.speed = s; GAME.paused = false; syncSpeed(); }; });
+    $('#spn').onclick = () => { GAME.skip(); syncSpeed(); };
     bindEv(st);
     cache.delete('jal'); msgN = -1; syncSpeed(); R.setView('day');
   }

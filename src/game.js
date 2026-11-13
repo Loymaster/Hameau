@@ -92,7 +92,16 @@ const GAME = (() => {
     }
     emit('event', e);
   }
+  /* passer la phase en cours : du chantier au travail, du travail au repas… jusqu'au bilan. Ce qui devait arriver arrive, sans le spectacle. */
+  function skip() {
+    if (G.phase !== 'day' || G.hold) return;
+    const next = [T.WORK, T.MEAL, T.BED, T.NIGHT, T.END].find(x => x > G.t + 0.02), ev = G.plan.events, f0 = R.float, b0 = R.burst, p0 = SFX.play;
+    R.float = R.burst = () => {}; SFX.play = () => {};
+    try { while (G.evi < ev.length && ev[G.evi].t <= next) fire(ev[G.evi++], G.now || 0); } finally { R.float = f0; R.burst = b0; SFX.play = p0; }
+    G.t = next; G.t0 = next; G.bub = []; G.paused = false; SFX.play('page');
+  }
   function tick(dt, time) {
+    G.now = time;
     if (G.phase !== 'day' || G.paused || G.hold) return;
     let left = dt * G.speed;
     while (left > 0 && G.t < T.END) { const st = Math.min(left, 0.05); G.t += st * rate(G.t); left -= st; }
@@ -207,6 +216,6 @@ const GAME = (() => {
     return null;
   }
   Object.assign(G, { start, attract, morning, choose, retryDay, next, tick, view, tap, phaseName, alive, rate, weather, say, mindTick, anchor });
-  G.mourners = mourners; G.resume = resume; G.keep = keep;
+  G.skip = skip; G.mourners = mourners; G.resume = resume; G.keep = keep;
   return G;
 })();
