@@ -460,6 +460,10 @@ h2.big{font-size:54px!important}.center{text-align:center}
 .two.first svg.i{width:24px;height:24px;filter:none}
 @keyframes twopop{from{transform:scale(.6);opacity:0}}@keyframes twoglow{50%{box-shadow:0 4px 30px rgba(255,224,138,.95)}}
 @media (prefers-reduced-motion:reduce){.two.first{animation:none}}
+/* le carnet d'un villageois reste dans l'écran : l'en-tête et sa croix ne bougent pas, le reste défile */
+.insp{max-height:calc(100% - 20px);box-sizing:border-box}.insp.carnet{overflow:hidden}.insp.carnet .chd{flex:none}
+.insp.carnet .cbody{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;scrollbar-width:thin;padding-right:2px}
+.insp:not(.carnet){overflow-y:auto}
 
 </style>
 </head>
@@ -4297,7 +4301,7 @@ const UI = (() => {
             return cap(d.name.toLowerCase()) + ' : ' + (d.conv ? 'change ' + SIM.RATIO + ' ' + RESN[d.conv.from].toLowerCase() + ' en 1 ' + RESN[d.conv.to].toLowerCase() + ', ' + d.conv.cap + ' ' + RESN[d.conv.from].toLowerCase() + ' par jour au plus' : d.expert ? 'tant qu’il est à son poste, 1 ' + RESN[CONVOF[d.expert]].toLowerCase() + ' suffit pour 1 ' + RESN[d.expert].toLowerCase() : d.medic ? 'tant qu’il est à son poste, personne ne meurt de maladie et elle ne se transmet plus' : d.out ? d.per + ' ' + RESN[d.out].toLowerCase() + ' par jour et par personne' : d.play ? 'de la joie chaque soir' : 'un poste') + (d.posts > 1 ? ', ' + d.posts + ' postes' : '') + '.' + (st.length ? ' Arrêté par ' + names(st) + '.' : ''); }).join(' ')); }).join('') + '</div>'; },
     options: () => back + '<h2>Options</h2><div class="h3">Son</div>' + volsHtml() +
       '<div class="h3">Bulles des villageois</div><div class="segs">' + BUBS.map(b => '<button class="seg" data-bub="' + b[0] + '" aria-pressed="' + (save.bub === b[0]) + '">' + b[1] + '</button>').join('') + '</div>' +
-      '<div class="h3">Progression</div><p class="note">' + Object.values(save.stars).reduce((a, b) => a + b, 0) + ' étoiles sur ' + ORDER.length * 3 + '</p><div class="pfoot">Prototype 0.31</div>'
+      '<div class="h3">Progression</div><p class="note">' + Object.values(save.stars).reduce((a, b) => a + b, 0) + ' étoiles sur ' + ORDER.length * 3 + '</p><div class="pfoot">Prototype 0.32</div>'
   };
   function bindPage(name, arg) {
     paint(pageEl);
@@ -4518,7 +4522,12 @@ const UI = (() => {
     $('#jok').onclick = closeModal;
   }
   function closeInspect() { inspect = null; GAME.sel = null; insp.hidden = true; vbtn.forEach(o => o.b.classList.remove('sel')); }
-  function placeInsp() { insp.style.bottom = (bottom.hidden ? 12 : bottom.offsetHeight - 22) + 'px'; }
+  /* le carnet se pose au-dessus des cartes ; il ne dépasse jamais l'écran : s'il n'a pas la place, il recouvre les cartes, et son contenu défile sous sa croix */
+  function placeInsp() {
+    const H = app.clientHeight, top = 8; let bot = bottom.hidden ? 12 : bottom.offsetHeight - 22;
+    insp.style.maxHeight = 'none'; if (H - bot - top < Math.min(insp.offsetHeight, 330)) bot = 12;
+    insp.style.bottom = bot + 'px'; insp.style.maxHeight = Math.max(120, H - bot - top) + 'px';
+  }
   /* toucher un villageois ouvre son carnet : ce qu'il espère, ce qu'il craint, ses dernières pensées, ses proches */
   function showVillager(id) {
     if (inspect && inspect.v === id) return closeInspect();
@@ -4634,6 +4643,7 @@ const UI = (() => {
         $('#icar').innerHTML = '<div class="hf"><div><h4>' + I.espoir + 'J’espère</h4><p>' + (hope ? esc(hope.text) : '—') + '</p></div><div><h4>' + I.crainte + 'Je crains</h4><p>' + (fear ? esc(fear.text) : '—') + '</p></div></div>' +
           (log.length ? '<h4>' + I.soi + 'Mon carnet</h4><ul class="cl">' + log.slice(-3).reverse().map(l => '<li>' + (I[l.tone] || '') + '<i>Jour ' + l.day + ', ' + l.moment + '</i>' + esc(l.text) + '</li>').join('') + '</ul>' : '') +
           (cl.length ? '<p class="pr"><span>Mes proches</span>' + cl.map(c => (c.love ? I.heart : I.amitie) + c.name).join(' · ') + '</p>' : '');
+        placeInsp();
       });
     }
   }
@@ -4669,7 +4679,7 @@ const UI = (() => {
     syncBubbles();
     requestAnimationFrame(loop);
   }
-  function resize() { R.resize(app.clientWidth, app.clientHeight, Math.min(qCap, window.devicePixelRatio || 1), 122 + safeTop(), 122); if (GAME.phase === 'morning') R.setView('plan', bottom.offsetHeight - 26, planY()); if (inspect) placeInsp(); if (coach) drawCoach(); }
+  function resize() { if (!insp.hidden) setTimeout(placeInsp, 0); R.resize(app.clientWidth, app.clientHeight, Math.min(qCap, window.devicePixelRatio || 1), 122 + safeTop(), 122); if (GAME.phase === 'morning') R.setView('plan', bottom.offsetHeight - 26, planY()); if (inspect) placeInsp(); if (coach) drawCoach(); }
   function safeTop() { const d = document.createElement('div'); d.style.cssText = 'position:absolute;top:0;height:env(safe-area-inset-top);width:1px'; app.appendChild(d); const h = d.offsetHeight || 0; d.remove(); return h; }
   function boot() {
     R.init(cv, GAME.map); resize(); window.addEventListener('resize', resize);

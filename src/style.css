@@ -449,3 +449,7 @@ h2.big{font-size:54px!important}.center{text-align:center}
 .two.first svg.i{width:24px;height:24px;filter:none}
 @keyframes twopop{from{transform:scale(.6);opacity:0}}@keyframes twoglow{50%{box-shadow:0 4px 30px rgba(255,224,138,.95)}}
 @media (prefers-reduced-motion:reduce){.two.first{animation:none}}
+/* le carnet d'un villageois reste dans l'écran : l'en-tête et sa croix ne bougent pas, le reste défile */
+.insp{max-height:calc(100% - 20px);box-sizing:border-box}.insp.carnet{overflow:hidden}.insp.carnet .chd{flex:none}
+.insp.carnet .cbody{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;scrollbar-width:thin;padding-right:2px}
+.insp:not(.carnet){overflow-y:auto}
