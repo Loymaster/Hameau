@@ -8,7 +8,7 @@ Le jeu tient dans une seule page web. Il est pensé pour un écran de téléphon
 
 ## État
 
-Prototype 0.35.
+Prototype 0.36.
 
 - **Défis** : 40 défis en 13 niveaux, de 4 à 12 jours chacun, avec des événements annoncés (orage, brume, gel, sécheresse, crue, grand vent, rats, maladie, tornade, nouveaux venus) et jusqu'à 3 étoiles. Les défis 21 à 30 partent d'un pré nu ; les enfants et l'école y arrivent au défi 25. Les défis 31 à 40 se jouent sur de grandes cartes : le bourg, le savoir, la manufacture.
 - **Survie** : 4 villageois, presque rien au départ, des jours sans fin et un ciel de plus en plus dur. On y choisit qui travaille où, et la partie se garde d'une visite à l'autre.
