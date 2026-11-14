@@ -455,3 +455,8 @@ h2.big{font-size:54px!important}.center{text-align:center}
 .insp:not(.carnet){overflow-y:auto}
 /* le numéro de page suit la liste : il ne passe plus par-dessus quand elle défile (petits écrans) */
 .toc+.pfoot{position:static!important;margin:auto 0 -30px;padding-top:12px}
+/* tourner une page comme du papier : le recto découpé au pli, le verso rabattu par-dessus, l'ombre dessous */
+.pleaf.flip{animation:none;backface-visibility:visible;box-shadow:none;will-change:clip-path}
+.pflap,.pshade{position:absolute;left:16px;right:16px;top:calc(22px + env(safe-area-inset-top));bottom:calc(22px + env(safe-area-inset-bottom));pointer-events:none}
+.pshade{z-index:2;border-radius:5px 12px 12px 5px}
+.pflap{z-index:4}.pflap>i{position:absolute;inset:0;display:block;transform-origin:0 0;background-color:#E6E2CF;background-color:color-mix(in srgb,var(--page) 90%,#8A6A3C);border-radius:5px 12px 12px 5px;will-change:transform,clip-path}

@@ -466,6 +466,11 @@ h2.big{font-size:54px!important}.center{text-align:center}
 .insp:not(.carnet){overflow-y:auto}
 /* le numéro de page suit la liste : il ne passe plus par-dessus quand elle défile (petits écrans) */
 .toc+.pfoot{position:static!important;margin:auto 0 -30px;padding-top:12px}
+/* tourner une page comme du papier : le recto découpé au pli, le verso rabattu par-dessus, l'ombre dessous */
+.pleaf.flip{animation:none;backface-visibility:visible;box-shadow:none;will-change:clip-path}
+.pflap,.pshade{position:absolute;left:16px;right:16px;top:calc(22px + env(safe-area-inset-top));bottom:calc(22px + env(safe-area-inset-bottom));pointer-events:none}
+.pshade{z-index:2;border-radius:5px 12px 12px 5px}
+.pflap{z-index:4}.pflap>i{position:absolute;inset:0;display:block;transform-origin:0 0;background-color:#E6E2CF;background-color:color-mix(in srgb,var(--page) 90%,#8A6A3C);border-radius:5px 12px 12px 5px;will-change:transform,clip-path}
 
 </style>
 </head>
@@ -4305,7 +4310,7 @@ const UI = (() => {
             return cap(d.name.toLowerCase()) + ' : ' + (d.conv ? 'change ' + SIM.RATIO + ' ' + RESN[d.conv.from].toLowerCase() + ' en 1 ' + RESN[d.conv.to].toLowerCase() + ', ' + d.conv.cap + ' ' + RESN[d.conv.from].toLowerCase() + ' par jour au plus' : d.expert ? 'tant qu’il est à son poste, 1 ' + RESN[CONVOF[d.expert]].toLowerCase() + ' suffit pour 1 ' + RESN[d.expert].toLowerCase() : d.medic ? 'tant qu’il est à son poste, personne ne meurt de maladie et elle ne se transmet plus' : d.out ? d.per + ' ' + RESN[d.out].toLowerCase() + ' par jour et par personne' : d.play ? 'de la joie chaque soir' : 'un poste') + (d.posts > 1 ? ', ' + d.posts + ' postes' : '') + '.' + (st.length ? ' Arrêté par ' + names(st) + '.' : ''); }).join(' ')); }).join('') + '</div>'; },
     options: () => back + '<h2>Options</h2><div class="h3">Son</div>' + volsHtml() +
       '<div class="h3">Bulles des villageois</div><div class="segs">' + BUBS.map(b => '<button class="seg" data-bub="' + b[0] + '" aria-pressed="' + (save.bub === b[0]) + '">' + b[1] + '</button>').join('') + '</div>' +
-      '<div class="h3">Progression</div><p class="note">' + Object.values(save.stars).reduce((a, b) => a + b, 0) + ' étoiles sur ' + ORDER.length * 3 + '</p><div class="pfoot">Prototype 0.33</div>'
+      '<div class="h3">Progression</div><p class="note">' + Object.values(save.stars).reduce((a, b) => a + b, 0) + ' étoiles sur ' + ORDER.length * 3 + '</p><div class="pfoot">Prototype 0.34</div>'
   };
   function bindPage(name, arg) {
     paint(pageEl);
@@ -4329,12 +4334,43 @@ const UI = (() => {
   }
   function render(e) { pageEl.innerHTML = PAGES[e[0]](e[1]); pageEl.scrollTop = 0; bindPage(e[0], e[1]); }
   /* tourner la page : une feuille pivote autour de la reliure */
+  /* Tourner une page : la feuille ne pivote pas comme une planche, elle se plie. Un pli part du coin d'en bas à droite,
+     file vers la reliure en se redressant ; à sa gauche le recto encore à plat, par-dessus le verso rabattu (le même
+     papier, en miroir sur le pli), dessous la page suivante avec l'ombre de la feuille. Tout est géométrie plane :
+     trois découpes et une symétrie par image, rien à recopier. `dir` < 0 : le même film à l'envers. */
+  const FLIP = { out: 820, back: 760, tilt: 0.36 };
   function turn(dir, e) {
-    SFX.play('page'); const leaf = document.createElement('div'), id = ++turning; let done = false;
-    const end = () => { if (done) return; done = true; if (dir < 0 && id === turning) render(e); leaf.remove(); };
-    if (dir > 0) { leaf.className = 'pleaf out'; leaf.innerHTML = pageEl.innerHTML; paint(leaf); book.appendChild(leaf); render(e); }
-    else { leaf.className = 'pleaf in'; leaf.innerHTML = PAGES[e[0]](e[1]); paint(leaf); book.appendChild(leaf); }
-    leaf.onanimationend = end; setTimeout(end, 760);
+    SFX.play('page'); const id = ++turning, calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (calm) return render(e);
+    const leaf = document.createElement('div'), flap = document.createElement('div'), back = document.createElement('i'), shade = document.createElement('div'), keep = pageEl.scrollTop;
+    leaf.className = 'pleaf flip'; flap.className = 'pflap'; shade.className = 'pshade'; flap.appendChild(back);
+    if (dir > 0) { leaf.innerHTML = pageEl.innerHTML; paint(leaf); book.appendChild(leaf); leaf.scrollTop = keep; render(e); }
+    else { leaf.innerHTML = PAGES[e[0]](e[1]); paint(leaf); book.appendChild(leaf); }
+    book.appendChild(shade); book.appendChild(flap);
+    const W = leaf.offsetWidth, H = leaf.offsetHeight, R = [[0, 0], [W, 0], [W, H], [0, H]], dur = (dir > 0 ? FLIP.out : FLIP.back) * (window.HQ_SLOW || 1), t0 = performance.now(); let done = false;
+    /* le rectangle de la page coupé par la droite X·n = s : le côté demandé, en polygone CSS */
+    const cut = (nx, ny, s, far) => { const o = []; for (let k = 0; k < 4; k++) { const a = R[k], b = R[(k + 1) % 4], da = a[0] * nx + a[1] * ny - s, db = b[0] * nx + b[1] * ny - s, ia = far ? da >= 0 : da <= 0, ib = far ? db >= 0 : db <= 0;
+      if (ia) o.push(a); if (ia !== ib) { const u = da / (da - db); o.push([a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u]); } }
+      return o.length > 2 ? 'polygon(' + o.map(q => q[0].toFixed(1) + 'px ' + q[1].toFixed(1) + 'px').join(',') + ')' : 'polygon(0 0,0 0,0 0)'; };
+    const end = () => { if (done) return; done = true; if (dir < 0 && id === turning) render(e); leaf.remove(); flap.remove(); shade.remove(); };
+    const frame = now => {
+      if (done) return; const u = Math.min(1, (now - t0) / dur), q = dir > 0 ? u : 1 - u;
+      /* p : où en est le pli (0 : au coin, 1 : à la reliure) ; il part doucement, file, et se pose */
+      const p = q * q * q * (q * (6 * q - 15) + 10), a = FLIP.tilt * Math.pow(1 - p, 1.25), nx = Math.cos(a), ny = Math.sin(a);
+      const s = (1 - p) * (W * nx + H * ny), lift = Math.sin(Math.PI * Math.min(1, p * 1.08));
+      leaf.style.clipPath = leaf.style.webkitClipPath = cut(nx, ny, s, false);
+      const far = cut(nx, ny, s, true); back.style.clipPath = back.style.webkitClipPath = far; shade.style.clipPath = shade.style.webkitClipPath = far;
+      /* le verso : la partie pliée, renvoyée de l'autre côté du pli (symétrie d'axe la droite du pli) */
+      const dx = ny, dy = -nx, m0 = 2 * dx * dx - 1, m1 = 2 * dx * dy, m3 = 2 * dy * dy - 1, px = nx * s, py = ny * s;
+      back.style.transform = 'matrix(' + m0 + ',' + m1 + ',' + m1 + ',' + m3 + ',' + (px - (m0 * px + m1 * py)) + ',' + (py - (m1 * px + m3 * py)) + ')';
+      /* les dégradés suivent le pli : l'angle CSS de n, et le point de départ ramené sur le pli */
+      const th = Math.atan2(nx, -ny), L = Math.abs(W * Math.sin(th)) + Math.abs(H * Math.cos(th)), g0 = s - (W / 2 * nx + H / 2 * ny) + L / 2, deg = (th * 180 / Math.PI).toFixed(2) + 'deg', wd = Math.max(24, (W * nx + H * ny) - s), at = d => (g0 + d).toFixed(1) + 'px';
+      back.style.backgroundImage = 'linear-gradient(' + deg + ',rgba(52,34,14,' + (0.30 * lift + 0.06).toFixed(3) + ') ' + at(0) + ',rgba(255,252,240,' + (0.5 * lift).toFixed(3) + ') ' + at(Math.min(26, wd * 0.22)) + ',rgba(255,252,240,0) ' + at(wd * 0.5) + ',rgba(52,34,14,' + (0.16 * lift).toFixed(3) + ') ' + at(wd) + ')';
+      shade.style.backgroundImage = 'linear-gradient(' + deg + ',rgba(24,14,4,' + (0.46 * lift).toFixed(3) + ') ' + at(0) + ',rgba(24,14,4,' + (0.16 * lift).toFixed(3) + ') ' + at(22 + 26 * lift) + ',rgba(24,14,4,0) ' + at(70 + 60 * lift) + ')';
+      flap.style.filter = 'drop-shadow(' + (-(5 + 9 * lift)).toFixed(1) + 'px ' + (3 * lift).toFixed(1) + 'px ' + (5 + 13 * lift).toFixed(1) + 'px rgba(20,12,4,' + (0.2 + 0.26 * lift).toFixed(3) + '))';
+      if (u < 1) requestAnimationFrame(frame); else end();
+    };
+    frame(t0); setTimeout(end, dur + 400);
   }
   function go(name, arg) { const e = [name, arg]; trail.push(e); turn(1, e); }
   /* tourner les pages des niveaux ne s'empile pas : « Retour » quitte la liste d'un coup, quelle que soit la page */
