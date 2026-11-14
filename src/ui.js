@@ -239,6 +239,7 @@ const UI = (() => {
 
 
   /* ---------- le livre : sommaire, défis, niveaux, fiches, options ---------- */
+  const LPER = 5;
   const back = '<button class="pback" data-back="1">' + I.back + 'Retour</button>';
   const PAGES = {
     toc: () => '<button class="pback" data-close="1">' + I.back + 'Fermer le livre</button><h2 class="logo" aria-label="Hameau">Hameau</h2><div class="orn">' + I.leaf + '</div><div class="toc menu">' +
@@ -251,8 +252,9 @@ const UI = (() => {
     collection: () => { const nb = Object.keys(SIM.BT), ne = Object.keys(EVG); return back + '<h2>Collection</h2><p class="plain">Tout ce que tu as déjà rencontré en jouant.</p><div class="toc menu">' +
       big('cards', 'Bâtiments', nb.filter(t => save.seen[t]).length + ' sur ' + nb.length, I.roof) + big('events', 'Événements', ne.filter(t => save.sev[t]).length + ' sur ' + ne.length, I.storm) +
       big('resources', 'Ressources', 'Ce qui se compte au village', I.food) + big('jobs', 'Métiers', 'Qui fait quoi, et ce qui l’arrête', I.work) + '</div>'; },
-    levels: pg => { pg = pg || 0; const per = 6, n = Math.ceil(SIM.LEVELS.length / per), from = pg * per, to = Math.min(SIM.LEVELS.length, from + per); // six niveaux par page
-      return back + '<h2>Défis principaux' + (n > 1 ? '<small class="pgn">Niveaux ' + (from + 1) + ' à ' + to + '</small>' : '') + '</h2>' + (pg + 1 < n ? '<button class="tlink more" data-lpage="' + (pg + 1) + '">Niveaux ' + (to + 1) + ' à ' + Math.min(SIM.LEVELS.length, to + per) + ' ›</button>' : '') + '<div class="toc">' + SIM.LEVELS.slice(from, to).map((lv, k) => {
+    levels: pg => { pg = pg || 0; const per = LPER, N = SIM.LEVELS.length, n = Math.ceil(N / per), from = pg * per, to = Math.min(N, from + per); // cinq niveaux par page ; on tourne les pages dans les deux sens
+      const span = (a, b) => a === b ? 'Niveau ' + a : 'Niveaux ' + a + ' à ' + b;
+      return back + '<h2>Défis principaux' + (n > 1 ? '<small class="pgn">' + span(from + 1, to) + '</small>' : '') + '</h2>' + (n > 1 ? '<div class="lnav">' + (pg > 0 ? '<button class="tlink prev" data-lpage="' + (pg - 1) + '">‹ ' + span(from - per + 1, from) + '</button>' : '<span></span>') + (pg + 1 < n ? '<button class="tlink more" data-lpage="' + (pg + 1) + '">' + span(to + 1, Math.min(N, to + per)) + ' ›</button>' : '<span></span>') + '</div>' : '') + '<div class="toc">' + SIM.LEVELS.slice(from, to).map((lv, k) => {
         const i = from + k, got = lv.ch.reduce((a, id) => a + (save.stars[id] || 0), 0);
         return '<button class="tl" data-level="' + i + '"><span class="tb"><b>' + lv.name + '</b><em>Niveau ' + (i + 1) + ' · ' + lv.sub + '</em></span><span class="dots"></span><span class="pn">' + I.star + got + '/' + lv.ch.length * 3 + '</span></button>';
       }).join('') + '</div><div class="pfoot">— ' + (pg + 2) + ' —</div>'; },
@@ -278,14 +280,14 @@ const UI = (() => {
             return cap(d.name.toLowerCase()) + ' : ' + (d.conv ? 'change ' + SIM.RATIO + ' ' + RESN[d.conv.from].toLowerCase() + ' en 1 ' + RESN[d.conv.to].toLowerCase() + ', ' + d.conv.cap + ' ' + RESN[d.conv.from].toLowerCase() + ' par jour au plus' : d.expert ? 'tant qu’il est à son poste, 1 ' + RESN[CONVOF[d.expert]].toLowerCase() + ' suffit pour 1 ' + RESN[d.expert].toLowerCase() : d.medic ? 'tant qu’il est à son poste, personne ne meurt de maladie et elle ne se transmet plus' : d.out ? d.per + ' ' + RESN[d.out].toLowerCase() + ' par jour et par personne' : d.play ? 'de la joie chaque soir' : 'un poste') + (d.posts > 1 ? ', ' + d.posts + ' postes' : '') + '.' + (st.length ? ' Arrêté par ' + names(st) + '.' : ''); }).join(' ')); }).join('') + '</div>'; },
     options: () => back + '<h2>Options</h2><div class="h3">Son</div>' + volsHtml() +
       '<div class="h3">Bulles des villageois</div><div class="segs">' + BUBS.map(b => '<button class="seg" data-bub="' + b[0] + '" aria-pressed="' + (save.bub === b[0]) + '">' + b[1] + '</button>').join('') + '</div>' +
-      '<div class="h3">Progression</div><p class="note">' + Object.values(save.stars).reduce((a, b) => a + b, 0) + ' étoiles sur ' + ORDER.length * 3 + '</p><div class="pfoot">Prototype 0.32</div>'
+      '<div class="h3">Progression</div><p class="note">' + Object.values(save.stars).reduce((a, b) => a + b, 0) + ' étoiles sur ' + ORDER.length * 3 + '</p><div class="pfoot">Prototype 0.33</div>'
   };
   function bindPage(name, arg) {
     paint(pageEl);
     pageEl.querySelectorAll('[data-back]').forEach(b => b.onclick = goBack); pageEl.querySelectorAll('[data-close]').forEach(b => b.onclick = closeBook); { const bs = pageEl.querySelector('#bsurv'), bc = pageEl.querySelector('#bcont'); if (bs) twice(bs, 'Effacer la partie en cours ?', () => startChallenge('survie')); if (bc) bc.onclick = () => startChallenge('survie', kept()); }
     pageEl.querySelectorAll('[data-go]').forEach(b => b.onclick = () => go(b.dataset.go));
     pageEl.querySelectorAll('[data-level]').forEach(b => b.onclick = () => go('level', +b.dataset.level));
-    pageEl.querySelectorAll('[data-lpage]').forEach(b => b.onclick = () => go('levels', +b.dataset.lpage));
+    pageEl.querySelectorAll('[data-lpage]').forEach(b => b.onclick = () => goPage(+b.dataset.lpage));
     pageEl.querySelectorAll('[data-ch]').forEach(b => b.onclick = () => go('fiche', b.dataset.ch));
     if (name === 'fiche') {
       const c = SIM.CHALLENGES[arg], tp = $('#tabp'); bindFrise(pageEl);
@@ -310,13 +312,15 @@ const UI = (() => {
     leaf.onanimationend = end; setTimeout(end, 760);
   }
   function go(name, arg) { const e = [name, arg]; trail.push(e); turn(1, e); }
+  /* tourner les pages des niveaux ne s'empile pas : « Retour » quitte la liste d'un coup, quelle que soit la page */
+  function goPage(k) { const cur = trail[trail.length - 1], e = ['levels', k]; if (!cur || cur[0] !== 'levels') return go('levels', k); const dir = k > (cur[1] || 0) ? 1 : -1; trail[trail.length - 1] = e; turn(dir, e); }
   function goBack() {
     if (trail.length < 2) return; trail.pop(); const e = trail[trail.length - 1];
     if (e[0] === 'title') { book.hidden = true; return showTitle(); }
     turn(-1, e);
   }
   function openBook(tr) { trail = tr; closeModal(); closeInspect(); endCoach(); hud.hidden = true; bottom.hidden = true; titleEl.hidden = true; book.hidden = false; render(trail[trail.length - 1]); if (GAME.phase !== 'menu') { GAME.attract(); R.setView('day'); } }
-  const trailTo = id => [['toc'], ['play']].concat(Array.from({ length: Math.floor(lvlOf(id) / 6) + 1 }, (_, k) => ['levels', k]), [['level', lvlOf(id)]]);
+  const trailTo = id => [['toc'], ['play'], ['levels', Math.floor(lvlOf(id) / LPER)], ['level', lvlOf(id)]];
 
   function closeModal() { modal.hidden = true; modal.innerHTML = ''; modalKind = null; }
   function openModal(kind, html) { modalKind = kind; modal.innerHTML = '<div class="sheet" role="dialog" aria-modal="true">' + html + '</div>'; modal.hidden = false; }

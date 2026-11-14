@@ -12,7 +12,7 @@ with sync_playwright() as p:
     W=lambda t=1000: pg.wait_for_timeout(t); S=lambda n: pg.screenshot(path=OUT+'v30_'+cid+'_'+n+'.png')
     lvl=pg.evaluate(f"SIM.LEVELS.findIndex(l=>l.ch.includes('{cid}'))")
     pg.click('#bstart'); W(3300); pg.click('[data-go=play]'); W(); pg.click('[data-go=levels]'); W()
-    for _ in range(lvl//6): pg.click('[data-lpage]'); W(900)
+    for _ in range(lvl//5): pg.click('.tlink.more'); W(900)
     S('niveaux'); pg.click(f'[data-level="{lvl}"]'); W(); pg.click(f'[data-ch={cid}]'); W(); S('fiche'); pg.click('[data-tab=cards]'); W(400); S('fiche_cartes')
     pg.click('#bgo'); W(2500)
     for d,c in enumerate(seq, start=1):

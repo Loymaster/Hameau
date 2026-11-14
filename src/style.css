@@ -422,7 +422,7 @@ h2.big{font-size:54px!important}.center{text-align:center}
 .page{isolation:isolate}
 .pgn{display:block;margin-top:6px}
 /* la suite des niveaux : un lien en haut de page, à droite du titre */
-.tlink.more{position:absolute;right:24px;top:92px;font-size:19px;min-height:40px;padding:4px 2px}
+.lnav{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:-6px 0 -8px}.lnav .tlink{font-size:19px;min-height:44px;padding:8px 2px;white-space:nowrap}.lnav .tlink:after{left:2px;right:2px;bottom:9px}.lnav .tlink.more:after{transform-origin:right}
 #spn{margin-left:4px;color:rgba(251,243,226,.82)}#spn svg{width:22px;height:22px;stroke-width:1.9}
 .speed button{min-width:38px}
 
@@ -453,3 +453,5 @@ h2.big{font-size:54px!important}.center{text-align:center}
 .insp{max-height:calc(100% - 20px);box-sizing:border-box}.insp.carnet{overflow:hidden}.insp.carnet .chd{flex:none}
 .insp.carnet .cbody{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;scrollbar-width:thin;padding-right:2px}
 .insp:not(.carnet){overflow-y:auto}
+/* le numéro de page suit la liste : il ne passe plus par-dessus quand elle défile (petits écrans) */
+.toc+.pfoot{position:static!important;margin:auto 0 -30px;padding-top:12px}
