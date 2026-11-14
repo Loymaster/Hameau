@@ -471,6 +471,27 @@ h2.big{font-size:54px!important}.center{text-align:center}
 .pflap,.pshade{position:absolute;left:16px;right:16px;top:calc(22px + env(safe-area-inset-top));bottom:calc(22px + env(safe-area-inset-bottom));pointer-events:none}
 .pshade{z-index:2;border-radius:5px 12px 12px 5px}
 .pflap{z-index:4}.pflap>i{position:absolute;inset:0;display:block;transform-origin:0 0;background-color:#E6E2CF;background-color:color-mix(in srgb,var(--page) 90%,#8A6A3C);border-radius:5px 12px 12px 5px;will-change:transform,clip-path}
+/* ---- le livre a du corps : on n'en voit que la moitié droite, ouverte — la reliure au bord gauche, un pan de la page de gauche,
+        les tranches des feuilles sous la page, le carton de la couverture qui dépasse ---- */
+.book{--gut:30px;--bt:calc(22px + env(safe-area-inset-top));--bb:calc(22px + env(safe-area-inset-bottom));padding-left:var(--gut)}
+.pleaf,.pflap,.pshade,.glow{left:var(--gut)}
+.page,.pleaf{border-radius:2px 12px 12px 2px;background-image:linear-gradient(90deg,rgba(40,24,8,.34) 0,rgba(40,24,8,.12) 9px,rgba(40,24,8,0) 26px,rgba(255,255,255,0) 40px,rgba(255,255,255,.16) 62px,rgba(255,255,255,0) 104px),linear-gradient(270deg,rgba(40,24,8,.10) 0,rgba(40,24,8,0) 16px);box-shadow:inset 9px 0 14px -9px rgba(60,36,14,.4),1.5px 0 0 -.5px var(--page2)}
+.pleaf.cover{background-image:linear-gradient(125deg,#41523A 0%,#2E3B29 55%,#222C1E 100%)}
+.bk{position:absolute;inset:0;pointer-events:none}
+.bk>*{position:absolute;top:var(--bt);bottom:var(--bb)}
+.bk-board{left:-70px;right:3px;top:calc(var(--bt) - 8px);bottom:calc(var(--bb) - 13px);border-radius:0 19px 19px 0;background:linear-gradient(125deg,#41523A 0%,#2E3B29 55%,#222C1E 100%);
+  box-shadow:0 18px 46px rgba(0,0,0,.6),0 3.5px 0 #161D13,0 5px 0 rgba(0,0,0,.5),inset -1.5px -1.5px 0 rgba(0,0,0,.4),inset 0 1.5px 0 rgba(255,255,255,.13),inset -9px 0 12px -8px rgba(0,0,0,.35)}
+.bk-stack{left:var(--gut);right:16px;border-radius:2px 12px 12px 2px;background:var(--page2);
+  box-shadow:1.6px 1.2px 0 #E2DEC9,2.2px 1.7px 0 rgba(70,48,20,.42),3.8px 2.9px 0 #ECE8D5,4.4px 3.4px 0 rgba(70,48,20,.36),6px 4.6px 0 #DFDAC4,6.6px 5.1px 0 rgba(70,48,20,.42),8.2px 6.3px 0 #E8E4D0,8.8px 6.8px 0 rgba(70,48,20,.58),10px 9px 8px rgba(0,0,0,.4)}
+.bk-left{left:-70px;width:calc(70px + var(--gut));border-radius:12px 2px 2px 12px;background:var(--page);background-image:linear-gradient(270deg,rgba(40,24,8,.42) 0,rgba(40,24,8,.14) 9px,rgba(40,24,8,0) 26px);
+  box-shadow:0 1.2px 0 #E2DEC9,0 1.7px 0 rgba(70,48,20,.42),0 2.9px 0 #ECE8D5,0 3.4px 0 rgba(70,48,20,.36),0 4.6px 0 #DFDAC4,0 5.1px 0 rgba(70,48,20,.42),0 6.3px 0 #E8E4D0,0 6.8px 0 rgba(70,48,20,.58)}
+.bk-left:before{content:"";position:absolute;inset:10px;border:1px dashed var(--line);border-radius:4px}
+.bk-left:after{content:"";position:absolute;right:-1px;top:0;bottom:0;width:2px;background:linear-gradient(90deg,rgba(26,15,4,.5),rgba(26,15,4,.75),rgba(26,15,4,.35))}
+.pflap>i{background-color:var(--page);border-radius:2px 12px 12px 2px}.pflap>i:before{content:"";position:absolute;inset:10px;border:1px dashed var(--line);border-radius:4px}
+/* le livre arrive fermé : le carton et les tranches viennent avec lui, la page de gauche n'existe qu'une fois la couverture ouverte */
+.book.opening .bk-board,.book.opening .bk-stack{animation:bookin .95s cubic-bezier(.2,.8,.2,1) backwards}
+.book.opening .bk-left{animation:fadein .55s 1.75s backwards}
+.book:has(.cover.shut) .bk-left{opacity:0;transition:opacity .25s .3s}
 
 </style>
 </head>
@@ -490,7 +511,7 @@ h2.big{font-size:54px!important}.center{text-align:center}
     <div class="tacts"><button id="bstart" class="tlink start" data-snd="1">Commencer</button><button id="bopt" class="tlink opt">Options</button></div>
     <div id="drop" class="drop" hidden><b></b><i></i><i></i><i></i></div>
   </div>
-  <div id="book" class="screen book" hidden><div class="page" id="page"></div></div>
+  <div id="book" class="screen book" hidden><div class="bk" aria-hidden="true"><div class="bk-board"></div><div class="bk-left"></div><div class="bk-stack"></div></div><div class="page" id="page"></div></div>
   <div id="modal" class="backdrop" hidden></div>
   <div id="coach" hidden></div>
 </div>
@@ -4310,7 +4331,7 @@ const UI = (() => {
             return cap(d.name.toLowerCase()) + ' : ' + (d.conv ? 'change ' + SIM.RATIO + ' ' + RESN[d.conv.from].toLowerCase() + ' en 1 ' + RESN[d.conv.to].toLowerCase() + ', ' + d.conv.cap + ' ' + RESN[d.conv.from].toLowerCase() + ' par jour au plus' : d.expert ? 'tant qu’il est à son poste, 1 ' + RESN[CONVOF[d.expert]].toLowerCase() + ' suffit pour 1 ' + RESN[d.expert].toLowerCase() : d.medic ? 'tant qu’il est à son poste, personne ne meurt de maladie et elle ne se transmet plus' : d.out ? d.per + ' ' + RESN[d.out].toLowerCase() + ' par jour et par personne' : d.play ? 'de la joie chaque soir' : 'un poste') + (d.posts > 1 ? ', ' + d.posts + ' postes' : '') + '.' + (st.length ? ' Arrêté par ' + names(st) + '.' : ''); }).join(' ')); }).join('') + '</div>'; },
     options: () => back + '<h2>Options</h2><div class="h3">Son</div>' + volsHtml() +
       '<div class="h3">Bulles des villageois</div><div class="segs">' + BUBS.map(b => '<button class="seg" data-bub="' + b[0] + '" aria-pressed="' + (save.bub === b[0]) + '">' + b[1] + '</button>').join('') + '</div>' +
-      '<div class="h3">Progression</div><p class="note">' + Object.values(save.stars).reduce((a, b) => a + b, 0) + ' étoiles sur ' + ORDER.length * 3 + '</p><div class="pfoot">Prototype 0.34</div>'
+      '<div class="h3">Progression</div><p class="note">' + Object.values(save.stars).reduce((a, b) => a + b, 0) + ' étoiles sur ' + ORDER.length * 3 + '</p><div class="pfoot">Prototype 0.35</div>'
   };
   function bindPage(name, arg) {
     paint(pageEl);
@@ -4365,9 +4386,11 @@ const UI = (() => {
       back.style.transform = 'matrix(' + m0 + ',' + m1 + ',' + m1 + ',' + m3 + ',' + (px - (m0 * px + m1 * py)) + ',' + (py - (m1 * px + m3 * py)) + ')';
       /* les dégradés suivent le pli : l'angle CSS de n, et le point de départ ramené sur le pli */
       const th = Math.atan2(nx, -ny), L = Math.abs(W * Math.sin(th)) + Math.abs(H * Math.cos(th)), g0 = s - (W / 2 * nx + H / 2 * ny) + L / 2, deg = (th * 180 / Math.PI).toFixed(2) + 'deg', wd = Math.max(24, (W * nx + H * ny) - s), at = d => (g0 + d).toFixed(1) + 'px';
-      back.style.backgroundImage = 'linear-gradient(' + deg + ',rgba(52,34,14,' + (0.30 * lift + 0.06).toFixed(3) + ') ' + at(0) + ',rgba(255,252,240,' + (0.5 * lift).toFixed(3) + ') ' + at(Math.min(26, wd * 0.22)) + ',rgba(255,252,240,0) ' + at(wd * 0.5) + ',rgba(52,34,14,' + (0.16 * lift).toFixed(3) + ') ' + at(wd) + ')';
+      /* une fois posée à gauche, la feuille prend l'ombre de la reliure : exactement celle de la page de gauche, qu'elle devient */
+      const rest = Math.pow(p, 6);
+      back.style.backgroundImage = 'linear-gradient(' + deg + ',rgba(40,24,8,' + (0.42 * rest).toFixed(3) + ') ' + at(0) + ',rgba(40,24,8,' + (0.14 * rest).toFixed(3) + ') ' + at(9) + ',rgba(40,24,8,0) ' + at(26) + '),linear-gradient(' + deg + ',rgba(52,34,14,' + (0.30 * lift).toFixed(3) + ') ' + at(0) + ',rgba(255,252,240,' + (0.5 * lift).toFixed(3) + ') ' + at(Math.min(26, wd * 0.22)) + ',rgba(255,252,240,0) ' + at(wd * 0.5) + ',rgba(52,34,14,' + (0.16 * lift).toFixed(3) + ') ' + at(wd) + ')';
       shade.style.backgroundImage = 'linear-gradient(' + deg + ',rgba(24,14,4,' + (0.46 * lift).toFixed(3) + ') ' + at(0) + ',rgba(24,14,4,' + (0.16 * lift).toFixed(3) + ') ' + at(22 + 26 * lift) + ',rgba(24,14,4,0) ' + at(70 + 60 * lift) + ')';
-      flap.style.filter = 'drop-shadow(' + (-(5 + 9 * lift)).toFixed(1) + 'px ' + (3 * lift).toFixed(1) + 'px ' + (5 + 13 * lift).toFixed(1) + 'px rgba(20,12,4,' + (0.2 + 0.26 * lift).toFixed(3) + '))';
+      flap.style.filter = 'drop-shadow(' + (-(5 + 9 * lift)).toFixed(1) + 'px ' + (3 * lift).toFixed(1) + 'px ' + (5 + 13 * lift).toFixed(1) + 'px rgba(20,12,4,' + (0.46 * lift).toFixed(3) + '))';
       if (u < 1) requestAnimationFrame(frame); else end();
     };
     frame(t0); setTimeout(end, dur + 400);

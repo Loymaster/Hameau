@@ -280,7 +280,7 @@ const UI = (() => {
             return cap(d.name.toLowerCase()) + ' : ' + (d.conv ? 'change ' + SIM.RATIO + ' ' + RESN[d.conv.from].toLowerCase() + ' en 1 ' + RESN[d.conv.to].toLowerCase() + ', ' + d.conv.cap + ' ' + RESN[d.conv.from].toLowerCase() + ' par jour au plus' : d.expert ? 'tant qu’il est à son poste, 1 ' + RESN[CONVOF[d.expert]].toLowerCase() + ' suffit pour 1 ' + RESN[d.expert].toLowerCase() : d.medic ? 'tant qu’il est à son poste, personne ne meurt de maladie et elle ne se transmet plus' : d.out ? d.per + ' ' + RESN[d.out].toLowerCase() + ' par jour et par personne' : d.play ? 'de la joie chaque soir' : 'un poste') + (d.posts > 1 ? ', ' + d.posts + ' postes' : '') + '.' + (st.length ? ' Arrêté par ' + names(st) + '.' : ''); }).join(' ')); }).join('') + '</div>'; },
     options: () => back + '<h2>Options</h2><div class="h3">Son</div>' + volsHtml() +
       '<div class="h3">Bulles des villageois</div><div class="segs">' + BUBS.map(b => '<button class="seg" data-bub="' + b[0] + '" aria-pressed="' + (save.bub === b[0]) + '">' + b[1] + '</button>').join('') + '</div>' +
-      '<div class="h3">Progression</div><p class="note">' + Object.values(save.stars).reduce((a, b) => a + b, 0) + ' étoiles sur ' + ORDER.length * 3 + '</p><div class="pfoot">Prototype 0.34</div>'
+      '<div class="h3">Progression</div><p class="note">' + Object.values(save.stars).reduce((a, b) => a + b, 0) + ' étoiles sur ' + ORDER.length * 3 + '</p><div class="pfoot">Prototype 0.35</div>'
   };
   function bindPage(name, arg) {
     paint(pageEl);
@@ -335,9 +335,11 @@ const UI = (() => {
       back.style.transform = 'matrix(' + m0 + ',' + m1 + ',' + m1 + ',' + m3 + ',' + (px - (m0 * px + m1 * py)) + ',' + (py - (m1 * px + m3 * py)) + ')';
       /* les dégradés suivent le pli : l'angle CSS de n, et le point de départ ramené sur le pli */
       const th = Math.atan2(nx, -ny), L = Math.abs(W * Math.sin(th)) + Math.abs(H * Math.cos(th)), g0 = s - (W / 2 * nx + H / 2 * ny) + L / 2, deg = (th * 180 / Math.PI).toFixed(2) + 'deg', wd = Math.max(24, (W * nx + H * ny) - s), at = d => (g0 + d).toFixed(1) + 'px';
-      back.style.backgroundImage = 'linear-gradient(' + deg + ',rgba(52,34,14,' + (0.30 * lift + 0.06).toFixed(3) + ') ' + at(0) + ',rgba(255,252,240,' + (0.5 * lift).toFixed(3) + ') ' + at(Math.min(26, wd * 0.22)) + ',rgba(255,252,240,0) ' + at(wd * 0.5) + ',rgba(52,34,14,' + (0.16 * lift).toFixed(3) + ') ' + at(wd) + ')';
+      /* une fois posée à gauche, la feuille prend l'ombre de la reliure : exactement celle de la page de gauche, qu'elle devient */
+      const rest = Math.pow(p, 6);
+      back.style.backgroundImage = 'linear-gradient(' + deg + ',rgba(40,24,8,' + (0.42 * rest).toFixed(3) + ') ' + at(0) + ',rgba(40,24,8,' + (0.14 * rest).toFixed(3) + ') ' + at(9) + ',rgba(40,24,8,0) ' + at(26) + '),linear-gradient(' + deg + ',rgba(52,34,14,' + (0.30 * lift).toFixed(3) + ') ' + at(0) + ',rgba(255,252,240,' + (0.5 * lift).toFixed(3) + ') ' + at(Math.min(26, wd * 0.22)) + ',rgba(255,252,240,0) ' + at(wd * 0.5) + ',rgba(52,34,14,' + (0.16 * lift).toFixed(3) + ') ' + at(wd) + ')';
       shade.style.backgroundImage = 'linear-gradient(' + deg + ',rgba(24,14,4,' + (0.46 * lift).toFixed(3) + ') ' + at(0) + ',rgba(24,14,4,' + (0.16 * lift).toFixed(3) + ') ' + at(22 + 26 * lift) + ',rgba(24,14,4,0) ' + at(70 + 60 * lift) + ')';
-      flap.style.filter = 'drop-shadow(' + (-(5 + 9 * lift)).toFixed(1) + 'px ' + (3 * lift).toFixed(1) + 'px ' + (5 + 13 * lift).toFixed(1) + 'px rgba(20,12,4,' + (0.2 + 0.26 * lift).toFixed(3) + '))';
+      flap.style.filter = 'drop-shadow(' + (-(5 + 9 * lift)).toFixed(1) + 'px ' + (3 * lift).toFixed(1) + 'px ' + (5 + 13 * lift).toFixed(1) + 'px rgba(20,12,4,' + (0.46 * lift).toFixed(3) + '))';
       if (u < 1) requestAnimationFrame(frame); else end();
     };
     frame(t0); setTimeout(end, dur + 400);
