@@ -484,3 +484,24 @@ h2.big{font-size:54px!important}.center{text-align:center}
 /* fermé, le livre n'a rien à sa gauche : le plat de devant est dessus, pas à côté. La moitié gauche (plat ouvert, page de gauche) n'existe qu'une fois la couverture ouverte */
 .book.opening .bk-left,.book.opening .bk-lboard{animation:fadein .5s 1.8s backwards}
 .book:has(.cover.shut) .bk-left,.book:has(.cover.shut) .bk-lboard{opacity:0;transition:opacity .22s .12s}
+/* ---- la cote : les jours d'un défi sur une seule ligne, comme une mesure sur un dessin technique ---- */
+.frise.cote{flex-wrap:nowrap;gap:9px;align-items:center;min-height:40px}
+.fr-line{position:relative;flex:1 1 auto;min-width:0;height:40px;color:var(--ink);margin:0 5px;container-type:inline-size;--w:22px}
+@supports (width:1cqw){.fr-line{--w:clamp(17px,calc(100cqw / var(--n) - 1px),26px)}}
+.fr-ax{position:absolute;left:0;right:0;top:50%;height:1.3px;margin-top:-.65px;background:currentColor;opacity:.8}
+/* les deux repères du bout : un trait d'attache et sa barre oblique, comme sur un plan */
+.fr-line:before,.fr-line:after{content:"";position:absolute;top:calc(50% - 10px);width:1.3px;height:20px;background:currentColor;opacity:.8}
+.fr-line:before{left:0}.fr-line:after{right:0}
+.fr-ax:before,.fr-ax:after{content:"";position:absolute;top:-5.4px;width:1.6px;height:12px;background:var(--ink);transform:rotate(45deg)}
+.fr-ax:before{left:-.2px}.fr-ax:after{right:-.2px}
+/* une graduation par jour */
+.fr-tk{position:absolute;left:0;right:0;top:50%;height:5px;opacity:.5;background-image:linear-gradient(90deg,currentColor 1.1px,transparent 1.1px);background-size:calc(100% / var(--n)) 100%}
+.fr-done{position:absolute;left:0;top:calc(50% - 2px);height:4px;background:var(--page);border-top:1.3px dashed var(--sec);margin-top:1.35px;box-sizing:border-box}
+.fr-span{position:absolute;top:calc(50% - 4px);height:8px;border-radius:0 4px 4px 0;color:var(--accent);background:repeating-linear-gradient(135deg,currentColor 0 1.3px,transparent 1.3px 4.2px);border:1.1px solid currentColor;border-left:0;opacity:.75;box-sizing:border-box}
+.fr-span.k-frost{color:var(--k-frost,#27608A)}.fr-span.k-drought{color:var(--k-food,#8A4410)}
+.fr-ev{position:absolute;top:50%;transform:translate(-50%,-50%);display:flex;justify-content:center;align-items:center;min-width:var(--w);height:40px;padding:0;z-index:2}
+.fr-ev .pile{pointer-events:none}.fr-ev .evc{width:var(--w);height:var(--w);border-width:1.3px;background:var(--page)}
+.fr-ev .evc svg.i{width:calc(var(--w)*.64);height:calc(var(--w)*.64)}.fr-ev .pile .evc+.evc{margin-left:calc(var(--w)*-.42)}
+.fr-ev.past{opacity:.45}.fr-ev.now .evc{border-width:2.4px}
+.fr-now{position:absolute;top:calc(50% + 9px);width:0;height:0;margin-left:-5.5px;border:5.5px solid transparent;border-top:0;border-bottom:8px solid var(--accent)}
+.fr-n{flex:none;font-family:var(--hand);font-weight:500;font-size:calc(19px*var(--hs));line-height:1;color:var(--ink);white-space:nowrap;transform:rotate(-2deg);padding-right:2px}
