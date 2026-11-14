@@ -505,3 +505,7 @@ h2.big{font-size:54px!important}.center{text-align:center}
 .fr-ev.past{opacity:.45}.fr-ev.now .evc{border-width:2.4px}
 .fr-now{position:absolute;top:calc(50% + 9px);width:0;height:0;margin-left:-5.5px;border:5.5px solid transparent;border-top:0;border-bottom:8px solid var(--accent)}
 .fr-n{flex:none;font-family:var(--hand);font-weight:500;font-size:calc(19px*var(--hs));line-height:1;color:var(--ink);white-space:nowrap;transform:rotate(-2deg);padding-right:2px}
+/* une quantité de ressource dans une phrase : le chiffre et l'icône, insécables */
+.q{white-space:nowrap;font-weight:600}.q svg.i{width:1.2em!important;height:1.2em!important;vertical-align:-.24em;margin:0 0 0 1.5px;display:inline-block}
+/* le cadre pointillé de la page ne défile plus avec son contenu */
+.page:before{display:none}.page{outline:1px dashed var(--line);outline-offset:-10px}

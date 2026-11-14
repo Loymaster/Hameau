@@ -536,7 +536,7 @@ const SIM = (() => {
     const r = rngOf((st.seed >>> 0) * 17 + st.day * 613 + 29), live = st.villagers.filter(v => v.alive);
     /* la cloche a sonné il y a deux jours : quelqu'un l'a entendue */
     for (const b of st.buildings) if (BT[b.type].call && !b.rung && !b.gone && st.day - b.day >= BT[b.type].call && st.pool.length) { b.rung = true; st.bell = st.day; const id = st.villagers.length, v = st.pool.shift(); st.villagers.push(Object.assign({ id, job: null, work: null, hunger: 0, roofless: 0, alive: true, home: null, pos: map.arrive.to(0) }, v)); st.arrived.push(id); }
-    for (const e of eventsOn(st)) if (e.type === 'sick' && !e.who) { e.who = []; for (let k = 0; k < Math.min(3, e.lv || 1, Math.max(1, live.length >> 1)); k++) { const c = live.filter(v => !(v.sick > 0)); if (c.length) { const v = c[Math.floor(r() * c.length)]; v.sick = 2; e.who.push(v.id); } } }
+    for (const e of eventsOn(st)) if (e.type === 'sick' && !e.who) { e.who = []; for (let k = 0; k < Math.min(3, e.lv || 1, Math.max(1, live.length >> 1)); k++) { const c = live.filter(v => !(v.sick > 0) && v.job !== 'medecin'); if (c.length) { const v = c[Math.floor(r() * c.length)]; v.sick = 2; e.who.push(v.id); } } }
     if (st.pins) for (const k in st.pins) { const v = st.villagers[k]; if (!v || !v.alive || (st.pins[k] !== -1 && !st.buildings.some(b => b.id === st.pins[k] && !b.gone))) delete st.pins[k]; } // un vœu ne survit ni à son villageois ni à son bâtiment
     st.cards = survDraw(st); st.hist = (st.hist || []).concat([st.cards]).slice(-2);
   }
@@ -558,7 +558,7 @@ const SIM = (() => {
     if (CHALLENGES[st.ch].survival) survMorning(st, map);
     else for (const e of eventsOn(st)) if (e.type === 'sick') { /* dans les défis, la maladie est annoncée : on sait combien tombent malades, pas qui */
       const r = rngOf((st.seed >>> 0) * 53 + st.day * 7919 + 3), got = [];
-      for (let k = 0; k < (e.n || 1); k++) { const c = st.villagers.filter(v => v.alive && !(v.sick > 0)); if (!c.length) break; const v = c[Math.floor(r() * c.length)]; v.sick = 2; v.grave = !!e.grave; got.push(v.id); }
+      for (let k = 0; k < (e.n || 1); k++) { const c = st.villagers.filter(v => v.alive && !(v.sick > 0) && v.job !== 'medecin'); /* le médecin ne tombe jamais malade : la maladie ne le vise pas */ if (!c.length) break; const v = c[Math.floor(r() * c.length)]; v.sick = 2; v.grave = !!e.grave; got.push(v.id); }
       st.sickNew = got;
     }
     if (!st.town && st.villagers.filter(v => v.alive).length >= 10) st.town = st.day; // dix habitants : le village devient un bourg
@@ -901,13 +901,13 @@ const SIM = (() => {
     ev.sort((a, b) => a.t - b.t);
     if (!surv && st.villagers.some(v => v.alive && v.sick > 0)) { /* défis : sans médecin, chaque nuit, un malade contamine un voisin de toit partagé ; puis la maladie recule d'un jour */
       const by = {}, fresh = []; for (const e of ev) if (e.type === 'bed') (by[e.bid] = by[e.bid] || []).push(st.villagers[e.vid]);
-      if (!medic) for (const bid in by) { const b = st.buildings.find(x => x.id === +bid), src = by[bid].find(v => v.alive && v.sick > 0); if (b && !BT[b.type].own && src) { const c = by[bid].filter(v => v.alive && !(v.sick > 0)).sort((a, q) => a.id - q.id)[0]; if (c) { c.grave = src.grave; fresh.push(c); } } }
+      if (!medic) for (const bid in by) { const b = st.buildings.find(x => x.id === +bid), src = by[bid].find(v => v.alive && v.sick > 0); if (b && !BT[b.type].own && src) { const c = by[bid].filter(v => v.alive && !(v.sick > 0) && v.job !== 'medecin').sort((a, q) => a.id - q.id)[0]; if (c) { c.grave = src.grave; fresh.push(c); } } }
       for (const v of st.villagers) if (v.sick > 0) { v.sick--; if (!v.sick) delete v.grave; }
       for (const v of fresh) { v.sick = 2; log.push({ k: 'bad', text: v.name + ' est tombé' + (v.sex === 'f' ? 'e' : '') + ' malade à son tour.' }); }
     }
     if (surv) { /* la maladie passe d'un dormeur à l'autre sous un toit partagé, puis recule d'un jour */
       const by = {}; for (const e of ev) if (e.type === 'bed') (by[e.bid] = by[e.bid] || []).push(st.villagers[e.vid]);
-      const fresh = []; for (const bid in by) { const b = st.buildings.find(x => x.id === +bid); if (b && !BT[b.type].own && !medic && by[bid].some(v => v.sick > 0)) for (const v of by[bid]) if (!(v.sick > 0) && v.alive && rng() < (st.buildings.some(x => x.type === 'bains' && !x.gone) ? 0.15 : 0.4)) fresh.push(v); }
+      const fresh = []; for (const bid in by) { const b = st.buildings.find(x => x.id === +bid); if (b && !BT[b.type].own && !medic && by[bid].some(v => v.sick > 0)) for (const v of by[bid]) if (!(v.sick > 0) && v.alive && v.job !== 'medecin' && rng() < (st.buildings.some(x => x.type === 'bains' && !x.gone) ? 0.15 : 0.4)) fresh.push(v); }
       /* la fièvre : au sortir de la maladie, elle emporte parfois — de plus en plus souvent avec les semaines, moitié moins s'il y a des bains */
       { const lv = 1 + Math.floor(st.day / 12), q = Math.min(0.6, 0.08 * lv) * (st.buildings.some(x => x.type === 'bains' && !x.gone) ? 0.5 : 1);
         for (const v of st.villagers) if (v.alive && v.sick === 1 && !medic && rng() < q) { v.alive = false; sum.deaths.push({ id: v.id, name: v.name, why: 'de maladie' }); st.graves.push({ x: v.pos.x, y: v.pos.y, name: v.name }); log.push({ k: 'dead', text: v.name + ' est ' + (v.sex === 'f' ? 'morte' : 'mort') + ' de maladie.' }); for (const b of st.buildings) { b.workers = b.workers.filter(id => id !== v.id); if (b.owners) b.owners = b.owners.filter(id => id !== v.id); } } }
@@ -1255,7 +1255,7 @@ const SIM = (() => {
       goals: [G.alive(9), G.never, G.have({ ingen: 17 })]
     },
     c35: {
-      id: 'c35', n: 35, endMsg: ['La fièvre a fermé les portes une à une.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'La fièvre est passée, et la réserve est pleine.'], rule: 'Le médecin. Son cabinet se paie en ingéniosité. Tant qu’il est à son poste, personne ne meurt de maladie et elle ne se transmet plus.', map: 'plaine', title: 'La fièvre', days: 9, seed: 20270105, food: 14, wood: 9, stone: 4,
+      id: 'c35', n: 35, endMsg: ['La fièvre a fermé les portes une à une.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'La fièvre est passée, et la réserve est pleine.'], rule: 'Le médecin. Son cabinet se paie en ingéniosité. Tant qu’il est à son poste, personne ne meurt de maladie et elle ne se transmet plus ; lui-même ne tombe jamais malade.', map: 'plaine', title: 'La fièvre', days: 9, seed: 20270105, food: 14, wood: 9, stone: 4,
       voice: { text: 'Elle est entrée par une porte, et le soir elle dormait dans tous les lits.', by: '' },
       start: cab(4).concat(cab(1, 'cabanon'), [{ type: 'cueillette', workers: [0, 1] }, { type: 'bucheron', workers: [2, 3] }, { type: 'carriere', workers: [4] }, { type: 'lycee', workers: [5] }]), villagers: NV(9),
       draws: [['universite', 'potager', 'cabane'], ['pecheur', 'maison', 'cueillette'], ['universite', 'cabanon', 'potager'], ['cabinet', 'four', 'maison'], ['cabinet', 'potager', 'cabane'], ['cabinet', 'pecheur', 'cabanon'], ['cabinet', 'cueillette', 'maison'], ['cabinet', 'potager', 'rucher'], ['verger', 'rucher', 'cabanon']],
