@@ -542,6 +542,22 @@ const SIM = (() => {
     st.cards = survDraw(st); st.hist = (st.hist || []).concat([st.cards]).slice(-2);
   }
   const evList = st => CHALLENGES[st.ch].survival ? (st.ev || []) : (CHALLENGES[st.ch].events || []);
+  /* La saison qu'il fait, lue dans ce qui est annoncé. Le gel, c'est l'hiver ; la canicule ou la sécheresse, l'été.
+     Entre deux, on suit l'année : après l'été vient l'automne, après l'hiver le printemps ; avant le premier des deux,
+     la saison qui le précède (le printemps avant l'été, l'automne avant l'hiver). Deux canicules à quatre jours ou moins
+     l'une de l'autre font un seul été. Sans rien d'annoncé : l'automne. Ne change rien au jeu, seulement au paysage. */
+  function season(st, day) {
+    const d = Math.max(1, day == null ? st.day : day), hot = e => e.type === 'heat' || e.type === 'drought';
+    const end = e => e.type === 'frost' ? (e.len == null ? Infinity : e.day + e.len - 1) : e.day + (e.len || 1) - 1;
+    const S = evList(st).filter(e => (hot(e) || e.type === 'frost') && !(e.sudden && e.day > st.day)); // un événement soudain ne s'annonce pas, même par le paysage
+    if (S.some(e => e.type === 'frost' && e.day <= d && d <= end(e))) return 'winter';
+    if (S.some(e => hot(e) && e.day <= d && d <= end(e))) return 'summer';
+    const past = S.filter(e => end(e) < d).sort((a, b) => end(b) - end(a))[0], next = CHALLENGES[st.ch].survival ? null : S.filter(e => e.day > d).sort((a, b) => a.day - b.day)[0]; // en survie, rien n'est écrit d'avance : on ne devance pas
+    if (past && next && hot(past) && hot(next) && next.day - end(past) <= 4) return 'summer';
+    if (past) return hot(past) ? 'autumn' : 'spring';
+    if (next) return hot(next) ? 'spring' : 'autumn';
+    return 'autumn';
+  }
   function eventsOn(st, day) { const d = day == null ? st.day : day; return evList(st).filter(e => e.day === d && !(e.sudden && d > st.day)); } // un événement soudain ne se voit pas venir
   function weather(st, day) { const d = day == null ? st.day : day, ev = evList(st); return { storm: ev.some(e => e.type === 'storm' && e.day === d), fog: ev.some(e => e.type === 'fog' && e.day === d), frost: ev.some(e => e.type === 'frost' && e.day <= d && (e.len == null || d < e.day + e.len)), dry: ev.some(e => e.type === 'drought' && e.day <= d && d < e.day + (e.len || 1)) }; }
   /* début de journée : les événements du matin s'appliquent avant le choix du joueur */
@@ -1433,6 +1449,6 @@ const SIM = (() => {
     { id: 'l15', name: 'Les derniers jours', sub: 'Avec les enfants, jusqu’au bout', ch: ['c46', 'c47', 'c48', 'c49', 'c50'] }
   ];
 
-  return { get W() { return W; }, get H() { return H; }, get EXT() { return EXT; }, world, CELL, T, SPEED, RES, RNAME, RATIO, maxBuilds, affordBoth, options, solid, BT, JOBNAME, LIGHT, SCHOOL_DAYS, SEATS, CHALLENGES, LEVELS, MAPDEF, rngOf, getMap, cast, popOf, costOf, newGame, planDay, survDraw, survJobs, sample, draw, capacity, door, buildNav, findPath, eventsOn, weather, beginDay, placeBuilding, afford, blocked };
+  return { get W() { return W; }, get H() { return H; }, get EXT() { return EXT; }, world, CELL, T, SPEED, RES, RNAME, RATIO, maxBuilds, affordBoth, options, solid, BT, JOBNAME, LIGHT, SCHOOL_DAYS, SEATS, CHALLENGES, LEVELS, MAPDEF, rngOf, getMap, cast, popOf, costOf, newGame, planDay, survDraw, survJobs, sample, draw, capacity, door, buildNav, findPath, eventsOn, weather, season, beginDay, placeBuilding, afford, blocked };
 })();
 if (typeof module !== 'undefined') module.exports = SIM;

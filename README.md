@@ -8,7 +8,7 @@ Le jeu tient dans une seule page web. Il est pensé pour un écran de téléphon
 
 ## État
 
-Prototype 0.41.
+Prototype 0.42.
 
 - **Défis** : 50 défis en 15 niveaux, de 4 à 14 jours chacun, avec des événements annoncés (orage, brume, gel, sécheresse, crue, grand vent, rats, maladie, tornade, nouveaux venus) et jusqu'à 3 étoiles. Les défis 21 à 30 partent d'un pré nu ; les enfants et l'école y arrivent au défi 25. Les défis 31 à 40 se jouent sur de grandes cartes : le bourg, le savoir, la manufacture.
 - **Survie** : 4 villageois, presque rien au départ, des jours sans fin et un ciel de plus en plus dur. On y choisit qui travaille où, et la partie se garde d'une visite à l'autre.
@@ -41,6 +41,7 @@ Le script assemble `src/` en une seule page et l'écrit dans `out/` (copie de tr
 - **Les postes.** Dans les défis, chacun garde son poste ; un bâtiment n'a de travailleur que s'il reste un adulte libre. Quand un atelier est détruit, ses gens redeviennent libres.
 - **Ce qui tient.** La tornade emporte tout bâtiment dont le coût ne compte ni pierre ni brique. L'entrepôt met la réserve hors d'atteinte des rats. La canicule gâte la moitié de la nourriture crue ; les repas se gardent.
 - **Mêmes choix, même partie.** Dans un défi, le hasard du jeu (qui tombe malade, qui prend quel poste, quel lit) est fixé une fois pour toutes ; seuls les visages, les noms et les caractères changent d'une partie à l'autre. La survie, elle, reste tirée au sort.
+- **Les saisons.** Le paysage suit ce qui est annoncé : le gel fait l'hiver (neige au sol et sur les toits, arbres nus, glace aux berges), la canicule et la sécheresse font l'été (herbe jaunie, terre fendillée, rivière basse). Entre deux, l'année suit son cours : l'automne après l'été, le printemps après l'hiver (fleurs, cerisiers) ; avant le premier, la saison qui le précède. Deux canicules à quatre jours ou moins font un seul été. Sans gel ni chaleur annoncés, c'est l'automne. En survie, on ne devance rien. On passe d'une saison à l'autre par un fondu, le matin. Rien ne change au jeu : `SIM.season(st)` ne fait que lire les événements.
 - **L'ordre des chantiers.** Quand on bâtit deux bâtiments le même jour, le premier choisi est bâti le premier : il reçoit d'abord les adultes libres. Les cartes choisies portent leur numéro.
 - **Les défis 41 à 50.** Le niveau 14 (« La cité ») mêle tous les ateliers et tous les maîtres, cuisinier compris ; le niveau 15 (« Les derniers jours ») ramène les enfants, jusqu'au défi 50 où tout arrive à la fois. L'objectif « Tous les enfants ont fini l'école » y fait son entrée.
 

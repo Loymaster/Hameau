@@ -10,7 +10,10 @@ const R = (() => {
   function zoom(f, px, py) { const n = Math.max(1, Math.min(3.2, zs * f)), k = n / zs; zx = px * (1 - k) + zx * k; zy = py * (1 - k) + zy * k; zs = n; clampZ(); }
   function drag(dx, dy) { if (zs <= 1) return; zx += dx; zy += dy; clampZ(); }
   function resetZoom() { zs = 1; zx = zy = 0; }
-  let ground = null, gctx, roads, rctx, tmp, tctx, shadow, sctx, light, lctx, vign = null, frostC = null;
+  let ground = null, gctx, ground0 = null, gctx0 = null, roads, rctx, tmp, tctx, shadow, sctx, light, lctx, vign = null;
+  /* la saison : celle qu'on dessine (seas), celle d'où l'on vient (seas0), et où en est le fondu de l'une à l'autre (sq, de 0 à 1) */
+  let seas = 'autumn', seas0 = 'autumn', sq = 1, se = 1, sw = 0;
+  const SEAS = { spring: 1, summer: 1, autumn: 1, winter: 1 }, MOTE = { autumn: ['#D9823A', '#C2502F', '#E3B54A'], spring: ['#F7C6D5', '#FFFFFF', '#EFA6BE'], summer: ['#F6E9B0', '#FFF6D0', '#EAD58C'] };
   let map = null, F = { x: 0, y: 0 }, spr = new Map(), roadPts = [], fz = 0;
   let smoke = [], sparks = [], leaves = [], flies = [], floats = [], dust = [], lastSmoke = 0, last = 0, rain = [], splash = [];
   const mk = (w, h) => { const c = document.createElement('canvas'); c.width = Math.max(1, Math.ceil(w)); c.height = Math.max(1, Math.ceil(h)); return c; };
@@ -32,8 +35,8 @@ const R = (() => {
   /* change de carte : sol, rivière, lucioles */
   function setMap(m) {
     if (map === m) return;
-    SIM.world(m.id); const big = SIM.W !== W || SIM.H !== H; if (big) { W = SIM.W; H = SIM.H; X = SIM.EXT; ground = null; gctx = null; } // carte d'une autre taille : on refait les calques
-    map = m; F = m.fire; frostC = null; roadPts = []; smoke = []; sparks = []; dust = []; floats = []; splash = [];
+    SIM.world(m.id); const big = SIM.W !== W || SIM.H !== H; if (big) { W = SIM.W; H = SIM.H; X = SIM.EXT; ground = null; gctx = null; ground0 = null; gctx0 = null; } // carte d'une autre taille : on refait les calques
+    map = m; F = m.fire; sq = 1; seas0 = seas; roadPts = []; smoke = []; sparks = []; dust = []; floats = []; splash = [];
     const r = SIM.rngOf(31 + m.id.length); flies = [];
     for (let i = 0; i < 18; i++) {
       const p = i % 2 ? m.bank(m.at + (r() - 0.5) * 320, 28 + r() * 46) : m.dead[i % m.dead.length];
@@ -61,7 +64,7 @@ const R = (() => {
     const nss = Math.min(3, Math.max(1, Math.round(day.s * dpr * 4) / 4));
     if (nss !== SS || !ground) {
       SS = nss; RS = Math.min(SS, 1.5); spr.clear();
-      ground = mk(X.w * SS, X.h * SS); gctx = ground.getContext('2d'); gctx.scale(SS, SS); gctx.translate(-X.x, -X.y);
+      ground = mk(X.w * SS, X.h * SS); gctx = ground.getContext('2d'); gctx.scale(SS, SS); gctx.translate(-X.x, -X.y); ground0 = null; gctx0 = null; sq = 1; seas0 = seas;
       roads = mk(X.w * RS, X.h * RS); rctx = roads.getContext('2d'); tmp = mk(X.w * RS, X.h * RS); tctx = tmp.getContext('2d');
       shadow = mk(X.w * SS / 2, X.h * SS / 2); sctx = shadow.getContext('2d');
       light = mk(X.w / 2, X.h / 2); lctx = light.getContext('2d');
@@ -71,7 +74,14 @@ const R = (() => {
     const gr = g.createRadialGradient(VW / 2, VH * 0.5, Math.min(VW, VH) * 0.42, VW / 2, VH * 0.5, Math.max(VW, VH) * 0.72);
     gr.addColorStop(0, 'rgba(24,16,8,0)'); gr.addColorStop(1, 'rgba(24,16,8,0.42)'); g.fillStyle = gr; g.fillRect(0, 0, VW, VH);
   }
-  function redrawGround() { if (!gctx) return; gctx.clearRect(X.x, X.y, X.w, X.h); ART.drawGround(gctx, map); }
+  function redrawGround() { if (!gctx) return; gctx.clearRect(X.x, X.y, X.w, X.h); ART.drawGround(gctx, map, seas); }
+  /* change de saison : le sol de la nouvelle est peint sur un second calque, et l'on fond de l'un à l'autre (sur le champ si now) */
+  function setSeason(s, now) {
+    if (!SEAS[s]) s = 'autumn';
+    if (s === seas) { if (now) { sq = 1; seas0 = seas; } return; }
+    if (!now && ground) { if (!ground0) { ground0 = mk(ground.width, ground.height); gctx0 = ground0.getContext('2d'); gctx0.scale(SS, SS); gctx0.translate(-X.x, -X.y); } [ground, ground0] = [ground0, ground]; [gctx, gctx0] = [gctx0, gctx]; }
+    seas0 = now ? s : seas; seas = s; sq = now ? 1 : 0; redrawGround();
+  }
 
   /* ---------- chemins : un seul tenant, dessiné par couches pour que les jonctions se fondent ---------- */
   function chaikin(p, n) {
@@ -130,17 +140,6 @@ const R = (() => {
       g.restore();
     });
   }
-  function frostLayer() {
-    if (frostC) return frostC;
-    const c = mk(X.w, X.h), g = c.getContext('2d'), r = SIM.rngOf(88); g.translate(-X.x, -X.y);
-    for (let i = 0; i < 2600; i++) {
-      const x = X.x + r() * X.w, y = X.y + r() * X.h; if (map.rdist(x, y) < 17) continue;
-      const o = map.open(x, y), q = o ? 7 + r() * 13 : 4 + r() * 6, gr = g.createRadialGradient(x, y, 0, x, y, q);
-      gr.addColorStop(0, 'rgba(240,246,255,' + (o ? 0.2 : 0.1) + ')'); gr.addColorStop(1, 'rgba(240,246,255,0)'); g.fillStyle = gr; g.fillRect(x - q, y - q, q * 2, q * 2);
-    }
-    for (let i = 0; i < 1500; i++) { g.fillStyle = 'rgba(255,255,255,' + (0.3 + r() * 0.5) + ')'; g.fillRect(X.x + r() * X.w, X.y + r() * X.h, 1, 1); }
-    return frostC = c;
-  }
   const s2w = (px, py) => ({ x: (px - ox) / scale, y: (py - oy) / scale });
   const w2s = (x, y) => ({ x: x * scale + ox, y: y * scale + oy });
   const pan = x => Math.max(-0.7, Math.min(0.7, ((x * scale + ox) / VW * 2 - 1) * 0.7));
@@ -173,7 +172,8 @@ const R = (() => {
     for (const p of sparks) { p.life += dt; p.x += p.vx * dt + Math.sin(time * 9 + p.max * 9) * 0.2; p.y += p.vy * dt; }
     for (const p of dust) { p.life += dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 0.94; p.vy = p.vy * 0.94 + (p.kind === 'dust' ? 0 : 30 * dt); p.a += dt * 4; }
     smoke = smoke.filter(p => p.life < p.max); sparks = sparks.filter(p => p.life < p.max); dust = dust.filter(p => p.life < p.max);
-    for (const l of leaves) { l.x += (l.vx + Math.sin(time * 1.3 + l.a) * 8) * dt; l.y += l.vy * dt; l.a += l.va * dt; if (l.y > X.y + X.h + 10 || l.x > X.x + X.w + 10) { l.x = X.x + Math.random() * X.w - 40; l.y = X.y - 10 - Math.random() * 80; } }
+    const lf = seas === 'summer' ? 0.3 : seas === 'spring' ? 0.7 : 1; /* les pétales tombent moins vite que les feuilles ; l'été, ce n'est qu'une poussière dorée qui passe */
+    for (const l of leaves) { l.x += (l.vx + Math.sin(time * 1.3 + l.a) * 8) * dt * lf; l.y += l.vy * dt * lf; l.a += l.va * dt; if (l.y > X.y + X.h + 10 || l.x > X.x + X.w + 10) { l.x = X.x + Math.random() * X.w - 40; l.y = X.y - 10 - Math.random() * 80; } }
     floats = floats.filter(f => time - f.t0 < 1.7);
   }
 
@@ -289,8 +289,8 @@ const R = (() => {
     ctx.save();
     if (pop > 0) { const k = 1 + Math.sin(pop * 9) * 0.05 * pop; ctx.translate(b.x + b.w / 2, b.y + b.h); ctx.scale(k, k); ctx.translate(-b.x - b.w / 2, -b.y - b.h); }
     ctx.globalAlpha = 1 - b.reveal * 0.9; blit(ctx, sExt, b.x, b.y);
+    if (fz > 0.02) { ctx.globalAlpha = fz * (1 - b.reveal * 0.9); blit(ctx, sprite('extw|' + b.type, b.w, b.h, 6, g => { ART.drawExterior(g, b.type, b.w, b.h); ART.snowOn(g, b.w, b.h, b.h - ART.FH - 1, open); }), b.x, b.y); ctx.globalAlpha = 1 - b.reveal * 0.9; } // la neige sur le toit, ou en voile sur ce qui est à ciel ouvert
     if (b.type === 'moulin') { ctx.save(); ctx.translate(b.x + b.w / 2, b.y + (b.h - ART.FH) / 2); ART.drawSails(ctx, time * 0.55 * (1 - fz * 0.6)); ctx.restore(); }
-    if (fz > 0.02) { ctx.globalAlpha = 1; ctx.fillStyle = 'rgba(238,244,252,' + (open ? 0.24 : 0.34) * fz * (1 - b.reveal) + ')'; if (open) { rr(ctx, b.x, b.y, b.w, b.h, 3); ctx.fill(); } else ctx.fillRect(b.x, b.y, b.w, b.h - ART.FH); }
     ctx.globalAlpha = 1;
     ctx.restore();
     if (b.reveal > 0.05) { ctx.strokeStyle = 'rgba(255,250,235,' + (0.55 * b.reveal) + ')'; ctx.setLineDash([3, 3]); ctx.lineWidth = 0.9; ctx.strokeRect(b.x - 0.5, b.y - 0.5, b.w + 1, b.h - ART.FH + 1); ctx.setLineDash([]); }
@@ -328,27 +328,30 @@ const R = (() => {
     const dt = Math.min(0.1, Math.max(0, time - last)); last = time;
     { const q = 1 - Math.exp(-dt * (zs > 1 ? 14 : 5)); scale += (tgt.s * zs - scale) * q; ox += (tgt.x * zs + zx - ox) * q; oy += (tgt.y * zs + zy - oy) * q; }
     const nf = night(hour), sn = sun(hour), k = dpr * scale, wz = view.weather || { rain: 0, flood: 0, frost: 0 }, S = map.stock;
-    fz += ((wz.frost || 0) - fz) * Math.min(1, dt * 1.4);
-    const am = ambient(hour).map((c, i) => Math.round(c * (1 - wz.rain * [0.3, 0.24, 0.15][i]) * (1 - fz * [0.13, 0.06, 0][i]))); sn.a *= (1 - wz.rain * 0.8) * (1 - (wz.fog || 0) * 0.75);
+    if (wz.season) setSeason(wz.season);
+    if (sq < 1) sq = Math.min(1, sq + dt / 2.6); se = sq * sq * (3 - 2 * sq);
+    fz = (seas === 'winter' ? se : 0) + (seas0 === 'winter' ? 1 - se : 0); sw = (seas === 'summer' ? se : 0) + (seas0 === 'summer' ? 1 - se : 0); // ce qu'il y a d'hiver, et d'été, dans l'image
+    /* la lumière : sous la neige elle perd sa chaleur (un blanc multiplié par un orangé ferait du sable), en été elle en prend */
+    const am0 = ambient(hour), lum = 0.3 * am0[0] + 0.59 * am0[1] + 0.11 * am0[2], cold = [lum * 0.96, lum * 1.0, lum * 1.09];
+    const am = am0.map((c, i) => Math.min(255, Math.round((c + (cold[i] - c) * fz * 0.85) * (1 - wz.rain * [0.3, 0.24, 0.15][i]) * (1 + sw * [0.05, 0.01, -0.08][i])))); sn.a *= (1 - wz.rain * 0.8) * (1 - (wz.fog || 0) * 0.75);
     stepParticles(time, dt, nf);
     ctx.setTransform(k, 0, 0, k, dpr * ox, dpr * oy);
     ctx.imageSmoothingEnabled = true;
-    ctx.drawImage(ground, X.x, X.y, X.w, X.h);
+    if (se < 1 && ground0) { ctx.drawImage(ground0, X.x, X.y, X.w, X.h); ctx.globalAlpha = se; ctx.drawImage(ground, X.x, X.y, X.w, X.h); ctx.globalAlpha = 1; } else ctx.drawImage(ground, X.x, X.y, X.w, X.h);
     ctx.drawImage(roads, X.x, X.y, X.w, X.h);
-    if (fz > 0.02) { ctx.globalAlpha = fz * 0.95; ctx.drawImage(frostLayer(), X.x, X.y, X.w, X.h); ctx.globalAlpha = 1; }
     /* la nuit, l'eau s'assombrit ; puis reflets animés */
-    if (nf > 0.02) { ctx.lineCap = 'butt'; ctx.strokeStyle = 'rgba(14,18,34,' + 0.62 * nf + ')'; ctx.lineWidth = 32; ART.riverPath(ctx, map); ctx.stroke(); }
+    if (nf > 0.02) { ctx.lineCap = 'butt'; ctx.strokeStyle = 'rgba(14,18,34,' + 0.62 * nf + ')'; ctx.lineWidth = 32 - 4 * Math.max(fz, sw); ART.riverPath(ctx, map); ctx.stroke(); } // l'eau est plus étroite en été (elle baisse) et en hiver (la glace gagne)
     if (wz.flood > 0.02) { /* crue : l'eau monte, brune, et déborde sur les berges */
       const f = wz.flood; ctx.lineCap = 'butt';
       ART.riverPath(ctx, map); ctx.strokeStyle = 'rgba(138,130,98,' + 0.85 * f + ')'; ctx.lineWidth = 31 + 21 * f; ctx.stroke();
       ART.riverPath(ctx, map); ctx.strokeStyle = 'rgba(96,126,128,' + 0.92 * f + ')'; ctx.lineWidth = 31 + 14 * f; ctx.stroke();
     }
-    if (fz > 0.02) { ctx.lineCap = 'butt'; ctx.strokeStyle = 'rgba(240,248,255,' + 0.55 * fz + ')'; ctx.lineWidth = 3; for (const o of [-14, 14]) { ART.riverPath(ctx, map, o); ctx.stroke(); } }
     ctx.lineCap = 'round';
-    for (const [dy, a, dash, sp] of [[-8, 0.5, [5, 19, 2, 26], 15], [-1, 0.42, [8, 30, 3, 22], 21], [7, 0.5, [4, 23, 7, 28], 17]]) { ctx.setLineDash(dash); ctx.lineDashOffset = -time * sp * (1 + wz.flood * 1.6) * (1 - fz * 0.5); ctx.strokeStyle = 'rgba(232,246,248,' + a * (1 - nf * 0.45) + ')'; ctx.lineWidth = 1.3; ART.riverPath(ctx, map, dy + Math.sin(time * 0.7 + dy) * 0.8); ctx.stroke(); }
+    for (const [dy, a, dash, sp] of [[-8, 0.5, [5, 19, 2, 26], 15], [-1, 0.42, [8, 30, 3, 22], 21], [7, 0.5, [4, 23, 7, 28], 17]]) { ctx.setLineDash(dash); ctx.lineDashOffset = -time * sp * (1 + wz.flood * 1.6) * (1 - fz * 0.5) * (1 - sw * 0.3); ctx.strokeStyle = 'rgba(232,246,248,' + a * (1 - nf * 0.45) + ')'; ctx.lineWidth = 1.3; ART.riverPath(ctx, map, dy + Math.sin(time * 0.7 + dy) * 0.8); ctx.stroke(); }
     ctx.setLineDash([]);
     {
       const B = map.bridge; blit(ctx, sprite('bridge' + map.id, 72, 72, 2, g => { g.translate(36 - B.x, 36 - B.y); ART.drawBridge(g, map); }), B.x - 36, B.y - 36);
+      if (fz > 0.02) { ctx.globalAlpha = fz; blit(ctx, sprite('bridgew' + map.id, 72, 72, 2, g => { g.save(); g.translate(36 - B.x, 36 - B.y); ART.drawBridge(g, map); g.restore(); ART.snowOn(g, 72, 72, 0, true); }), B.x - 36, B.y - 36); ctx.globalAlpha = 1; }
       if (wz.flood > 0.25) {
         const f = wz.flood; ctx.save(); ctx.translate(B.x, B.y); if (B.dir === 'h') ctx.rotate(Math.PI / 2);
         ctx.fillStyle = 'rgba(96,126,128,' + 0.78 * f + ')'; ctx.fillRect(-17, -21, 34, 42); ctx.strokeStyle = 'rgba(232,246,248,' + 0.6 * f + ')'; ctx.lineWidth = 1.2; ctx.setLineDash([5, 7]); ctx.lineDashOffset = -time * 40;
@@ -372,7 +375,7 @@ const R = (() => {
     const sk = SS / 2; sctx.setTransform(1, 0, 0, 1, 0, 0); sctx.clearRect(0, 0, shadow.width, shadow.height); sctx.setTransform(sk, 0, 0, sk, -X.x * sk, -X.y * sk); sctx.fillStyle = '#17142A';
     for (const e of ents) {
       const o = e.o;
-      if (e.k === 'tree') { const ct = view.cut.get(o.id); if (ct != null && time - ct > 0.5) continue; ell(sctx, o.x + sn.dx * o.r * 0.95, o.y + sn.dy * o.r * 1.0 + o.r * 0.12, o.r * 1.02, o.r * 0.84); sctx.fill(); }
+      if (e.k === 'tree') { const ct = view.cut.get(o.id); if (ct != null && time - ct > 0.5) continue; const bare = o.kind === 'pine' ? 1 : 1 - 0.42 * fz; ell(sctx, o.x + sn.dx * o.r * 0.95, o.y + sn.dy * o.r * 1.0 + o.r * 0.12, o.r * 1.02 * bare, o.r * 0.84 * bare); sctx.fill(); }
       else if (e.k === 'bush') { ell(sctx, o.x + sn.dx * 4, o.y + 2 + sn.dy * 4, 7.5, 5.5); sctx.fill(); }
       else if (e.k === 'rock') { ell(sctx, o.x + sn.dx * 3, o.y + 1 + sn.dy * 3, o.s, o.s * 0.7); sctx.fill(); }
       else if (e.k === 'outcrop') { ell(sctx, o.x + sn.dx * 7, o.y + 2 + sn.dy * 7, 24, 17); sctx.fill(); }
@@ -391,18 +394,21 @@ const R = (() => {
         if (ct != null) { ctx.save(); ctx.translate(o.x, o.y + o.r * 0.2); ART.drawStump(ctx, 4.5); ctx.restore(); }
         if (gone >= 1) continue;
         const rq = o.r <= 15 ? 14 : o.r <= 19 ? 18 : 22;
-        const sp = sprite('t' + o.kind + o.pal + '|' + o.v + '|' + rq, rq * 2, rq * 2, 4, g => { g.translate(rq, rq); ART.drawTree(g, { id: o.pal * 17 + o.v * 5 + rq, r: rq, kind: o.kind, pal: o.pal, ph: o.v * 2.1 }); });
+        const tsp = sn2 => sprite('t' + o.kind + o.pal + '|' + o.v + '|' + rq + '|' + sn2, rq * 2, rq * 2, 4, g => { g.translate(rq, rq); ART.drawTree(g, { id: o.pal * 17 + o.v * 5 + rq, r: rq, kind: o.kind, pal: o.pal, ph: o.v * 2.1 }, sn2); });
         ctx.save(); ctx.translate(o.x, o.y);
         const shake = view.chopping.has(o.id) ? Math.sin(time * 22) * 0.035 : (o.rus > time ? Math.sin(time * 26) * 0.05 * (o.rus - time) : 0);
         ctx.rotate(Math.sin(time * 0.9 + o.ph) * 0.022 + shake + gone * 0.5); const sc = (1 + Math.sin(time * 1.1 + o.ph * 2) * 0.012 - gone * 0.3) * o.r / rq; ctx.scale(sc, sc);
         let hide = 0; for (const p of view.pawns) if (p.y < o.y + o.r * 0.35 && Math.hypot(p.x - o.x, p.y - 12 - o.y) < o.r + 7) { hide = 1; break; }
         o.fade = (o.fade || 0) + (hide - (o.fade || 0)) * Math.min(1, dt * 8);
-        ctx.globalAlpha = (1 - gone) * (1 - o.fade * 0.62); blit(ctx, sp, -rq, -rq);
-        if (fz > 0.02) { ctx.globalAlpha = 0.16 * fz * (1 - gone); ctx.fillStyle = '#F0F6FF'; circ(ctx, 0, 0, rq * 0.92); ctx.fill(); }
+        const ta = (1 - gone) * (1 - o.fade * 0.62);
+        if (se < 1) { ctx.globalAlpha = ta * (1 - se); blit(ctx, tsp(seas0), -rq, -rq); ctx.globalAlpha = ta * se; blit(ctx, tsp(seas), -rq, -rq); } else { ctx.globalAlpha = ta; blit(ctx, tsp(seas), -rq, -rq); }
         ctx.globalAlpha = 1; ctx.restore();
-      } else if (e.k === 'bush') { ctx.save(); ctx.translate(o.x, o.y); blit(ctx, sprite('bush' + (o.berries ? 1 : 0), 20, 18, 3, g => { g.translate(10, 9); ART.drawBush(g, o.berries); }), -10, -9); ctx.restore(); }
-      else if (e.k === 'rock') { ctx.save(); ctx.translate(o.x, o.y); ART.drawRock(ctx, o.s); ctx.restore(); }
-      else if (e.k === 'outcrop') blit(ctx, sprite('outcrop', 60, 52, 2, g => { g.translate(30, 28); ART.drawOutcrop(g); }), o.x - 30, o.y - 28);
+      } else if (e.k === 'bush') {
+        const bsp = sn2 => sprite('bush' + (o.berries ? 1 : 0) + sn2, 20, 18, 3, g => { g.translate(10, 9); ART.drawBush(g, o.berries, sn2); });
+        ctx.save(); ctx.translate(o.x, o.y); if (se < 1) { blit(ctx, bsp(seas0), -10, -9); ctx.globalAlpha = se; } blit(ctx, bsp(seas), -10, -9); ctx.globalAlpha = 1; ctx.restore();
+      }
+      else if (e.k === 'rock') { ctx.save(); ctx.translate(o.x, o.y); ART.drawRock(ctx, o.s, fz); ctx.restore(); }
+      else if (e.k === 'outcrop') { blit(ctx, sprite('outcrop', 60, 52, 2, g => { g.translate(30, 28); ART.drawOutcrop(g); }), o.x - 30, o.y - 28); if (fz > 0.02) { ctx.globalAlpha = fz; blit(ctx, sprite('outcropw', 60, 52, 2, g => { g.save(); g.translate(30, 28); ART.drawOutcrop(g); g.restore(); ART.snowOn(g, 60, 52, 30, false); }), o.x - 30, o.y - 28); ctx.globalAlpha = 1; } }
       else if (e.k === 'bld') drawBuilding(o, time);
       else if (e.k === 'pawn') drawPawn(o, time);
       else if (e.k === 'fire') drawFire(time);
@@ -413,7 +419,11 @@ const R = (() => {
     for (const b of view.buildings) if (b.smoke && Math.random() < dt * 5) { const c = ART.BDEF[b.type].chimney; smoke.push({ x: b.x + c[0] + (Math.random() - 0.5) * 2, y: b.y + c[1], vx: 5 + Math.random() * 5, vy: -13 - Math.random() * 6, life: 0, max: 2.4 + Math.random(), s: 2 }); }
     for (const p of smoke) { const a = (1 - p.life / p.max) * 0.3; ctx.fillStyle = 'rgba(236,232,224,' + a + ')'; circ(ctx, p.x, p.y, p.s); ctx.fill(); }
     for (const p of dust) { const a = 1 - p.life / p.max; if (p.kind === 'dust') { ctx.fillStyle = al(p.c, a * 0.6); circ(ctx, p.x, p.y, p.s * (1 + p.life)); ctx.fill(); } else { ctx.fillStyle = al(p.c, a); ell(ctx, p.x, p.y, p.s, p.s * 0.5, p.a); ctx.fill(); } }
-    for (const l of leaves) { ctx.fillStyle = l.c; ell(ctx, l.x, l.y, l.s, l.s * 0.5 * Math.abs(Math.cos(l.a)) + 0.3, l.a); ctx.fill(); }
+    for (const [sn2, a0] of se < 1 ? [[seas0, 1 - se], [seas, se]] : [[seas, 1]]) { /* ce qui vole : des feuilles en automne, des pétales au printemps, une poussière dorée l'été ; l'hiver a ses flocons, plus bas */
+      const C = MOTE[sn2]; if (!C || a0 < 0.02) continue; ctx.globalAlpha = a0 * (sn2 === 'summer' ? 0.7 : 1);
+      leaves.forEach((l, i) => { ctx.fillStyle = C[i % 3]; if (sn2 === 'summer') { if (i % 2) return; circ(ctx, l.x, l.y, 0.5 + l.s * 0.25); } else ell(ctx, l.x, l.y, sn2 === 'spring' ? l.s * 0.8 : l.s, (sn2 === 'spring' ? 0.8 : 1) * l.s * 0.5 * Math.abs(Math.cos(l.a)) + 0.3, l.a); ctx.fill(); });
+    }
+    ctx.globalAlpha = 1;
 
     if (wz.rain > 0.02) { const n = wz.rain * dt * 90; for (let i = 0; i < n; i++) if (Math.random() < n - i) splash.push({ x: vx0 + Math.random() * (vx1 - vx0), y: vy0 + Math.random() * (vy1 - vy0), t: time }); }
     ctx.lineWidth = 0.7;
@@ -454,7 +464,7 @@ const R = (() => {
       ctx.stroke(); ctx.setTransform(k, 0, 0, k, dpr * ox, dpr * oy);
     } else if (fz > 0.05) { /* quelques flocons */
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.fillStyle = 'rgba(248,251,255,' + 0.8 * fz + ')';
-      for (let i = 0; i < 60; i++) { const d = rain[i]; d.y += d.v * dt * 0.05; d.x += Math.sin(time * 0.8 + d.l * 9) * dt * 0.012; if (d.y > 1.05) { d.y -= 1.12; d.x = Math.random() * 1.1; } circ(ctx, d.x * VW, d.y * VH, 0.9 + d.l * 0.8); ctx.fill(); }
+      for (let i = 0; i < 90; i++) { const d = rain[i]; d.y += d.v * dt * 0.05; d.x += Math.sin(time * 0.8 + d.l * 9) * dt * 0.012; if (d.y > 1.05) { d.y -= 1.12; d.x = Math.random() * 1.1; } circ(ctx, d.x * VW, d.y * VH, 0.9 + d.l * 0.8); ctx.fill(); }
       ctx.setTransform(k, 0, 0, k, dpr * ox, dpr * oy);
     }
     if (wz.fog > 0.02) { /* brume : un voile clair qui dérive */
@@ -473,5 +483,5 @@ const R = (() => {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.drawImage(vign, 0, 0, VW, VH);
   }
-  return { init, setMap, setRoads, resize, setView, frame, s2w, w2s, pan, float, burst, ripple, spark, night, zoom, drag, resetZoom, get zoomed() { return zs > 1.01; }, get scale() { return scale; } };
+  return { init, setMap, setSeason, setRoads, resize, setView, frame, s2w, w2s, pan, float, burst, ripple, spark, night, zoom, drag, resetZoom, get zoomed() { return zs > 1.01; }, get scale() { return scale; } };
 })();

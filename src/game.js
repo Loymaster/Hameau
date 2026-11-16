@@ -16,7 +16,9 @@ const GAME = (() => {
     st.cut.forEach(id => l.cut.set(id, -1e9));
     return l;
   }
-  function scene(st) { G.map = SIM.getMap(st.map); R.setMap(G.map); R.setRoads(st); }
+  /* la saison du paysage : celle que disent les événements ; derrière le livre, toujours l'automne */
+  const seasonNow = () => window.SEASON || (G.phase === 'menu' || !G.st ? 'autumn' : SIM.season(G.st));
+  function scene(st, menu) { G.map = SIM.getMap(st.map); R.setMap(G.map); R.setSeason(window.SEASON || (menu ? 'autumn' : SIM.season(st)), true); R.setRoads(st); }
   function reset() { G.reveal = {}; G.tapUntil = {}; G.pop = {}; G.sel = null; G.off = {}; G.stepN = {}; G.msg = ''; }
   /* chaque partie tire sa propre graine : le village ne se bâtit jamais deux fois pareil */
   const seed = () => window.SEED != null ? window.SEED : (Math.random() * 4294967296) >>> 0;
@@ -50,7 +52,7 @@ const GAME = (() => {
     if (w.home) return { x: w.x, y: w.y, dx: F.x - seat.x, dy: F.y - seat.y, anim: hour > 21.5 || hour < 6.5 ? 'sit' : night ? 'eat' : 'idle', label: '' };
     return { x: w.x, y: w.y, dx: w.dx, dy: w.dy, anim: 'idle', label: '' };
   }
-  function attract(id) { G.walk = {}; G.nav = null; G.st = SIM.newGame(SIM.CHALLENGES[id || 'c2'], seed()); G.plan = null; G.live = liveFrom(G.st); G.phase = 'menu'; G.mind = null; G.th = []; G.bub = []; reset(); scene(G.st); }
+  function attract(id) { G.walk = {}; G.nav = null; G.st = SIM.newGame(SIM.CHALLENGES[id || 'c2'], seed()); G.plan = null; G.live = liveFrom(G.st); G.phase = 'menu'; G.mind = null; G.th = []; G.bub = []; reset(); scene(G.st, true); }
   function morning() {
     const fresh = G.st.begun !== G.st.day; if (fresh && keeps()) G.snap = { v: 1, st: JSON.stringify(G.st), mind: JSON.stringify(G.mind), dead: G.dead || [] };
     G.st = SIM.beginDay(G.st);
@@ -146,9 +148,9 @@ const GAME = (() => {
   }
   /* météo : l'orage dure la journée et la crue retombe dans la nuit ; le gel, une fois là, reste */
   function weather() {
-    if (G.phase === 'menu' || !G.st) return { rain: 0, flood: 0, frost: 0, fog: 0 };
+    if (G.phase === 'menu' || !G.st) return { rain: 0, flood: 0, frost: 0, fog: 0, season: seasonNow() };
     const w = SIM.weather(G.st), t = G.t, c = v => Math.max(0, Math.min(1, v)), storm = w.storm && G.phase !== 'end', dike = G.st.buildings.some(b => SIM.BT[b.type].anti === 'storm' && !b.gone);
-    return { rain: !storm ? 0 : t < 8 ? 0.55 + 0.45 * c((t - 6.3) / 1.7) : c((19.6 - t) / 2.4), flood: !storm || dike ? 0 : t < 8 ? 0.6 + 0.4 * c((t - 6.3) / 1.7) : c((27 - t) / 7), frost: w.frost ? 1 : 0, fog: w.fog && G.phase !== 'end' ? c((20.5 - t) / 3.5) : 0 };
+    return { rain: !storm ? 0 : t < 8 ? 0.55 + 0.45 * c((t - 6.3) / 1.7) : c((19.6 - t) / 2.4), flood: !storm || dike ? 0 : t < 8 ? 0.6 + 0.4 * c((t - 6.3) / 1.7) : c((27 - t) / 7), frost: w.frost ? 1 : 0, fog: w.fog && G.phase !== 'end' ? c((20.5 - t) / 3.5) : 0, season: seasonNow() };
   }
   function phaseName(t) { return t < T.WORK ? (G.plan && G.plan.nb ? 'Chantier' : 'Matin') : t < T.MEAL ? 'Travail' : t < T.BED ? 'Repas' : t < T.NIGHT ? 'Coucher' : 'Nuit'; }
 
