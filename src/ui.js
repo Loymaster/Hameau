@@ -191,16 +191,16 @@ const UI = (() => {
   let friseEv = {}, friseC = null;
   /* Les jours d'un défi, sur une seule ligne quelle que soit sa longueur : une cote de dessin technique — un trait entre deux
      repères, une graduation par jour, le total écrit à la main au bout. Chaque annonce est une pastille posée à sa place
-     sur le trait, à proportion ; ce qui dure plusieurs jours s'étire en hachures. Les noms, jour par jour, sont dessous. */
+     sur le trait, à proportion ; ce qui dure plusieurs jours s'étire en hachures. Pas de liste dessous : on touche une pastille
+     (ou le trait, tout près) pour lire ce qui est annoncé ce jour-là. */
   function cote(c, day) {
-    const N = c.days, pc = x => (100 * x / N).toFixed(2) + '%'; let marks = '', spans = '', l = ''; friseEv = {}; friseC = c;
+    const N = c.days, pc = x => (100 * x / N).toFixed(2) + '%'; let marks = '', spans = ''; friseEv = {}; friseC = c;
     for (let d = 1; d <= N; d++) {
       const e = dayEv(c, null, d), fresh = e.filter(x => !x.cont); friseEv[d] = e; if (!fresh.length) continue;
       marks += '<button class="fr-ev' + (d < day ? ' past' : d === day ? ' now' : '') + '" style="left:' + pc(d - 0.5) + '" data-d="' + d + '" aria-label="Jour ' + d + ' : ' + fresh.map(evName).join(', ') + '">' + pile(fresh) + '</button>';
       for (const x of fresh) { const len = x.len > 1 ? x.len : x.type === 'frost' && x.len == null ? N - d + 1 : 1; if (len > 1) spans += '<i class="fr-span k-' + x.type + '" style="left:' + pc(d - 0.5) + ';width:' + pc(Math.min(len - 1, N - d) + 0.5) + '"></i>'; }
-      l += '<button class="evn' + (d < day ? ' past' : '') + '" data-d="' + d + '"><i>Jour ' + d + '</i><span>' + fresh.map(x => evName(x) + (evDur(x, c) ? ' <small>(' + evDur(x, c).replace('dure ', '') + ')</small>' : '')).join(', ') + '</span></button>';
     }
-    return '<div class="frise cote" role="group" aria-label="' + N + ' jours, et ce qui est annoncé"><div class="fr-line" style="--n:' + N + '"><i class="fr-ax"></i><i class="fr-tk"></i>' + (day > 1 ? '<i class="fr-done" style="width:' + pc(day - 1) + '"></i>' : '') + spans + (day > 0 ? '<i class="fr-now" style="left:' + pc(day - 0.5) + '"></i>' : '') + marks + '</div><span class="fr-n">' + (day > 0 ? 'jour ' + day + '/' + N : jours(N)) + '</span></div>' + (l ? '<div class="evl">' + l + '</div>' : '') + '<div class="evbox" aria-live="polite" hidden></div>';
+    return '<div class="frise cote" role="group" aria-label="' + N + ' jours, et ce qui est annoncé"><div class="fr-line" style="--n:' + N + '"><i class="fr-ax"></i><i class="fr-tk"></i>' + (day > 1 ? '<i class="fr-done" style="width:' + pc(day - 1) + '"></i>' : '') + spans + (day > 0 ? '<i class="fr-now" style="left:' + pc(day - 0.5) + '"></i>' : '') + marks + '</div><span class="fr-n">' + (day > 0 ? 'jour ' + day + '/' + N : jours(N)) + '</span></div><div class="evbox" aria-live="polite" hidden></div>';
   }
   function frise(c, day) {
     if (!c.survival) return cote(c, day);
@@ -214,7 +214,11 @@ const UI = (() => {
   }
   function bindFrise(root) {
     const box = root.querySelector('.evbox'), ev = friseEv, c = friseC; let cur = null;
-    root.querySelectorAll('.fd.ev,.fr-ev,.evn').forEach(b => { b.onclick = () => { const d = b.dataset.d; if (cur === d) { cur = null; box.hidden = true; return; } cur = d; box.innerHTML = '<span class="evj">Jour ' + d + '</span>' + evDefs(ev[d], c); box.hidden = false; SFX.play('card'); }; });
+    const btns = root.querySelectorAll('.fd.ev,.fr-ev,.evn'), mark = () => btns.forEach(b => b.classList.toggle('on', b.dataset.d === cur));
+    btns.forEach(b => { b.onclick = e => { e.stopPropagation(); const d = b.dataset.d; if (cur === d) { cur = null; box.hidden = true; mark(); return; } cur = d; box.innerHTML = '<span class="evj">Jour ' + d + '</span>' + evDefs(ev[d], c); box.hidden = false; mark(); SFX.play('card'); }; });
+    /* sur une frise de quatorze jours, les pastilles sont petites : toucher le trait ouvre la plus proche */
+    const line = root.querySelector('.fr-line'), evs = line ? Array.from(line.querySelectorAll('.fr-ev')) : [];
+    if (evs.length) line.onclick = e => { let best = null, bd = 1e9; for (const b of evs) { const r = b.getBoundingClientRect(), dx = Math.abs(e.clientX - (r.left + r.width / 2)); if (dx < bd) { bd = dx; best = b; } } if (best && best.dataset.d !== cur) best.click(); };
   }
   /* le matin : la pile des annonces du jour et leurs noms ; on touche pour lire les définitions */
   const evBtns = st => { const e = dayEv(SIM.CHALLENGES[st.ch], st, st.day); return e.length ? '<button class="evb" aria-label="Annoncé aujourd’hui : ' + e.map(evName).join(', ') + '">' + pile(e) + '<em class="evnm">' + e.map(evName).join(' · ') + '</em></button>' : ''; };
@@ -300,7 +304,7 @@ const UI = (() => {
             return cap(d.name.toLowerCase()) + ' : ' + (d.conv ? 'change ' + SIM.RATIO + ' ' + RESN[d.conv.from].toLowerCase() + ' en 1 ' + RESN[d.conv.to].toLowerCase() + ', ' + d.conv.cap + ' ' + RESN[d.conv.from].toLowerCase() + ' par jour au plus' : d.expert ? 'tant qu’il est à son poste, 1 ' + RESN[CONVOF[d.expert]].toLowerCase() + ' suffit pour 1 ' + RESN[d.expert].toLowerCase() : d.medic ? 'tant qu’il est à son poste, personne ne meurt de maladie et elle ne se transmet plus ; lui-même ne tombe jamais malade' : d.out ? d.per + ' ' + RESN[d.out].toLowerCase() + ' par jour et par personne' : d.play ? 'de la joie chaque soir' : 'un poste') + (d.posts > 1 ? ', ' + d.posts + ' postes' : '') + '.' + (st.length ? ' Arrêté par ' + names(st) + '.' : ''); }).join(' ')); }).join('') + '</div>'; },
     options: () => back + '<h2>Options</h2><div class="h3">Son</div>' + volsHtml() +
       '<div class="h3">Bulles des villageois</div><div class="segs">' + BUBS.map(b => '<button class="seg" data-bub="' + b[0] + '" aria-pressed="' + (save.bub === b[0]) + '">' + b[1] + '</button>').join('') + '</div>' +
-      '<div class="h3">Progression</div><p class="note">' + Object.values(save.stars).reduce((a, b) => a + b, 0) + ' étoiles sur ' + ORDER.length * 3 + '</p><div class="pfoot">Prototype 0.40</div>'
+      '<div class="h3">Progression</div><p class="note">' + Object.values(save.stars).reduce((a, b) => a + b, 0) + ' étoiles sur ' + ORDER.length * 3 + '</p><div class="pfoot">Prototype 0.41</div>'
   };
   function bindPage(name, arg) {
     paint(pageEl);

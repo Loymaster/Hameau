@@ -513,3 +513,7 @@ h2.big{font-size:54px!important}.center{text-align:center}
 /* 0.40 — deux chantiers : l'ordre choisi se lit sur les cartes (le premier bâti reçoit d'abord les bras libres) */
 .card[data-ord]::after{content:attr(data-ord);position:absolute;top:-10px;left:-7px;width:26px;height:26px;border-radius:50%;background:var(--page);color:var(--ink);border:1.5px solid var(--gold);box-shadow:0 2px 6px rgba(0,0,0,.4);font-weight:700;font-size:14px;line-height:23px;text-align:center}
 .goals li .gt{flex:1 1 auto;min-width:0}
+
+/* 0.41 — plus de liste sous la frise des défis : la pastille ouverte se voit, et le trait se touche */
+.fr-line{cursor:pointer}.fr-ev.on{z-index:3}.fr-ev.on .evc{border-width:2.4px;box-shadow:0 0 0 3px rgba(217,154,43,.35)}
+.page:has(.mk-dense) .pact{margin-top:auto}
