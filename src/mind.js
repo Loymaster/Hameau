@@ -83,7 +83,7 @@ const MIND = (() => {
   function create(st) { const m = { aff: {}, love: {}, log: {}, grief: [], grudge: [], fresh: [], n: 0 }; join(m, st, true); return m; }
   /* les nouveaux venus se connaissent déjà entre eux, pas encore les autres */
   function join(m, st, first) {
-    const r = SIM.rngOf(st.seed * 31 + st.villagers.length * 7 + 3), neu = st.villagers.filter(v => !m.log[v.id]);
+    const r = SIM.rngOf((st.look != null ? st.look : st.seed) * 31 + st.villagers.length * 7 + 3), neu = st.villagers.filter(v => !m.log[v.id]);
     for (const v of neu) m.log[v.id] = [];
     for (let i = 0; i < neu.length; i++) for (let j = i + 1; j < neu.length; j++) { const q = r(); m.aff[key(neu[i].id, neu[j].id)] = first ? (q < 0.5 ? 0 : q < 0.8 ? 1 : 2) : 2; }
     if (first && neu.length > 1 && !Object.values(m.aff).some(x => x === 2)) m.aff[key(neu[0].id, neu[1].id)] = 2;
@@ -215,7 +215,7 @@ const MIND = (() => {
     const bump = (a, b) => { const k = key(a, b); if (a === b || up[k]) return; up[k] = 1; m.aff[k] = Math.min(3, (m.aff[k] || 0) + 1); };
     for (const b of E.buildings) for (const a of b.workers) for (const c of b.workers) if (a < c) bump(a, c);
     /* sous un même toit : dans une maison on vit vraiment ensemble ; dans une cabane, on ne fait souvent que dormir */
-    const r = SIM.rngOf(S.seed * 7 + d * 101 + 13), roof = {}, own = {}, mates = []; for (const e of ev) if (e.type === 'bed') (roof[e.bid] = roof[e.bid] || []).push(e.vid);
+    const r = SIM.rngOf((S.look != null ? S.look : S.seed) * 7 + d * 101 + 13), roof = {}, own = {}, mates = []; for (const e of ev) if (e.type === 'bed') (roof[e.bid] = roof[e.bid] || []).push(e.vid);
     for (const b of E.buildings) own[b.id] = !!SIM.BT[b.type].own;
     for (const k in roof) for (const a of roof[k]) for (const c of roof[k]) if (a < c) { if (own[k] || r() < 0.4) bump(a, c); mates.push([a, c, own[k]]); }
     /* le hasard a servi l'un et pas l'autre : il en reste une rancœur */

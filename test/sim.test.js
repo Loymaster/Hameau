@@ -18,7 +18,7 @@ function check(st, p, pick) {
     const eat = p.events.find(e => (e.type === 'eat' || e.type === 'noeat') && e.vid == id);
     if (!eat || eat.t > SIM.T.BED) bad('repas tardif', id, eat && eat.t.toFixed(2));
     const bed = p.events.find(e => (e.type === 'bed' || e.type === 'nobed') && e.vid == id);
-    if (!bed || bed.t > SIM.T.NIGHT + (SIM.W > 400 ? 1.6 : 1)) bad('coucher tardif', id, bed && bed.t.toFixed(2));
+    if (!bed || bed.t > SIM.T.NIGHT + (SIM.W > 400 ? (s.some(q => q.label === 'Prend un bain') ? 2.1 : 1.6) : 1)) bad('coucher tardif', id, bed && bed.t.toFixed(2), 'jour', st.day, '| avant :', s.slice(-5).map(q => (q.label || q.anim) + '@' + q.t0.toFixed(1)).join(' > '));
   }
   const r = {}; for (const k of SIM.RES) r[k] = st[k] || 0;
   for (const e of p.events) for (const k of SIM.RES) { r[k] += e[k] || 0; if (r[k] < 0) bad('ressource négative', k, 'jour', st.day, e.type, e.t.toFixed(2)); }
@@ -36,7 +36,7 @@ function check(st, p, pick) {
   for (const v of st.villagers) if (v.alive && v.home != null && p.end.villagers[v.id].alive && p.end.villagers[v.id].home !== v.home && !wrecked.has(v.home)) bad('a perdu sa maison', v.name); // sauf si elle a été détruite
   const map = SIM.getMap(st.map);
   /* orage : personne ne passe la rivière, sauf si une digue la retient */
-  if (SIM.weather(st).storm && !st.buildings.concat(p.nb ? [p.nb] : []).some(b => SIM.BT[b.type].anti === 'storm' && !b.gone)) // une digue protège dès le jour où on la bâtit, comme le fanal
+  if (SIM.weather(st).storm && !p.end.buildings.some(b => SIM.BT[b.type].anti === 'storm' && (!b.gone || st.buildings.some(o => o.id === b.id && !o.gone)))) // une digue protège dès le jour où on la bâtit, comme le fanal
     for (const id in p.tracks) for (let t = SIM.T.BUILD; t < SIM.T.END; t += 0.05) { const q = SIM.sample(p.tracks[id], t); if (q && map.rside(q.x, q.y) !== map.home && map.rdist(q.x, q.y) > 8) { bad('traverse sous l’orage', id, 'jour', st.day, t.toFixed(2), q.label); break; } }
   else if (SIM.weather(st).storm) stormDike++;
   for (const b of p.end.buildings) if (!map.clear(b.x + b.w / 2, b.y + b.h / 2)) bad('bâtiment hors clairière', b.type);

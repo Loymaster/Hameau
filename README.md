@@ -8,9 +8,9 @@ Le jeu tient dans une seule page web. Il est pensé pour un écran de téléphon
 
 ## État
 
-Prototype 0.39.
+Prototype 0.40.
 
-- **Défis** : 40 défis en 13 niveaux, de 4 à 12 jours chacun, avec des événements annoncés (orage, brume, gel, sécheresse, crue, grand vent, rats, maladie, tornade, nouveaux venus) et jusqu'à 3 étoiles. Les défis 21 à 30 partent d'un pré nu ; les enfants et l'école y arrivent au défi 25. Les défis 31 à 40 se jouent sur de grandes cartes : le bourg, le savoir, la manufacture.
+- **Défis** : 50 défis en 15 niveaux, de 4 à 14 jours chacun, avec des événements annoncés (orage, brume, gel, sécheresse, crue, grand vent, rats, maladie, tornade, nouveaux venus) et jusqu'à 3 étoiles. Les défis 21 à 30 partent d'un pré nu ; les enfants et l'école y arrivent au défi 25. Les défis 31 à 40 se jouent sur de grandes cartes : le bourg, le savoir, la manufacture.
 - **Survie** : 4 villageois, presque rien au départ, des jours sans fin et un ciel de plus en plus dur. On y choisit qui travaille où, et la partie se garde d'une visite à l'autre.
 - **Bac à sable** : pas encore.
 
@@ -40,6 +40,9 @@ Le script assemble `src/` en une seule page et l'écrit dans `out/` (copie de tr
 - **Les maîtres.** Géologue, ingénieur, cuisinier, psychologue : tant que l'un d'eux est à son poste, son atelier transforme à 1 pour 1. Le médecin, lui, empêche de mourir de maladie et arrête la contagion. Leurs bâtiments se paient en ingéniosité.
 - **Les postes.** Dans les défis, chacun garde son poste ; un bâtiment n'a de travailleur que s'il reste un adulte libre. Quand un atelier est détruit, ses gens redeviennent libres.
 - **Ce qui tient.** La tornade emporte tout bâtiment dont le coût ne compte ni pierre ni brique. L'entrepôt met la réserve hors d'atteinte des rats. La canicule gâte la moitié de la nourriture crue ; les repas se gardent.
+- **Mêmes choix, même partie.** Dans un défi, le hasard du jeu (qui tombe malade, qui prend quel poste, quel lit) est fixé une fois pour toutes ; seuls les visages, les noms et les caractères changent d'une partie à l'autre. La survie, elle, reste tirée au sort.
+- **L'ordre des chantiers.** Quand on bâtit deux bâtiments le même jour, le premier choisi est bâti le premier : il reçoit d'abord les adultes libres. Les cartes choisies portent leur numéro.
+- **Les défis 41 à 50.** Le niveau 14 (« La cité ») mêle tous les ateliers et tous les maîtres, cuisinier compris ; le niveau 15 (« Les derniers jours ») ramène les enfants, jusqu'au défi 50 où tout arrive à la fois. L'objectif « Tous les enfants ont fini l'école » y fait son entrée.
 
 ## Essais
 
@@ -55,6 +58,7 @@ SAMPLE=1000 ONLY=c27 node test/sim.test.js   # défis longs : parties tirées au
 node test/surv.js 40 sage          # 40 parties de survie (sage, hasard ou meneur)
 node test/beam2.js c40 120         # grands défis : recherche guidée par les objectifs (W='brick:4' pour peser une ressource)
 node test/rand.js c36 100          # grands défis : parties au hasard, étoiles et causes de décès
+node test/climb.js c47 'a > b+c > -'   # grands défis : améliore une ligne un jour à la fois (KICK=10 pour la secouer)
 node test/trace2.js c36 'argiliere+cabane > - > briqueterie+geologue'   # une partie pas à pas ; « a+b » = deux chantiers
 node test/mind.test.js             # les pensées des villageois
 node test/check.js                 # rien ne manque : phrases de fin, descriptions, dessins, noms en double

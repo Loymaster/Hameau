@@ -451,12 +451,13 @@ const SIM = (() => {
 
   /* ---------- état initial, événements ---------- */
   function newGame(ch, seed) {
-    seed = seed == null ? ch.seed : seed >>> 0;
+    const look = seed == null ? ch.seed : seed >>> 0; // la graine des visages, des noms et des caractères : elle change à chaque partie
+    seed = ch.survival ? look : ch.seed; // dans un défi, le hasard du jeu (qui tombe malade, qui prend quel poste, quel lit) ne change pas : mêmes choix, même partie
     const mapId = ch.survival ? ['pre', 'coude'][seed % 2] : ch.map, map = getMap(mapId), rng = rngOf(seed + 17);
     const st = { ch: ch.id, map: mapId, day: 1, days: ch.days, seed, food: ch.food, wood: ch.wood, stone: ch.stone || 0, clay: ch.clay || 0, brick: ch.brick || 0, plank: ch.plank || 0, meal: ch.meal || 0, culture: ch.culture || 0, ingen: ch.ingen || 0, bloom: 0, joy: 0, nextId: 1, begun: 0, arrived: [], buildings: [], villagers: [], cut: [], roadCells: [], roadLines: [], everLacked: false, lastAllOk: false, lastRoofOk: false, graves: [] };
     initRoads(st);
     if (ch.survival) { st.ev = []; st.evGen = 2; st.cards = null; st.hist = []; st.bell = -99; }
-    st.pool = cast(seed, popOf(ch));
+    st.look = look; st.pool = cast(look, popOf(ch));
     ch.villagers.forEach((_, i) => { const v = st.pool.shift(); st.villagers.push(Object.assign({ id: i, job: null, work: null, hunger: 0, roofless: 0, alive: true, home: null, pos: { x: map.seats[i % map.seats.length].x, y: map.seats[i % map.seats.length].y } }, v, ch.villagers[i].child ? { child: true, young: true, school: 0, beard: null } : {})); });
     let hk = 0; const nearFire = v => { const q = map.seats[v.id % map.seats.length]; return { x: q.x, y: q.y }; };
     for (const s of ch.start) {
@@ -616,9 +617,9 @@ const SIM = (() => {
         if (v.child) { tr.until(nb.t1, 'idle', { look: ctr, label: 'Regarde le chantier' }); return; }
         const sp = { x: SK.ax + (i % 2 ? -7 : 3), y: SK.ay + (i % 4 > 1 ? 8 : 0) }, spot = spots[i % spots.length];
         if (tr.est(nav, sp) + plen(nav, sp, spot) < 1.75) { // assez près : passe prendre des planches
-          tr.walkBy(nav, sp, 7.4, { label: 'Va chercher des planches' });
+          tr.walkBy(nav, sp, Math.max(7.4, tr.t + tr.est(nav, sp) / 1.5), { label: 'Va chercher des planches' }); // les derniers levés d'un bourg arrivent un peu après, sans courir
           tr.act('take', 0.1, { look: stockLook, label: 'Prend des planches' });
-          tr.walkBy(nav, spot, 8.3, { carry: 'plank', label: 'Porte des planches' });
+          tr.walkBy(nav, spot, Math.max(8.3, tr.t + plen(nav, tr.p, spot) / 1.5), { carry: 'plank', label: 'Porte des planches' });
         } else if (tr.est(nav, spot) / 1.6 > nb.t1 - 0.2 - tr.t) { tr.until(nb.t1, 'idle', { label: 'Trop loin pour rejoindre le chantier' }); return; } // plutôt que de courir, on laisse faire les autres
         else tr.walkBy(nav, spot, Math.min(nb.t1 - 0.2, Math.max(8.3, tr.t + tr.est(nav, spot) / 1.45)), { label: 'Rejoint le chantier' }); // qui a dormi loin arrive un peu plus tard
         tr.until(nb.t1, 'build', { look: ctr, label: 'Bâtit : ' + BT[nb.type].name.toLowerCase() });
@@ -797,7 +798,8 @@ const SIM = (() => {
     for (let k = 0, nT = Math.min(6 * tablesB.length, Math.ceil(alive.length / 2)); k < nT; k++) { const v = alive[(k + st.day) % alive.length], b = tablesB[Math.floor(k / 6)], q = k % 6; atTable.set(v.id, { x: b.x + b.w * (0.2 + 0.3 * (q % 3)), y: q < 3 ? b.y - 5 : b.y + b.h + 6, c: { x: b.x + b.w / 2, y: b.y + b.h / 2 } }); }
     for (let k = 0, nB = Math.min(2 * bathsB.length, Math.floor(alive.length / 3)); k < nB; k++) bather.set(alive[(alive.length - 1 - k + st.day * 2) % alive.length].id, bathsB[Math.floor(k / 2)]);
     alive.forEach((v, i) => {
-      const tr = tracks[v.id], tb = atTable.get(v.id), seat = tb || map.seats[i % map.seats.length], look = tb ? tb.c : F;
+      const tr = tracks[v.id]; let tb = atTable.get(v.id); if (tb && tr.est(nav, tb) / Math.max(0.1, 19.38 - tr.t) > 1.6) tb = null; /* la grande table est trop loin pour y être à l'heure sans courir : celui-là mange près du feu */
+      const seat = tb || map.seats[i % map.seats.length], look = tb ? tb.c : F;
       { let w = T.MEAL - 0.3 + i * 0.04; const far = tr.est(nav, seat); if (far / (19.38 - Math.max(tr.t, w)) > 1.6) w = Math.max(tr.t, 19.38 - far / 1.5); /* sur une grande carte, qui travaille loin part plus tôt, sans courir */
         tr.until(Math.max(tr.t, w), 'idle', { label: 'Termine sa journée' }); }
       tr.walkBy(nav, seat, Math.max(18.95, Math.min(19.38, tr.t + tr.est(nav, seat) / 1.5)), { label: 'Rentre pour le repas' }); // qui travaille très loin arrive un peu après les autres, sans courir
@@ -810,7 +812,7 @@ const SIM = (() => {
       sum.v[v.id] = { ate, roof: false };
     });
     const hungry = alive.filter(v => !eaters.includes(v.id));
-    const got = RES.filter(r => sum.got[r]).map(r => '+' + sum.got[r] + ' ' + { food: 'nourriture', wood: 'bois', stone: 'pierre' }[r]);
+    const got = RES.filter(r => sum.got[r]).map(r => (sum.got[r] > 0 ? '+' : '−') + Math.abs(sum.got[r]) + ' ' + RNAME[r]);
     if (got.length) log.push({ k: 'res', text: 'Rapporté : ' + got.join(', ') + '.' });
     if (hungry.length) log.push({ k: 'bad', text: names(hungry.map(v => v.name)) + (hungry.length > 1 ? ' n’ont rien mangé.' : ' n’a rien mangé.') });
     /* le bonheur (défis qui le comptent) : une tablée où personne ne manque, une nuit dans sa propre maison ; un manque l'entame */
@@ -942,6 +944,7 @@ const SIM = (() => {
   G.have = o => { const l = Object.keys(o).map(k => k === 'joy' ? o[k] + ' de bonheur' : k === 'bloom' ? o[k] + ' d’épanouissement' : k === 'ingen' ? o[k] + ' d’ingéniosité' : k === 'culture' ? o[k] + ' de culture' : k === 'meal' ? o[k] + ' repas' : k === 'wood' ? o[k] + ' bois' : o[k] + ' ' + RNAME[k] + (o[k] > 1 ? 's' : ''));
     return { t: names(l) + ' au dernier soir', need: o, ok: (st, a) => a && !st.everLacked && Object.keys(o).every(k => (st[k] || 0) >= o[k]) }; };
   G.all = (f, w, s, j) => ({ t: [f + ' nourritures', w + ' bois', s + ' pierres'].join(', ') + (j ? ' et ' + j + ' de bonheur' : '') + ' au dernier soir', ok: (st, a) => a && !st.everLacked && st.food >= f && st.wood >= w && st.stone >= s && (!j || st.joy >= j) });
+  G.grown = n => ({ t: 'Tous les enfants ont fini l’école' + (n ? ', et ' + n + ' nourritures en réserve' : ''), grown: true, stock: n || 0, ok: (st, a) => a && !st.everLacked && !st.villagers.some(v => v.alive && v.child) && st.food >= (n || 0) });
   const KID = { child: true }, NK = k => Array.from({ length: k }, () => ({ child: true }));
   const ALL3 = d => [d];
   const CHALLENGES = {
@@ -1301,6 +1304,107 @@ const SIM = (() => {
       draws: [['argiliere', 'charpenterie', 'four'], ['briqueterie', 'argiliere', 'pecheur'], ['charpenterie', 'four', 'argiliere'], ['entrepot', 'geologue', 'maisonbrique'], ['maisonbrique', 'ingenieur', 'four'], ['demeure', 'maisonbrique', 'moulin'], ['maisonbrique', 'outillerie', 'four'], ['demeure', 'maisonbrique', 'four'], ['cueillette', 'argiliere', 'pecheur'], ['potager', 'cueillette', 'entrepot'], ['halle', 'bucheron', 'potager'], ['brasero', 'four', 'maisonbrique']],
       events: [{ day: 4, type: 'rats', lv: 3 }, { day: 6, type: 'arrivals', villagers: NV(2) }, { day: 8, type: 'tornado' }, { day: 10, type: 'rats', lv: 4 }, { day: 12, type: 'frost' }],
       goals: [G.alive(12), G.never, G.stockOf(90)]
+    },
+    /* ---------- niveaux 14 et 15 : tout à la fois, puis les enfants, jusqu'au dernier hiver ---------- */
+    c41: {
+      id: 'c41', n: 41, rule: 'Le repas. La cuisine change 2 nourritures en 1 repas, sur le surplus seulement. Le soir, on mange les repas d’abord : chacun nourrit une personne et donne 1 bonheur. Avec un cuisinier à son poste, 1 nourriture suffit. La canicule gâte la moitié de la nourriture crue ; les repas se gardent.',
+      endMsg: ['Les fourneaux sont froids, et les bancs vides.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'On a mangé chaud tous les soirs, et l’on s’en souviendra.'],
+      map: 'plaine', title: 'La table du chef', days: 9, seed: 20270201, food: 22, wood: 12, stone: 5, culture: 4, joy: true,
+      voice: { text: 'Manger, nous savions. Dîner, c’est autre chose.', by: '' },
+      start: cab(6).concat([{ type: 'cueillette', workers: [0, 1] }, { type: 'cueillette', workers: [2, 3] }, { type: 'cueillette', workers: [4, 5] }, { type: 'bucheron', workers: [6, 7] }, { type: 'carriere', workers: [8] }, { type: 'lycee', workers: [9] }, { type: 'universite', workers: [10] }]), villagers: NV(12),
+      draws: [['cuisine', 'four', 'cabane'], ['chef', 'potager', 'pecheur'], ['cuisine', 'dortoir', 'four'], ['chef', 'cueillette', 'pecheur'], ['cuisine', 'potager', 'rucher'], ['dortoir', 'four', 'cabane'], ['cuisine', 'moulin', 'chef'], ['potager', 'verger', 'four'], ['cuisine', 'rucher', 'cabanon']],
+      events: [{ day: 3, type: 'arrivals', villagers: NV(2) }, { day: 5, type: 'heat' }, { day: 6, type: 'arrivals', villagers: NV(2) }, { day: 8, type: 'heat' }],
+      goals: [G.alive(9), G.never, G.have({ joy: 40 })]
+    },
+    c42: {
+      id: 'c42', n: 42, rule: 'Trois bâtiments du savoir se paient en briques et en planches : le théâtre et l’observatoire donnent de la culture sans personne, l’académie en transforme deux fois plus que l’université.',
+      endMsg: ['Les lampes se sont éteintes une à une.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'On vient de loin, maintenant, pour apprendre ici.'],
+      map: 'confluent', title: 'Les lumières', days: 10, seed: 20270202, food: 24, wood: 14, stone: 6, culture: 4, brick: 3, plank: 3,
+      voice: { text: 'Il y eut un soir où la plus haute fenêtre éclairée n’était plus celle du four.', by: '' },
+      start: cab(8).concat([{ type: 'cueillette', workers: [0, 1] }, { type: 'cueillette', workers: [2, 3] }, { type: 'cueillette', workers: [4, 5] }, { type: 'bucheron', workers: [6, 7] }, { type: 'carriere', workers: [8] }, { type: 'lycee', workers: [9] }, { type: 'universite', workers: [10] }, { type: 'argiliere', workers: [11] }, { type: 'briqueterie', workers: [12] }, { type: 'charpenterie', workers: [13] }]), villagers: NV(15),
+      draws: [['observatoire', 'four', 'theatre'], ['geologue', 'lycee', 'pecheur'], ['dortoir', 'fanal', 'academie'], ['observatoire', 'theatre', 'four'], ['cabinet', 'academie', 'potager'], ['cabinet', 'maisonbrique', 'observatoire'], ['cabinet', 'ingenieur', 'theatre'], ['observatoire', 'academie', 'potager'], ['theatre', 'lycee', 'pecheur'], ['observatoire', 'rucher', 'cabanon']],
+      events: [{ day: 3, type: 'arrivals', villagers: NV(2) }, { day: 4, type: 'fog' }, { day: 6, type: 'arrivals', villagers: NV(2) }, { day: 6, type: 'sick', n: 2, grave: true }, { day: 8, type: 'storm' }],
+      goals: [G.alive(10), G.never, G.have({ ingen: 25 })]
+    },
+    c43: {
+      id: 'c43', n: 43, rule: 'Ce qui dort en réserve se perd : la canicule en gâte la moitié, les rats davantage. Un entrepôt arrête les rats. La cuisine, elle, change le surplus en repas avant la nuit.',
+      endMsg: ['Les greniers étaient pleins. Il n’y avait plus personne pour les ouvrir.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Ni la chaleur ni les rats n’ont eu grand-chose : tout était cuit, ou sous clef.'],
+      map: 'bourg', title: 'Les greniers pleins', days: 10, seed: 20270203, food: 24, wood: 14, stone: 6, culture: 4, brick: 3, joy: true,
+      voice: { text: 'Récolter n’est rien. C’est garder qui demande du métier.', by: '' },
+      start: cab(7).concat([{ type: 'cueillette', workers: [0, 1] }, { type: 'cueillette', workers: [2, 3] }, { type: 'cueillette', workers: [4, 5] }, { type: 'bucheron', workers: [6, 7] }, { type: 'carriere', workers: [8] }, { type: 'lycee', workers: [9] }, { type: 'universite', workers: [10] }]), villagers: NV(13),
+      draws: [['charpenterie', 'four', 'cuisine'], ['cuisine', 'pecheur', 'potager'], ['chef', 'cabane', 'four'], ['entrepot', 'halle', 'dortoir'], ['outillerie', 'entrepot', 'cuisine'], ['halle', 'chef', 'cabane'], ['four', 'moulin', 'table'], ['cuisine', 'halle', 'potager'], ['entrepot', 'four', 'rucher'], ['table', 'verger', 'cabanon']],
+      events: [{ day: 3, type: 'arrivals', villagers: NV(2) }, { day: 3, type: 'heat' }, { day: 6, type: 'arrivals', villagers: NV(2) }, { day: 6, type: 'rats', lv: 4 }, { day: 7, type: 'heat' }, { day: 9, type: 'rats', lv: 5 }],
+      goals: [G.alive(10), G.never, G.have({ food: 58, joy: 46 })]
+    },
+    c44: {
+      id: 'c44', n: 44,
+      endMsg: ['Le second vent n’a trouvé personne.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Deux fois le vent est passé. Deux fois, on a rouvert les volets.'],
+      map: 'plaine', title: 'Deux fois le vent', days: 12, seed: 20270204, food: 26, wood: 16, stone: 6, culture: 4, brick: 6, plank: 3, clay: 4,
+      voice: { text: 'La première fois, on a eu de la chance. La seconde, on avait des murs.', by: '' },
+      start: cab(8).concat([{ type: 'cueillette', workers: [0, 1] }, { type: 'cueillette', workers: [2, 3] }, { type: 'cueillette', workers: [4, 5] }, { type: 'bucheron', workers: [6, 7] }, { type: 'carriere', workers: [8] }, { type: 'lycee', workers: [9] }, { type: 'universite', workers: [10] }]), villagers: NV(15),
+      draws: [['argiliere', 'briqueterie', 'four'], ['argiliere', 'charpenterie', 'maisonbrique'], ['geologue', 'maisonbrique', 'four'], ['maisonbrique', 'demeure', 'moulin'], ['maisonbrique', 'demeure', 'entrepot'], ['maisonbrique', 'four', 'demeure'], ['cueillette', 'argiliere', 'pecheur'], ['charpenterie', 'potager', 'cueillette'], ['entrepot', 'halle', 'bucheron'], ['demeure', 'outillerie', 'four'], ['maisonbrique', 'four', 'moulin'], ['brasero', 'four', 'maisonbrique']],
+      events: [{ day: 4, type: 'arrivals', villagers: NV(2) }, { day: 6, type: 'tornado' }, { day: 9, type: 'rats', lv: 3 }, { day: 11, type: 'tornado' }, { day: 12, type: 'frost' }],
+      goals: [G.alive(12), G.never, G.stockOf(82)]
+    },
+    c45: {
+      id: 'c45', n: 45,
+      endMsg: ['L’âge d’or n’a pas eu lieu.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'De la brique, des planches, des idées, et des gens heureux : rien ne manque à cette ville.'],
+      map: 'confluent', title: 'L’âge d’or', days: 12, seed: 20270205, food: 30, wood: 16, stone: 6, culture: 4, plank: 2, joy: true,
+      voice: { text: 'Un jour, on s’est aperçu qu’on ne manquait plus de rien. Il a fallu apprendre à ne rien perdre.', by: '' },
+      start: cab(8).concat([{ type: 'cueillette', workers: [0, 1] }, { type: 'cueillette', workers: [2, 3] }, { type: 'four', workers: [4] }, { type: 'four', workers: [5] }, { type: 'bucheron', workers: [6, 7] }, { type: 'carriere', workers: [8] }, { type: 'lycee', workers: [9] }, { type: 'universite', workers: [10] }]), villagers: NV(15),
+      draws: [['argiliere', 'charpenterie', 'four'], ['briqueterie', 'table', 'pecheur'], ['fanal', 'cabane', 'potager'], ['cabinet', 'arts', 'dortoir'], ['cabinet', 'jardin', 'four'], ['cabinet', 'geologue', 'ingenieur'], ['entrepot', 'psy', 'kiosque'], ['maisonbrique', 'cuisine', 'dortoir'], ['chef', 'observatoire', 'potager'], ['digue', 'theatre', 'academie'], ['psy', 'bains', 'halle'], ['brasero', 'rubans', 'four']],
+      events: [{ day: 3, type: 'fog' }, { day: 4, type: 'arrivals', villagers: NV(3) }, { day: 5, type: 'sick', n: 2, grave: true }, { day: 7, type: 'rats', lv: 3 }, { day: 8, type: 'arrivals', villagers: NV(3) }, { day: 9, type: 'heat' }, { day: 10, type: 'storm' }, { day: 12, type: 'frost' }],
+      goals: [G.alive(12), G.never, G.have({ brick: 12, plank: 12, ingen: 9, bloom: 17 })]
+    },
+    c46: {
+      id: 'c46', n: 46, rule: 'Les enfants reviennent. Ils mangent, ne travaillent pas, et chaque poste demande un adulte : l’école en fait des adultes en 4 jours, 3 avec une bibliothèque.',
+      endMsg: ['Les cartables sont restés sur les bancs.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Ils sont entrés enfants à l’école. Ils en sortent boulangers.'],
+      map: 'bourg', title: 'Les enfants du bourg', days: 10, seed: 20270206, food: 24, wood: 14, stone: 6,
+      voice: { text: 'On comptait les bras. Il a fallu compter aussi les bouches, et attendre qu’elles grandissent.', by: '' },
+      start: cab(7).concat([{ type: 'cueillette', workers: [0, 1] }, { type: 'cueillette', workers: [2, 3] }, { type: 'cueillette', workers: [4, 5] }, { type: 'bucheron', workers: [6, 7] }, { type: 'carriere', workers: [8] }]), villagers: NV(10).concat(NK(4)),
+      draws: [['ecole', 'four', 'cabane'], ['bibliotheque', 'potager', 'cantine'], ['foyer', 'dortoir', 'chevre'], ['digue', 'ecole', 'pecheur'], ['bassecour', 'four', 'longere'], ['dortoir', 'ferme', 'cabane'], ['fanal', 'ecole', 'moulin'], ['serre', 'potager', 'pecheur'], ['brasero', 'four', 'cueillette'], ['rucher', 'cabanon', 'verger']],
+      events: [{ day: 3, type: 'arrivals', villagers: [{}, KID, KID] }, { day: 4, type: 'storm' }, { day: 6, type: 'arrivals', villagers: [{}, {}, KID] }, { day: 7, type: 'fog' }, { day: 10, type: 'frost' }],
+      goals: [G.alive(10), G.never, G.grown(88)]
+    },
+    c47: {
+      id: 'c47', n: 47, rule: 'Ici, tous les adultes ont déjà un métier. Les nouveaux postes attendront que les enfants sortent de l’école.',
+      endMsg: ['Personne n’a pris la relève.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Les maîtres d’aujourd’hui étaient sur les bancs il y a dix jours.'],
+      map: 'plaine', title: 'La relève', days: 11, seed: 20270207, food: 26, wood: 14, stone: 6, culture: 2,
+      voice: { text: 'Tous les adultes avaient un métier. Les suivants étaient encore à l’école.', by: '' },
+      start: cab(8).concat([{ type: 'cueillette', workers: [0, 1] }, { type: 'cueillette', workers: [2, 3] }, { type: 'cueillette', workers: [4, 5] }, { type: 'bucheron', workers: [6, 7] }, { type: 'carriere', workers: [8] }, { type: 'lycee', workers: [9] }, { type: 'ecole' }]), villagers: NV(10).concat(NK(5)),
+      draws: [['bibliotheque', 'universite', 'four'], ['ecole', 'cantine', 'argiliere'], ['argiliere', 'charpenterie', 'chevre'], ['briqueterie', 'potager', 'pecheur'], ['fanal', 'four', 'charpenterie'], ['dortoir', 'foyer', 'briqueterie'], ['cabinet', 'geologue', 'four'], ['cabinet', 'ingenieur', 'potager'], ['geologue', 'halle', 'digue'], ['ingenieur', 'four', 'cueillette'], ['rucher', 'verger', 'cabanon']],
+      events: [{ day: 5, type: 'fog' }, { day: 6, type: 'arrivals', villagers: [{}, KID, KID] }, { day: 7, type: 'sick', n: 2, grave: true }, { day: 9, type: 'storm' }],
+      goals: [G.alive(11), G.never, G.have({ brick: 9, plank: 9, ingen: 7 })]
+    },
+    c48: {
+      id: 'c48', n: 48,
+      endMsg: ['Les jeux sont restés dehors, sous la pluie.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Ils ont grandi sans avoir eu peur. C’est tout ce qu’on voulait.'],
+      map: 'confluent', title: 'Grandir heureux', days: 11, seed: 20270208, food: 26, wood: 14, stone: 6, culture: 4, plank: 4, joy: true,
+      voice: { text: 'La fièvre revenait. Les enfants, eux, ne savaient qu’une chose : jouer.', by: '' },
+      start: cab(8).concat([{ type: 'cueillette', workers: [0, 1] }, { type: 'cueillette', workers: [2, 3] }, { type: 'cueillette', workers: [4, 5] }, { type: 'bucheron', workers: [6, 7] }, { type: 'carriere', workers: [8] }, { type: 'lycee', workers: [9] }, { type: 'universite', workers: [10] }]), villagers: NV(11).concat(NK(4)),
+      draws: [['ecole', 'table', 'four'], ['arts', 'jeux', 'cantine'], ['marionnettes', 'potager', 'cabane'], ['cabinet', 'bibliotheque', 'pecheur'], ['arts', 'cabinet', 'foyer'], ['psy', 'jardin', 'chevre'], ['cabinet', 'kiosque', 'four'], ['cabinet', 'psy', 'bains'], ['psy', 'pressoir', 'dortoir'], ['rubans', 'jardin', 'potager'], ['bains', 'rucher', 'cabanon']],
+      events: [{ day: 4, type: 'sick', n: 2 }, { day: 5, type: 'arrivals', villagers: [{}, KID, KID] }, { day: 8, type: 'sick', n: 3, grave: true }],
+      goals: [G.alive(11), G.never, G.have({ bloom: 34 })]
+    },
+    c49: {
+      id: 'c49', n: 49,
+      endMsg: ['Le vent a pris les toits, et le gel a fait le reste.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Les petits ont dormi pendant la tornade. Derrière de la brique.'],
+      map: 'bourg', title: 'Avant la tempête', days: 12, seed: 20270209, food: 28, wood: 16, stone: 6, culture: 4, brick: 4, plank: 3, clay: 2,
+      voice: { text: 'On a su huit jours à l’avance. Huit jours, c’est court quand il y a des enfants.', by: '' },
+      start: cab(8).concat([{ type: 'cueillette', workers: [0, 1] }, { type: 'cueillette', workers: [2, 3] }, { type: 'cueillette', workers: [4, 5] }, { type: 'bucheron', workers: [6, 7] }, { type: 'carriere', workers: [8] }, { type: 'lycee', workers: [9] }, { type: 'universite', workers: [10] }]), villagers: NV(12).concat(NK(4)),
+      draws: [['ecole', 'argiliere', 'four'], ['briqueterie', 'charpenterie', 'cantine'], ['argiliere', 'bibliotheque', 'maisonbrique'], ['maisonbrique', 'geologue', 'dortoir'], ['cuisine', 'entrepot', 'four'], ['entrepot', 'maisonbrique', 'moulin'], ['demeure', 'maisonbrique', 'four'], ['demeure', 'maisonbrique', 'foyer'], ['maisonbrique', 'four', 'demeure'], ['cueillette', 'pecheur', 'potager'], ['cueillette', 'halle', 'bucheron'], ['brasero', 'four', 'maisonbrique']],
+      events: [{ day: 4, type: 'arrivals', villagers: [{}, {}, KID] }, { day: 5, type: 'heat' }, { day: 6, type: 'rats', lv: 4 }, { day: 9, type: 'tornado' }, { day: 12, type: 'frost' }],
+      goals: [G.alive(12), G.never, G.stockOf(52)]
+    },
+    c50: {
+      id: 'c50', n: 50,
+      endMsg: ['Il ne reste que les murs, et le vent dedans.', 'Tous en vie. Personne n’y croyait.', 'Personne n’a manqué de rien, pas un seul soir.', 'Tout est tombé sur cette ville. Elle est encore là, et les greniers sont pleins.'],
+      map: 'plaine', title: 'Le dernier hiver', days: 14, seed: 20270210, food: 30, wood: 16, stone: 6, culture: 6, brick: 4, plank: 4, clay: 2,
+      voice: { text: 'La brume, la fièvre, l’orage, la chaleur, les rats, le vent. Deux fois. Puis le gel. Nous avons tout compté, après.', by: '' },
+      start: cab(5).concat([{ type: 'maisonbrique' }, { type: 'maisonbrique' }, { type: 'maisonbrique' }, { type: 'cueillette', workers: [0, 1] }, { type: 'cueillette', workers: [2, 3] }, { type: 'cueillette', workers: [4, 5] }, { type: 'four', workers: [6] }, { type: 'bucheron', workers: [7, 8] }, { type: 'carriere', workers: [9] }, { type: 'lycee', workers: [10] }, { type: 'universite', workers: [11] }, { type: 'argiliere', workers: [12] }, { type: 'briqueterie', workers: [13] }]), villagers: NV(16).concat(NK(5)),
+      draws: [['four', 'ecole', 'fanal'], ['fanal', 'argiliere', 'charpenterie'], ['cabinet', 'geologue', 'maisonbrique'], ['digue', 'maisonbrique', 'four'], ['cuisine', 'entrepot', 'maisonbrique'], ['entrepot', 'demeure', 'four'], ['maisonbrique', 'demeure', 'cabinet'], ['cabinet', 'cueillette', 'bucheron'], ['cabinet', 'four', 'carriere'], ['four', 'moulin', 'charpenterie'], ['entrepot', 'halle', 'four'], ['maisonbrique', 'demeure', 'outillerie'], ['chef', 'four', 'cueillette'], ['brasero', 'maisonbrique', 'four']],
+      events: [{ day: 2, type: 'fog' }, { day: 3, type: 'sick', n: 2 }, { day: 4, type: 'storm' }, { day: 5, type: 'heat' }, { day: 5, type: 'arrivals', villagers: [{}, KID] }, { day: 6, type: 'rats', lv: 4 }, { day: 7, type: 'tornado' }, { day: 8, type: 'sick', n: 3, grave: true }, { day: 9, type: 'arrivals', villagers: [{}, {}] }, { day: 10, type: 'storm' }, { day: 11, type: 'rats', lv: 5 }, { day: 12, type: 'tornado' }, { day: 13, type: 'heat' }, { day: 14, type: 'frost' }],
+      goals: [G.alive(14), G.never, G.stockOf(45)]
     }
   });
   CHALLENGES.survie = {
@@ -1324,7 +1428,9 @@ const SIM = (() => {
     { id: 'l10', name: 'Le bourg', sub: 'Dix habitants, deux chantiers par jour', ch: ['c31', 'c32'] },
     { id: 'l11', name: 'Le savoir', sub: 'Lire, chercher, soigner', ch: ['c33', 'c34', 'c35'] },
     { id: 'l12', name: 'La manufacture', sub: 'La brique et la planche', ch: ['c36', 'c37'] },
-    { id: 'l13', name: 'Les maîtres', sub: 'S’épanouir, guérir, tenir sous le vent', ch: ['c38', 'c39', 'c40'] }
+    { id: 'l13', name: 'Les maîtres', sub: 'S’épanouir, guérir, tenir sous le vent', ch: ['c38', 'c39', 'c40'] },
+    { id: 'l14', name: 'La cité', sub: 'Tous les métiers, toutes les matières', ch: ['c41', 'c42', 'c43', 'c44', 'c45'] },
+    { id: 'l15', name: 'Les derniers jours', sub: 'Avec les enfants, jusqu’au bout', ch: ['c46', 'c47', 'c48', 'c49', 'c50'] }
   ];
 
   return { get W() { return W; }, get H() { return H; }, get EXT() { return EXT; }, world, CELL, T, SPEED, RES, RNAME, RATIO, maxBuilds, affordBoth, options, solid, BT, JOBNAME, LIGHT, SCHOOL_DAYS, SEATS, CHALLENGES, LEVELS, MAPDEF, rngOf, getMap, cast, popOf, costOf, newGame, planDay, survDraw, survJobs, sample, draw, capacity, door, buildNav, findPath, eventsOn, weather, beginDay, placeBuilding, afford, blocked };

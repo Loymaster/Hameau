@@ -487,7 +487,7 @@ h2.big{font-size:54px!important}.center{text-align:center}
 /* ---- la cote : les jours d'un défi sur une seule ligne, comme une mesure sur un dessin technique ---- */
 .frise.cote{flex-wrap:nowrap;gap:9px;align-items:center;min-height:40px}
 .fr-line{position:relative;flex:1 1 auto;min-width:0;height:40px;color:var(--ink);margin:0 5px;container-type:inline-size;--w:22px}
-@supports (width:1cqw){.fr-line{--w:clamp(17px,calc(100cqw / var(--n) - 1px),26px)}}
+@supports (width:1cqw){.fr-line{--w:clamp(14px,calc(100cqw / var(--n) - 1px),26px)}}
 .fr-ax{position:absolute;left:0;right:0;top:50%;height:1.3px;margin-top:-.65px;background:currentColor;opacity:.8}
 /* les deux repères du bout : un trait d'attache et sa barre oblique, comme sur un plan */
 .fr-line:before,.fr-line:after{content:"";position:absolute;top:calc(50% - 10px);width:1.3px;height:20px;background:currentColor;opacity:.8}
@@ -509,3 +509,7 @@ h2.big{font-size:54px!important}.center{text-align:center}
 .q{white-space:nowrap;font-weight:600}.q svg.i{width:1.2em!important;height:1.2em!important;vertical-align:-.24em;margin:0 0 0 1.5px;display:inline-block}
 /* le cadre pointillé de la page ne défile plus avec son contenu */
 .page:before{display:none}.page{outline:1px dashed var(--line);outline-offset:-10px}
+
+/* 0.40 — deux chantiers : l'ordre choisi se lit sur les cartes (le premier bâti reçoit d'abord les bras libres) */
+.card[data-ord]::after{content:attr(data-ord);position:absolute;top:-10px;left:-7px;width:26px;height:26px;border-radius:50%;background:var(--page);color:var(--ink);border:1.5px solid var(--gold);box-shadow:0 2px 6px rgba(0,0,0,.4);font-weight:700;font-size:14px;line-height:23px;text-align:center}
+.goals li .gt{flex:1 1 auto;min-width:0}
