@@ -1099,7 +1099,8 @@ const SIM = (() => {
   /* La saison qu'il fait, lue dans ce qui est annoncé. Le gel, c'est l'hiver ; la canicule ou la sécheresse, l'été.
      Entre deux, on suit l'année : après l'été vient l'automne, après l'hiver le printemps ; avant le premier des deux,
      la saison qui le précède (le printemps avant l'été, l'automne avant l'hiver). Deux canicules à quatre jours ou moins
-     l'une de l'autre font un seul été. Sans rien d'annoncé : l'automne. Ne change rien au jeu, seulement au paysage. */
+     l'une de l'autre font un seul été. Sans gel ni chaleur annoncés, c'est la saison du défi (season : 'spring', sinon l'automne).
+     Ne change rien au jeu, seulement au paysage. */
   function season(st, day) {
     const d = Math.max(1, day == null ? st.day : day), hot = e => e.type === 'heat' || e.type === 'drought';
     const end = e => e.type === 'frost' ? (e.len == null ? Infinity : e.day + e.len - 1) : e.day + (e.len || 1) - 1;
@@ -1110,7 +1111,7 @@ const SIM = (() => {
     if (past && next && hot(past) && hot(next) && next.day - end(past) <= 4) return 'summer';
     if (past) return hot(past) ? 'autumn' : 'spring';
     if (next) return hot(next) ? 'spring' : 'autumn';
-    return 'autumn';
+    return CHALLENGES[st.ch].season || 'autumn'; // ni gel ni chaleur : le défi dit lui-même s'il se joue au printemps ou en automne
   }
   function eventsOn(st, day) { const d = day == null ? st.day : day; return evList(st).filter(e => e.day === d && !(e.sudden && d > st.day)); } // un événement soudain ne se voit pas venir
   function weather(st, day) { const d = day == null ? st.day : day, ev = evList(st); return { storm: ev.some(e => e.type === 'storm' && e.day === d), fog: ev.some(e => e.type === 'fog' && e.day === d), frost: ev.some(e => e.type === 'frost' && e.day <= d && (e.len == null || d < e.day + e.len)), dry: ev.some(e => e.type === 'drought' && e.day <= d && d < e.day + (e.len || 1)) }; }
@@ -1519,7 +1520,7 @@ const SIM = (() => {
   const ALL3 = d => [d];
   const CHALLENGES = {
     c1: {
-      id: 'c1', n: 1, map: 'pont', title: 'Premiers pas', days: 4, seed: 20261110, food: 12, wood: 2, tutorial: true,
+      id: 'c1', n: 1, season: 'spring', map: 'pont', title: 'Premiers pas', days: 4, seed: 20261110, food: 12, wood: 2, tutorial: true,
       voice: { text: 'Cette nouvelle vie, je la voulais. Et je ne regrette rien.', by: 'Anne' },
       start: cab(2), villagers: [P.anne, P.marc, P.clara, P.bastien], deck: ['bucheron', 'cabane', 'cueillette'],
       draws: ALL3(['bucheron', 'cabane', 'cueillette']),
@@ -1537,7 +1538,7 @@ const SIM = (() => {
       endMsg: ['L’orage a été le plus fort.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Les réserves sont pleines. L’orage est passé.']
     },
     c3: {
-      id: 'c3', n: 3, map: 'rive', title: 'La rive aux saules', days: 5, seed: 20261112, food: 10, wood: 6,
+      id: 'c3', n: 3, season: 'spring', map: 'rive', title: 'La rive aux saules', days: 5, seed: 20261112, food: 10, wood: 6,
       voice: { text: 'La rivière ne m’a rien promis. Elle a seulement continué de couler, et cela m’a suffi.', by: 'Clara' },
       start: cab(2).concat(cab(1, 'cabanon')), villagers: [P.clara, P.hugo, P.anne, P.gerard, P.rose], deck: ['cabane', 'cabanon', 'pecheur', 'cueillette', 'bucheron'],
       draws: [['pecheur', 'cueillette', 'cabanon'], ['cabane', 'poulailler', 'bucheron'], ['pecheur', 'cabanon', 'poulailler'], ['cabane', 'cueillette', 'pecheur'], ['pecheur', 'cabanon', 'bucheron']],
@@ -1555,7 +1556,7 @@ const SIM = (() => {
       endMsg: ['Le gel a eu raison du vallon.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Le pain est chaud, le gel peut venir.']
     },
     c5: {
-      id: 'c5', n: 5, map: 'pont', title: 'Les grandes eaux', days: 6, seed: 20261114, food: 16, wood: 6,
+      id: 'c5', n: 5, season: 'spring', map: 'pont', title: 'Les grandes eaux', days: 6, seed: 20261114, food: 16, wood: 6,
       voice: { text: 'Deux fois l’eau est montée. Deux fois nous avons compté les nôtres, à voix basse.', by: 'Hugo' },
       start: cab(3), villagers: [P.hugo, P.rose, P.gerard, P.clara, P.marc, P.odile], deck: ['cabane', 'cabanon', 'potager', 'pecheur', 'cueillette', 'bucheron'],
       draws: [['cueillette', 'potager', 'bucheron'], ['champi', 'cabanon', 'potager'], ['cabane', 'cueillette', 'bucheron'], ['potager', 'champi', 'cabanon'], ['cabane', 'cueillette', 'pecheur'], ['potager', 'cabanon', 'cueillette']],
@@ -1610,7 +1611,7 @@ const SIM = (() => {
     },
     /* niveau 4 : on repart de rien. Aucune réserve au départ : seuls les bras déjà au travail nourrissent le premier soir. */
     c11: {
-      id: 'c11', n: 11, map: 'pont', title: 'Partis de rien', days: 5, seed: 20261120, food: 0, wood: 0,
+      id: 'c11', n: 11, season: 'spring', map: 'pont', title: 'Partis de rien', days: 5, seed: 20261120, food: 0, wood: 0,
       voice: { text: 'Nous n’avions rien. C’est léger, rien, quand on le porte à plusieurs.', by: '' },
       start: cab(2).concat([{ type: 'cueillette', workers: [0, 1] }]), villagers: NV(4),
       draws: [['bucher', 'tente', 'cabanon'], ['tente', 'bucher', 'cueillette'], ['cueillette', 'cabanon', 'gardemanger'], ['etal', 'verger', 'bucher'], ['cabane', 'cabanon', 'tente']],
@@ -1628,7 +1629,7 @@ const SIM = (() => {
       endMsg: ['Plus rien à échanger.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Du bois contre du pain, et il en reste.']
     },
     c13: {
-      id: 'c13', n: 13, map: 'vallon', title: 'Avant la porte', days: 6, seed: 20261122, food: 0, wood: 0, stone: 0,
+      id: 'c13', n: 13, season: 'spring', map: 'vallon', title: 'Avant la porte', days: 6, seed: 20261122, food: 0, wood: 0, stone: 0,
       voice: { text: 'Ils sont arrivés avant la porte. Nous l’avons bâtie autour d’eux.', by: '' },
       start: cab(2).concat(cab(1, 'cabanon'), [{ type: 'cueillette', workers: [0, 1] }, { type: 'bucheron', workers: [2, 3] }, { type: 'potager', workers: [4] }]), villagers: NV(5),
       draws: [['carriere', 'tente', 'potager'], ['carriere', 'potager', 'tente'], ['tente', 'carriere', 'cabanon'], ['auberge', 'potager', 'menuiserie'], ['grange', 'cabane', 'pecheur'], ['chaumiere', 'potager', 'verger']],
@@ -1646,7 +1647,7 @@ const SIM = (() => {
       endMsg: ['La veillée s’est éteinte avant le feu.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Partis de rien, et l’on chante encore.']
     },
     c15: {
-      id: 'c15', n: 15, map: 'pre', title: 'La scie', days: 6, seed: 20261124, food: 0, wood: 0, stone: 0,
+      id: 'c15', n: 15, season: 'spring', map: 'pre', title: 'La scie', days: 6, seed: 20261124, food: 0, wood: 0, stone: 0,
       voice: { text: 'La première planche est sortie droite. Nous l’avons regardée longtemps.', by: '' },
       start: cab(3).concat([{ type: 'cueillette', workers: [0, 1] }, { type: 'potager', workers: [2] }, { type: 'carriere', workers: [3] }]), villagers: NV(6),
       draws: [['scierie', 'tente', 'cabanon'], ['scierie', 'tente', 'cabanon'], ['taillerie', 'four', 'potager'], ['four', 'potager', 'cabanon'], ['grange', 'dortoir', 'cabane'], ['four', 'maison', 'potager']],
@@ -1673,7 +1674,7 @@ const SIM = (() => {
       endMsg: ['La terre a bu ce qui restait.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Trois jours sans pluie, et les potagers ont tenu.']
     },
     c18: {
-      id: 'c18', n: 18, map: 'coude', title: 'La crue', days: 6, seed: 20261127, food: 0, wood: 0, stone: 0,
+      id: 'c18', n: 18, season: 'spring', map: 'coude', title: 'La crue', days: 6, seed: 20261127, food: 0, wood: 0, stone: 0,
       voice: { text: 'L’eau est montée sans bruit. Au matin, elle avait choisi.', by: '' },
       start: cab(3).concat([{ type: 'cueillette', workers: [0, 1] }, { type: 'pecheur', workers: [2] }, { type: 'carriere', workers: [3] }, { type: 'bucheron', workers: [4, 5] }]), villagers: NV(6),
       draws: [['carriere', 'tente', 'cabanon'], ['potager', 'carriere', 'pecheur'], ['digue', 'potager', 'cabanon'], ['digue', 'four', 'cabane'], ['cabane', 'four', 'potager'], ['maison', 'four', 'potager']],
@@ -1701,7 +1702,7 @@ const SIM = (() => {
     },
     /* niveaux 7 à 9 : aucun bâtiment au départ, mais de quoi commencer */
     c21: {
-      id: 'c21', n: 21, map: 'pre', title: 'Table rase', days: 5, seed: 20261201, food: 14, wood: 8, stone: 0,
+      id: 'c21', n: 21, season: 'spring', map: 'pre', title: 'Table rase', days: 5, seed: 20261201, food: 14, wood: 8, stone: 0,
       voice: { text: 'Il n’y avait qu’un pré, et nos sacs posés dans l’herbe.', by: '' },
       start: [], villagers: NV(4),
       draws: [['abri', 'dortoir', 'cueillette'], ['cueillette', 'cabane', 'bucheron'], ['cabane', 'potager', 'cabanon'], ['cabane', 'pecheur', 'potager'], ['potager', 'cabanon', 'bucher']],
@@ -1710,7 +1711,7 @@ const SIM = (() => {
       endMsg: ['Le pré est resté un pré.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Un pré, cinq jours, et déjà un village.']
     },
     c22: {
-      id: 'c22', n: 22, map: 'rive', title: 'L’autre rive', days: 6, seed: 20261202, food: 18, wood: 10, stone: 2,
+      id: 'c22', n: 22, season: 'spring', map: 'rive', title: 'L’autre rive', days: 6, seed: 20261202, food: 18, wood: 10, stone: 2,
       voice: { text: 'Nous avons choisi la rive où le soleil se lève. Le reste a suivi.', by: '' },
       start: [], villagers: NV(5),
       draws: [['abri', 'grange', 'dortoir'], ['pecheur', 'cueillette', 'bucheron'], ['cabane', 'pecheur', 'cabanon'], ['cabane', 'cueillette', 'potager'], ['cabane', 'cabanon', 'gardemanger'], ['pecheur', 'potager', 'cabanon']],
@@ -1728,7 +1729,7 @@ const SIM = (() => {
       endMsg: ['Personne n’a dansé.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Des murs, du pain, et l’on a dansé.']
     },
     c24: {
-      id: 'c24', n: 24, map: 'coude', title: 'Les jours heureux', days: 8, seed: 20261204, food: 20, wood: 10, stone: 3, joy: true,
+      id: 'c24', n: 24, season: 'spring', map: 'coude', title: 'Les jours heureux', days: 8, seed: 20261204, food: 20, wood: 10, stone: 3, joy: true,
       voice: { text: 'Nous voulions plus que tenir. Nous voulions que ce soit bon.', by: '' },
       start: [], villagers: NV(6),
       draws: [['grange', 'abri', 'dortoir'], ['cueillette', 'pecheur', 'bucheron'], ['dortoir', 'cabane', 'table'], ['carriere', 'potager', 'rubans'], ['maison', 'table', 'cabane'], ['bains', 'maison', 'kiosque'], ['cabane', 'jardin', 'pressoir'], ['rubans', 'cellier', 'bains']],
@@ -1737,7 +1738,7 @@ const SIM = (() => {
       endMsg: ['Les jours heureux ne sont pas venus.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Huit jours, et le village sait déjà rire.']
     },
     c25: {
-      id: 'c25', n: 25, map: 'pont', title: 'Les petits', days: 6, seed: 20261205, food: 16, wood: 10, stone: 2,
+      id: 'c25', n: 25, season: 'spring', map: 'pont', title: 'Les petits', days: 6, seed: 20261205, food: 16, wood: 10, stone: 2,
       voice: { text: 'Ils ne portaient rien, et c’est pour eux que nous portions tout.', by: '' },
       start: [], villagers: NV(3).concat(NK(2)),
       draws: [['abri', 'grange', 'chevre'], ['cueillette', 'cabane', 'chevre'], ['potager', 'cabane', 'cantine'], ['potager', 'bassecour', 'cabane'], ['cabane', 'cantine', 'pecheur'], ['bassecour', 'potager', 'cabanon']],
@@ -1796,7 +1797,7 @@ const SIM = (() => {
   /* ---------- niveaux 10 et suivants : le bourg, le savoir, la manufacture ---------- */
   Object.assign(CHALLENGES, {
     c31: {
-      id: 'c31', n: 31, endMsg: ['Dix habitants, et rien pour les garder.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Dix, puis quinze, et la réserve pleine : le bourg est né.'], rule: 'À dix habitants, le village devient un bourg : il peut mener deux chantiers par jour.', map: 'bourg', title: 'Nous étions dix', days: 8, seed: 20270101, food: 10, wood: 9, stone: 0,
+      id: 'c31', n: 31, season: 'spring', endMsg: ['Dix habitants, et rien pour les garder.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Dix, puis quinze, et la réserve pleine : le bourg est né.'], rule: 'À dix habitants, le village devient un bourg : il peut mener deux chantiers par jour.', map: 'bourg', title: 'Nous étions dix', days: 8, seed: 20270101, food: 10, wood: 9, stone: 0,
       voice: { text: 'Un matin, nous étions dix. Les chemins n’ont plus suffi : on les a pavés.', by: '' },
       start: cab(3).concat([{ type: 'cueillette', workers: [0, 1] }, { type: 'bucheron', workers: [2, 3] }]), villagers: NV(6),
       draws: [['cabane', 'potager', 'cueillette'], ['cabane', 'pecheur', 'carriere'], ['dortoir', 'cueillette', 'potager'], ['maison', 'four', 'bucheron'], ['grange', 'cabane', 'pecheur'], ['four', 'potager', 'verger'], ['dortoir', 'cabane', 'cueillette'], ['rucher', 'cabanon', 'potager']],
@@ -1820,7 +1821,7 @@ const SIM = (() => {
       goals: [G.alive(8), G.never, G.have({ culture: 40 })]
     },
     c34: {
-      id: 'c34', n: 34, endMsg: ['L’idée est restée sans personne pour l’avoir.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Ils savaient. Maintenant, ils inventent.'], rule: 'L’ingéniosité. L’université change 2 cultures en 1 ingéniosité — celles qui étaient en réserve le matin, 4 par jour au plus.', map: 'bourg', title: 'L’idée', days: 9, seed: 20270104, food: 14, wood: 9, stone: 4,
+      id: 'c34', n: 34, season: 'spring', endMsg: ['L’idée est restée sans personne pour l’avoir.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Ils savaient. Maintenant, ils inventent.'], rule: 'L’ingéniosité. L’université change 2 cultures en 1 ingéniosité — celles qui étaient en réserve le matin, 4 par jour au plus.', map: 'bourg', title: 'L’idée', days: 9, seed: 20270104, food: 14, wood: 9, stone: 4,
       voice: { text: 'Savoir ne suffisait pas. Il fallait en faire quelque chose.', by: '' },
       start: cab(4).concat(cab(1, 'cabanon'), [{ type: 'cueillette', workers: [0, 1] }, { type: 'bucheron', workers: [2, 3] }, { type: 'carriere', workers: [4] }, { type: 'lycee', workers: [5] }]), villagers: NV(9),
       draws: [['universite', 'potager', 'cabane'], ['pecheur', 'bibliotheque', 'cueillette'], ['universite', 'lycee', 'dortoir'], ['fanal', 'four', 'bibliotheque'], ['lycee', 'potager', 'cabane'], ['digue', 'universite', 'pecheur'], ['bibliotheque', 'grange', 'cueillette'], ['universite', 'potager', 'cabanon'], ['lycee', 'rucher', 'cabane']],
@@ -1836,7 +1837,7 @@ const SIM = (() => {
       goals: [G.alive(9), G.never, G.stockOf(21)]
     },
     c36: {
-      id: 'c36', n: 36, endMsg: ['La terre a gardé ceux qui la creusaient.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Des briques par piles : de quoi bâtir pour longtemps.'], rule: 'La brique. 2 argiles en réserve le matin donnent 1 brique. Avec un géologue à son poste, 1 argile suffit.', map: 'confluent', title: 'La terre cuite', days: 9, seed: 20270106, food: 16, wood: 10, stone: 4, culture: 4,
+      id: 'c36', n: 36, season: 'spring', endMsg: ['La terre a gardé ceux qui la creusaient.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Des briques par piles : de quoi bâtir pour longtemps.'], rule: 'La brique. 2 argiles en réserve le matin donnent 1 brique. Avec un géologue à son poste, 1 argile suffit.', map: 'confluent', title: 'La terre cuite', days: 9, seed: 20270106, food: 16, wood: 10, stone: 4, culture: 4,
       voice: { text: 'La terre de la rive ne valait rien. Passée au feu, elle valait une maison.', by: '' },
       start: cab(5).concat([{ type: 'cueillette', workers: [0, 1] }, { type: 'cueillette', workers: [2, 3] }, { type: 'bucheron', workers: [4, 5] }, { type: 'carriere', workers: [6] }, { type: 'lycee', workers: [7] }, { type: 'universite', workers: [8] }]), villagers: NV(10),
       draws: [['argiliere', 'potager', 'cabane'], ['briqueterie', 'argiliere', 'pecheur'], ['briqueterie', 'geologue', 'cueillette'], ['maisonbrique', 'argiliere', 'potager'], ['geologue', 'maisonbrique', 'four'], ['maisonbrique', 'briqueterie', 'pecheur'], ['argiliere', 'maisonbrique', 'bibliotheque'], ['geologue', 'maisonbrique', 'potager'], ['maisonbrique', 'rucher', 'cabanon']],
@@ -1852,7 +1853,7 @@ const SIM = (() => {
       goals: [G.alive(9), G.never, G.have({ plank: 20 })]
     },
     c38: {
-      id: 'c38', n: 38, endMsg: ['Il n’est resté personne pour être heureux.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Ils étaient contents. Les voilà épanouis.'], rule: 'L’épanouissement. L’atelier des arts change 2 bonheurs en 1 épanouissement. Avec un psychologue à son poste, 1 bonheur suffit.', map: 'plaine', title: 'Ce qui nous dépasse', days: 9, seed: 20270108, food: 16, wood: 10, stone: 4, culture: 4, plank: 4, joy: true,
+      id: 'c38', n: 38, season: 'spring', endMsg: ['Il n’est resté personne pour être heureux.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Ils étaient contents. Les voilà épanouis.'], rule: 'L’épanouissement. L’atelier des arts change 2 bonheurs en 1 épanouissement. Avec un psychologue à son poste, 1 bonheur suffit.', map: 'plaine', title: 'Ce qui nous dépasse', days: 9, seed: 20270108, food: 16, wood: 10, stone: 4, culture: 4, plank: 4, joy: true,
       voice: { text: 'Être content, nous savions. Il restait à apprendre quoi en faire.', by: '' },
       start: cab(5).concat([{ type: 'cueillette', workers: [0, 1] }, { type: 'cueillette', workers: [2, 3] }, { type: 'bucheron', workers: [4, 5] }, { type: 'carriere', workers: [6] }, { type: 'lycee', workers: [7] }, { type: 'universite', workers: [8] }]), villagers: NV(10),
       draws: [['table', 'jardin', 'potager'], ['arts', 'cabane', 'pecheur'], ['arts', 'bains', 'cueillette'], ['psy', 'pressoir', 'kiosque'], ['psy', 'jardin', 'four'], ['arts', 'rubans', 'dortoir'], ['psy', 'kiosque', 'potager'], ['bains', 'jardin', 'cabane'], ['rubans', 'rucher', 'cabanon']],
@@ -1937,7 +1938,7 @@ const SIM = (() => {
       goals: [G.alive(10), G.never, G.grown(88)]
     },
     c47: {
-      id: 'c47', n: 47, rule: 'Ici, tous les adultes ont déjà un métier. Les nouveaux postes attendront que les enfants sortent de l’école.',
+      id: 'c47', n: 47, season: 'spring', rule: 'Ici, tous les adultes ont déjà un métier. Les nouveaux postes attendront que les enfants sortent de l’école.',
       endMsg: ['Personne n’a pris la relève.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Les maîtres d’aujourd’hui étaient sur les bancs il y a dix jours.'],
       map: 'plaine', title: 'La relève', days: 11, seed: 20270207, food: 26, wood: 14, stone: 6, culture: 2,
       voice: { text: 'Tous les adultes avaient un métier. Les suivants étaient encore à l’école.', by: '' },
@@ -4619,7 +4620,7 @@ const UI = (() => {
             return cap(d.name.toLowerCase()) + ' : ' + (d.conv ? 'change ' + SIM.RATIO + ' ' + RESN[d.conv.from].toLowerCase() + ' en 1 ' + RESN[d.conv.to].toLowerCase() + ', ' + d.conv.cap + ' ' + RESN[d.conv.from].toLowerCase() + ' par jour au plus' : d.expert ? 'tant qu’il est à son poste, 1 ' + RESN[CONVOF[d.expert]].toLowerCase() + ' suffit pour 1 ' + RESN[d.expert].toLowerCase() : d.medic ? 'tant qu’il est à son poste, personne ne meurt de maladie et elle ne se transmet plus ; lui-même ne tombe jamais malade' : d.out ? d.per + ' ' + RESN[d.out].toLowerCase() + ' par jour et par personne' : d.play ? 'de la joie chaque soir' : 'un poste') + (d.posts > 1 ? ', ' + d.posts + ' postes' : '') + '.' + (st.length ? ' Arrêté par ' + names(st) + '.' : ''); }).join(' ')); }).join('') + '</div>'; },
     options: () => back + '<h2>Options</h2><div class="h3">Son</div>' + volsHtml() +
       '<div class="h3">Bulles des villageois</div><div class="segs">' + BUBS.map(b => '<button class="seg" data-bub="' + b[0] + '" aria-pressed="' + (save.bub === b[0]) + '">' + b[1] + '</button>').join('') + '</div>' +
-      '<div class="h3">Progression</div><p class="note">' + Object.values(save.stars).reduce((a, b) => a + b, 0) + ' étoiles sur ' + ORDER.length * 3 + '</p><div class="pfoot">Prototype 0.42</div>'
+      '<div class="h3">Progression</div><p class="note">' + Object.values(save.stars).reduce((a, b) => a + b, 0) + ' étoiles sur ' + ORDER.length * 3 + '</p><div class="pfoot">Prototype 0.43</div>'
   };
   function bindPage(name, arg) {
     paint(pageEl);
