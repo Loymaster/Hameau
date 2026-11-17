@@ -64,7 +64,7 @@ const SIM = (() => {
     rubans: { name: 'Arbre aux rubans', w: 36, h: 36, cost: { wood: 1, food: 1 }, open: true, give: { joy: 1 } },
     bains: { name: 'Bains', w: 44, h: 40, cost: { wood: 3, stone: 2 }, swap: { take: { wood: 1 }, give: { joy: 2 } }, fume: true },
     pressoir: { name: 'Pressoir', w: 48, h: 42, cost: { wood: 3 }, posts: 1, job: 'cidrier', play: 2, site: true },
-    cellier: { name: 'Cellier', w: 40, h: 36, cost: { wood: 3, stone: 1 }, plenty: 1 },
+    cellier: { name: 'Cellier', w: 40, h: 36, cost: { wood: 3, stone: 1 }, plenty: 1, cool: true },
     /* la grande table : personne n'y travaille ; si tout le monde mange, le soir y est heureux */
     /* la vie de famille : des maisons en dur, et ce qui tourne autour des enfants (ils mangent, ne travaillent pas, et l'école en fait des adultes) */
     foyer: { name: 'Maison de famille', w: 64, h: 48, cost: { wood: 5, stone: 3 }, beds: 4, own: true },
@@ -75,6 +75,8 @@ const SIM = (() => {
     cantine: { name: 'Cantine', w: 54, h: 44, cost: { wood: 3, stone: 1 }, feedKids: 3 },
     chevre: { name: 'Enclos à chèvre', w: 44, h: 40, cost: { wood: 2 }, feedKids: 1 },
     bassecour: { name: 'Basse-cour', w: 48, h: 42, cost: { wood: 3 }, kidFood: 1, kidCap: 2 },
+    guinguette: { name: 'Guinguette', w: 56, h: 44, cost: { plank: 4 }, open: true, give: { joy: 3 } },
+    manege: { name: 'Manège', w: 46, h: 46, cost: { plank: 3, stone: 1 }, open: true, kidJoy: 1, kidCap: 4 },
     jeux: { name: 'Aire de jeux', w: 50, h: 40, cost: { wood: 2 }, open: true, kidJoy: 1, kidCap: 3 },
     marionnettes: { name: 'Théâtre de marionnettes', w: 44, h: 42, cost: { wood: 3, stone: 1 }, ifKid: 2 },
     /* la manufacture et le savoir (niveaux 10 et suivants) */
@@ -473,7 +475,7 @@ const SIM = (() => {
   function draw(st) { const ch = CHALLENGES[st.ch]; return ch.survival ? (st.cards || []).slice() : ch.draws[(st.day - 1) % ch.draws.length].slice(); }
   /* ---------- survie ---------- */
   const FAM = { toit: ['cabane', 'cabanon', 'dortoir', 'abri', 'tente', 'maison', 'chaumiere', 'grange', 'auberge'], vivres: ['cueillette', 'potager', 'pecheur', 'poulailler', 'champi', 'rucher', 'verger', 'bergerie', 'four', 'etal', 'gardemanger', 'moulin', 'fumoir', 'puits'], bois: ['bucheron', 'scierie', 'bucher', 'menuiserie'], pierre: ['carriere', 'taillerie'] };
-  const GUARD = { frost: ['serre', 'brasero'], fog: ['fanal'], storm: ['digue'], flood: ['digue'], fire: ['puits'], drought: ['puits'], rats: ['gardemanger'], wolves: ['brasero'] };
+  const GUARD = { frost: ['serre', 'brasero'], fog: ['fanal'], storm: ['digue'], flood: ['digue'], fire: ['puits'], drought: ['puits'], rats: ['gardemanger'], wolves: ['brasero'], heat: ['cellier'] };
   const LIGHT = ['abri', 'tente', 'etal', 'rucher', 'verger', 'fanal', 'bucher', 'gardemanger', 'cloche', 'potager', 'champi'];   // ce que le vent emporte
   /* le tirage du matin : presque au hasard, jamais injuste.
      1) une carte répond au manque le plus pressant ; 2) une carte au moins est payable ; 3) la troisième est libre ;
@@ -619,7 +621,7 @@ const SIM = (() => {
       if (r) {
         const cost = costOf(st, pick), pay = {}; for (const k of RES) if (cost[k]) { st[k] -= cost[k]; pay[k] = -cost[k]; }
         const b = { id: st.nextId++, type: pick, x: r.x, y: r.y, w: def.w, h: def.h, workers: [], day: st.day, t0: 6.5, t1: 8.85 };
-        st.buildings.push(b); connect(st, { x: door(b).x, y: door(b).y - 3 }); nbs.push(b);
+        b.d = st.day; st.buildings.push(b); connect(st, { x: door(b).x, y: door(b).y - 3 }); nbs.push(b);
         E(6.02 + nbs.length * 0.001, 'site', Object.assign({ bid: b.id }, pay));
       }
     }
@@ -851,8 +853,8 @@ const SIM = (() => {
       if (e.type === 'storm' && lvOf(e) >= 2) { const c = st.buildings.filter(b => !b.gone && !BT[b.type].open); if (c.length) { const b = c[Math.floor(rng() * c.length)]; if (well()) log.push({ k: 'new', text: 'La foudre est tombée, le puits a sauvé : ' + BT[b.type].name.toLowerCase() + '.' }); else wreck(b, 'La foudre a brûlé : '); } }
       if (e.type === 'wind') for (let k = 0; k < lvOf(e) + 1; k++) { const c = st.buildings.filter(b => !b.gone && LIGHT.includes(b.type)); if (!c.length) break; wreck(c[Math.floor(rng() * c.length)], 'Le vent a emporté : '); }
       if (e.type === 'flood') { if (anti('storm')) log.push({ k: 'new', text: 'La rivière est montée. La digue a tenu.' }); else { const c = st.buildings.filter(b => !b.gone && map.rdist(b.x + b.w / 2, b.y + b.h / 2) < 150).sort((a, b) => map.rdist(a.x + a.w / 2, a.y + a.h / 2) - map.rdist(b.x + b.w / 2, b.y + b.h / 2)); c.slice(0, lvOf(e)).forEach(b => wreck(b, 'La crue a emporté : ')); } }
-      if (e.type === 'fire') for (let k = 0; k < Math.min(3, e.lv || 1); k++) { const c = st.buildings.filter(b => !b.gone && !BT[b.type].open && !(BT[b.type].cost.stone > 1)); if (c.length) { const b = c[Math.floor(rng() * c.length)]; if (well()) log.push({ k: 'new', text: 'Le feu a pris, le puits l’a éteint : ' + BT[b.type].name.toLowerCase() + ' sauvé.' }); else wreck(b, 'Le feu a emporté : '); } }
-      if (e.type === 'heat') { const loss = Math.floor(st.food / 2); if (loss > 0) { gain(19.93, 'food', -loss, SK.x + 40, SK.y - 4); log.push({ k: 'bad', text: 'La chaleur a gâté ' + loss + ' nourriture' + (loss > 1 ? 's' : '') + '. Les repas cuisinés, eux, se sont gardés.' }); } else log.push({ k: 'new', text: 'La chaleur n’a rien trouvé à gâter.' }); }
+      if (e.type === 'fire') for (let k = 0; k < Math.min(3, e.lv || 1); k++) { const c = st.buildings.filter(b => !b.gone && !BT[b.type].open && !(BT[b.type].cost.stone > 1) && !BT[b.type].cost.brick); if (c.length) { const b = c[Math.floor(rng() * c.length)]; if (well()) log.push({ k: 'new', text: 'Le feu a pris, le puits l’a éteint : ' + BT[b.type].name.toLowerCase() + ' sauvé.' }); else wreck(b, 'Le feu a emporté : '); } }
+      if (e.type === 'heat') { const loss = Math.floor(st.food / 2); if (st.buildings.some(b => b.type === 'cellier' && !b.gone)) log.push({ k: 'new', text: 'Quelle chaleur. Le cellier a gardé la réserve au frais.' }); else if (loss > 0) { gain(19.93, 'food', -loss, SK.x + 40, SK.y - 4); log.push({ k: 'bad', text: 'La chaleur a gâté ' + loss + ' nourriture' + (loss > 1 ? 's' : '') + '. Les repas cuisinés, eux, se sont gardés.' }); } else log.push({ k: 'new', text: 'La chaleur n’a rien trouvé à gâter.' }); }
       if (e.type === 'rats') { const kept = st.buildings.some(b => (b.type === 'gardemanger' || b.type === 'cellier') && !b.gone), sealed = st.buildings.some(b => BT[b.type].store && !b.gone), loss = sealed ? 0 : Math.min(st.food, kept ? Math.ceil(st.food * 0.05) : Math.max(2, Math.ceil(st.food * Math.min(0.8, 0.25 + 0.1 * (e.lv || 1))))); if (loss > 0) { gain(19.95, 'food', -loss, SK.x + 40, SK.y - 4); log.push({ k: 'bad', text: 'Les rats ont mangé ' + loss + ' nourriture' + (loss > 1 ? 's' : '') + '.' }); } }
     }
     if (surv) { /* la réserve ne se garde pas : au-delà de deux jours de vivres (quatre avec un garde-manger ou un cellier), près d'un tiers du surplus se gâte chaque nuit */
@@ -898,7 +900,7 @@ const SIM = (() => {
     /* deux soirs sans manger, deux nuits dehors… ou une seule nuit dehors quand il gèle */
     /* les loups : ils emportent quelqu'un qui dort dehors ; sinon ils pillent la réserve. Un braséro les tient à distance. */
     let prey = null;
-    if (surv && today.some(e => e.type === 'wolves')) { if (anti('cold')) log.push({ k: 'new', text: 'Les loups ont rôdé. Le braséro les a tenus loin.' }); else if (out.length) prey = out[Math.floor(rng() * out.length)]; else { const loss = Math.min(st.food, 2 + lvOf(today.find(e => e.type === 'wolves'))); if (loss > 0) { gain(21.9, 'food', -loss, SK.x + 40, SK.y - 4); log.push({ k: 'bad', text: 'Les loups ont pillé ' + loss + ' nourriture' + (loss > 1 ? 's' : '') + '.' }); } } }
+    if (today.some(e => e.type === 'wolves')) { if (anti('cold')) log.push({ k: 'new', text: 'Les loups ont rôdé. Le braséro les a tenus loin.' }); else if (out.length) prey = out[Math.floor(rng() * out.length)]; else { const loss = Math.min(st.food, 2 + lvOf(today.find(e => e.type === 'wolves'))); if (loss > 0) { gain(21.9, 'food', -loss, SK.x + 40, SK.y - 4); log.push({ k: 'bad', text: 'Les loups ont pillé ' + loss + ' nourriture' + (loss > 1 ? 's' : '') + '.' }); } } }
     st.lost = lost;
     for (const v of alive) if (v === prey || v.hunger >= 2 || v.roofless >= 2 || (v.child && out.includes(v)) || (frost && out.includes(v) && !anti('cold')) || (v.sick > 0 && !medic && (v.hunger >= 1 || out.includes(v) || (!surv && v.grave && v.sick === 1)))) {
       v.alive = false; const why = v === prey ? 'sous les crocs des loups' : v.hunger >= 2 ? 'de faim' : v.sick > 0 && !(frost && out.includes(v)) && v.roofless < 2 ? 'de maladie' : 'de froid';
@@ -961,6 +963,10 @@ const SIM = (() => {
   G.have = o => { const l = Object.keys(o).map(k => k === 'joy' ? o[k] + ' de bonheur' : k === 'bloom' ? o[k] + ' d’épanouissement' : k === 'ingen' ? o[k] + ' d’ingéniosité' : k === 'culture' ? o[k] + ' de culture' : k === 'meal' ? o[k] + ' repas' : k === 'wood' ? o[k] + ' bois' : o[k] + ' ' + RNAME[k] + (o[k] > 1 ? 's' : ''));
     return { t: names(l) + ' au dernier soir', need: o, ok: (st, a) => a && !st.everLacked && Object.keys(o).every(k => (st[k] || 0) >= o[k]) }; };
   G.all = (f, w, s, j) => ({ t: [f + ' nourritures', w + ' bois', s + ' pierres'].join(', ') + (j ? ' et ' + j + ' de bonheur' : '') + ' au dernier soir', ok: (st, a) => a && !st.everLacked && st.food >= f && st.wood >= w && st.stone >= s && (!j || st.joy >= j) });
+  /* tout le monde dort sous la pierre ou la brique ; pas plus de n chantiers ; plusieurs objectifs d'un coup */
+  G.solid = { t: 'Le dernier soir, chacun dort sous la pierre ou la brique', hard: true, ok: (st, a) => a && !st.everLacked && st.villagers.every(v => !v.alive || (v.home != null && st.buildings.some(b => b.id === v.home && !b.gone && solid(b.type)))) };
+  G.built = n => ({ t: 'Pas plus de ' + n + ' chantiers', max: n, ok: (st, a) => a && !st.everLacked && st.buildings.filter(b => b.d).length <= n });
+  G.and = (...gs) => ({ t: gs.map((g, i) => i ? g.t.charAt(0).toLowerCase() + g.t.slice(1) : g.t).join(' ; '), parts: gs, need: Object.assign({}, ...gs.map(g => g.need || {})), grown: gs.some(g => g.grown), hard: gs.some(g => g.hard), max: (gs.find(g => g.max) || {}).max, ok: (st, a) => gs.every(g => g.ok(st, a)) });
   G.grown = n => ({ t: 'Tous les enfants ont fini l’école' + (n ? ', et ' + n + ' nourritures en réserve' : ''), grown: true, stock: n || 0, ok: (st, a) => a && !st.everLacked && !st.villagers.some(v => v.alive && v.child) && st.food >= (n || 0) });
   const KID = { child: true }, NK = k => Array.from({ length: k }, () => ({ child: true }));
   const ALL3 = d => [d];
@@ -989,16 +995,16 @@ const SIM = (() => {
       start: cab(2).concat(cab(1, 'cabanon')), villagers: [P.clara, P.hugo, P.anne, P.gerard, P.rose], deck: ['cabane', 'cabanon', 'pecheur', 'cueillette', 'bucheron'],
       draws: [['pecheur', 'cueillette', 'cabanon'], ['cabane', 'poulailler', 'bucheron'], ['pecheur', 'cabanon', 'poulailler'], ['cabane', 'cueillette', 'pecheur'], ['pecheur', 'cabanon', 'bucheron']],
       events: [{ day: 3, type: 'storm' }, { day: 5, type: 'arrivals', villagers: [P.marc, P.odile] }],
-      goals: [G.alive(5), G.never, G.stockOf(10)],
+      goals: [G.alive(5), G.never, G.have({ food: 10, wood: 6 })],
       endMsg: ['La rivière a tout emporté, même l’espoir.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Du poisson pour l’hiver, et le chant de l’eau.']
     },
     c4: {
       id: 'c4', n: 4, map: 'vallon', title: 'Le vallon de pierre', days: 6, seed: 20261113, food: 12, wood: 6, stone: 0,
       voice: { text: 'Nous avons appris la pierre comme on apprend une langue : lentement, et sans rien brusquer.', by: 'Odile' },
       start: cab(2).concat(cab(1, 'cabanon'), [{ type: 'cueillette', workers: [0, 1] }]), villagers: [P.bastien, P.odile, P.marc, P.rose, P.hugo], deck: ['maison', 'cabanon', 'carriere', 'four', 'potager', 'bucheron'],
-      draws: [['carriere', 'potager', 'cabanon'], ['cabanon', 'rucher', 'potager'], ['four', 'maison', 'potager'], ['four', 'cabanon', 'carriere'], ['four', 'rucher', 'maison'], ['four', 'cabanon', 'potager']],
+      draws: [['carriere', 'potager', 'cabanon'], ['cabanon', 'taillerie', 'potager'], ['four', 'maison', 'potager'], ['four', 'cabanon', 'carriere'], ['four', 'rucher', 'maison'], ['four', 'cabanon', 'potager']],
       events: [{ day: 4, type: 'arrivals', villagers: [P.anne, P.clara] }, { day: 6, type: 'frost' }],
-      goals: [G.alive(6), G.never, G.stockOf(14)],
+      goals: [G.alive(6), G.never, G.have({ food: 14, stone: 4 })],
       endMsg: ['Le gel a eu raison du vallon.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Le pain est chaud, le gel peut venir.']
     },
     c5: {
@@ -1007,16 +1013,16 @@ const SIM = (() => {
       start: cab(3), villagers: [P.hugo, P.rose, P.gerard, P.clara, P.marc, P.odile], deck: ['cabane', 'cabanon', 'potager', 'pecheur', 'cueillette', 'bucheron'],
       draws: [['cueillette', 'potager', 'bucheron'], ['champi', 'cabanon', 'potager'], ['cabane', 'cueillette', 'bucheron'], ['potager', 'champi', 'cabanon'], ['cabane', 'cueillette', 'pecheur'], ['potager', 'cabanon', 'cueillette']],
       events: [{ day: 2, type: 'storm' }, { day: 4, type: 'arrivals', villagers: [P.anne, P.bastien] }, { day: 5, type: 'storm' }],
-      goals: [G.alive(6), G.never, G.stockOf(16)],
+      goals: [G.alive(6), G.never, G.and(G.stockOf(13), G.built(5))],
       endMsg: ['L’eau a repris ce qu’elle avait prêté.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Le pont a tenu. Le village aussi.']
     },
     c6: {
       id: 'c6', n: 6, map: 'rive', title: 'Avant le gel', days: 6, seed: 20261115, food: 12, wood: 6, stone: 0,
       voice: { text: 'L’automne nous a tout donné, puis il a repris ses feuilles. Il fallait avoir fait provision de pain, et d’amitié.', by: 'Rose' },
       start: cab(3).concat([{ type: 'cueillette', workers: [0, 1] }]), villagers: [P.rose, P.gerard, P.anne, P.hugo, P.clara, P.bastien], deck: ['maison', 'cabanon', 'carriere', 'four', 'pecheur', 'potager', 'bucheron'],
-      draws: [['carriere', 'pecheur', 'bucheron'], ['pecheur', 'cabanon', 'potager'], ['four', 'maison', 'carriere'], ['serre', 'pecheur', 'cabanon'], ['maison', 'four', 'bucheron'], ['four', 'pecheur', 'cabanon']],
+      draws: [['carriere', 'pecheur', 'bucheron'], ['pecheur', 'cabanon', 'potager'], ['four', 'maison', 'carriere'], ['serre', 'pecheur', 'fumoir'], ['maison', 'four', 'bucheron'], ['four', 'pecheur', 'cabanon']],
       events: [{ day: 3, type: 'arrivals', villagers: [P.marc, P.odile] }, { day: 5, type: 'frost' }],
-      goals: [G.alive(6), G.never, G.stockOf(10)],
+      goals: [G.alive(6), G.never, G.stockOf(11)],
       endMsg: ['L’hiver est entré sans frapper.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Le four ronfle. Que vienne le gel.']
     }
     ,c7: {
@@ -1025,16 +1031,16 @@ const SIM = (() => {
       start: cab(2).concat(cab(1, 'cabanon')), villagers: NV(5), deck: ['cabane', 'cabanon', 'cueillette', 'potager', 'pecheur', 'bucheron'],
       draws: [['bucheron', 'cueillette', 'potager'], ['cueillette', 'fanal', 'cabanon'], ['potager', 'cabane', 'champi'], ['pecheur', 'cabanon', 'cueillette'], ['cabane', 'fanal', 'pecheur'], ['cueillette', 'cabanon', 'champi']],
       events: [{ day: 3, type: 'fog' }, { day: 4, type: 'arrivals', villagers: NV(3) }, { day: 6, type: 'fog' }],
-      goals: [G.alive(6), G.never, G.stockOf(12)],
+      goals: [G.alive(6), G.never, G.have({ food: 12, wood: 6 })],
       endMsg: ['La brume s’est refermée sur le pré.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'La brume s’est levée sur un village plein.']
     },
     c8: {
       id: 'c8', n: 8, map: 'coude', title: 'Le coude de la rivière', days: 6, seed: 20261117, food: 6, wood: 5, stone: 0,
       voice: { text: 'Je me plaignais de tout. La rivière, elle, ne se plaignait de rien, et elle avançait.', by: 'Marc' },
       start: cab(3).concat([{ type: 'cueillette', workers: [0, 1] }]), villagers: [P.marc, P.rose, P.clara, P.hugo, P.gerard, P.odile], deck: ['cabane', 'cabanon', 'carriere', 'four', 'pecheur', 'potager', 'bucheron'],
-      draws: [['carriere', 'pecheur', 'bucheron'], ['potager', 'cabanon', 'poulailler'], ['four', 'carriere', 'cabane'], ['four', 'moulin', 'cabanon'], ['cabane', 'moulin', 'pecheur'], ['four', 'cabanon', 'poulailler']],
+      draws: [['carriere', 'pecheur', 'bucheron'], ['champi', 'cabanon', 'poulailler'], ['four', 'carriere', 'cabane'], ['four', 'moulin', 'cabanon'], ['cabane', 'moulin', 'pecheur'], ['four', 'cabanon', 'poulailler']],
       events: [{ day: 2, type: 'storm' }, { day: 4, type: 'fog' }, { day: 3, type: 'arrivals', villagers: NV(1) }, { day: 5, type: 'arrivals', villagers: NV(1) }],
-      goals: [G.alive(6), G.never, G.stockOf(12)],
+      goals: [G.alive(6), G.never, G.stockOf(15)],
       endMsg: ['La rivière a tourné sans nous.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Le pain, le poisson, et la rivière pour témoin.']
     },
     c9: {
@@ -1071,7 +1077,7 @@ const SIM = (() => {
       start: cab(2).concat(cab(1, 'cabanon'), [{ type: 'bucheron', workers: [0, 1] }, { type: 'pecheur', workers: [2] }, { type: 'cueillette', workers: [3, 4] }]), villagers: NV(5),
       draws: [['etal', 'bucher', 'potager'], ['etal', 'potager', 'menuiserie'], ['gardemanger', 'bergerie', 'cabanon'], ['dortoir', 'cabane', 'potager'], ['bergerie', 'verger', 'fanal'], ['etal', 'potager', 'cabanon']],
       events: [{ day: 3, type: 'storm' }, { day: 4, type: 'arrivals', villagers: NV(3) }, { day: 5, type: 'fog' }],
-      goals: [G.alive(6), G.never, G.stockOf(12)],
+      goals: [G.alive(6), G.never, G.and(G.stockOf(12), G.built(4))],
       endMsg: ['Plus rien à échanger.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Du bois contre du pain, et il en reste.']
     },
     c13: {
@@ -1085,11 +1091,12 @@ const SIM = (() => {
     },
     c14: {
       id: 'c14', n: 14, map: 'coude', title: 'La veillée', days: 6, seed: 20261123, food: 0, wood: 0, stone: 0, joy: true,
+      rule: 'Les loups. La nuit où ils rôdent, ils emportent quelqu’un qui dort dehors ; si tout le monde est à l’abri, ils pillent la réserve. Un braséro les tient loin.',
       voice: { text: 'Le ventre à peine plein, nous avons chanté. Le reste est venu ensuite.', by: '' },
       start: cab(3).concat([{ type: 'cueillette', workers: [0, 1] }, { type: 'pecheur', workers: [2] }]), villagers: NV(6),
       draws: [['rubans', 'pressoir', 'table'], ['pressoir', 'table', 'carriere'], ['bergerie', 'pecheur', 'rubans'], ['bains', 'poulailler', 'table'], ['cellier', 'tente', 'brasero'], ['rubans', 'bains', 'table']],
-      events: [{ day: 4, type: 'frost' }, { day: 5, type: 'arrivals', villagers: NV(2) }],
-      goals: [G.alive(6), G.never, G.joyOf(12)],
+      events: [{ day: 4, type: 'frost' }, { day: 5, type: 'arrivals', villagers: NV(2) }, { day: 3, type: 'wolves', lv: 1 }],
+      goals: [G.alive(6), G.never, G.joyOf(11)],
       endMsg: ['La veillée s’est éteinte avant le feu.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Partis de rien, et l’on chante encore.']
     },
     c15: {
@@ -1112,10 +1119,11 @@ const SIM = (() => {
     },
     c17: {
       id: 'c17', n: 17, map: 'vallon', title: 'La soif', days: 6, seed: 20261126, food: 0, wood: 0, stone: 0,
+      rule: 'L’incendie. Le soir, le feu emporte un bâtiment de bois, tiré au hasard. Ce qui compte au moins deux pierres ne brûle pas, et un puits éteint tout.',
       voice: { text: 'La rivière a montré ses pierres. Nous avons creusé plus bas qu’elle.', by: '' },
       start: cab(3).concat([{ type: 'potager', workers: [0] }, { type: 'potager', workers: [1] }, { type: 'pecheur', workers: [2] }, { type: 'carriere', workers: [3] }]), villagers: NV(6),
       draws: [['cueillette', 'bucheron', 'tente'], ['cueillette', 'bucheron', 'tente'], ['puits', 'tente', 'cabanon'], ['potager', 'cabane', 'tente'], ['potager', 'cabane', 'verger'], ['cueillette', 'potager', 'cabanon']],
-      events: [{ day: 3, type: 'drought', len: 3 }, { day: 4, type: 'arrivals', villagers: NV(2) }],
+      events: [{ day: 3, type: 'drought', len: 3 }, { day: 4, type: 'arrivals', villagers: NV(2) }, { day: 5, type: 'fire', lv: 1 }],
       goals: [G.alive(6), G.never, G.stockOf(22)],
       endMsg: ['La terre a bu ce qui restait.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Trois jours sans pluie, et les potagers ont tenu.']
     },
@@ -1123,9 +1131,9 @@ const SIM = (() => {
       id: 'c18', n: 18, season: 'spring', map: 'coude', title: 'La crue', days: 6, seed: 20261127, food: 0, wood: 0, stone: 0,
       voice: { text: 'L’eau est montée sans bruit. Au matin, elle avait choisi.', by: '' },
       start: cab(3).concat([{ type: 'cueillette', workers: [0, 1] }, { type: 'pecheur', workers: [2] }, { type: 'carriere', workers: [3] }, { type: 'bucheron', workers: [4, 5] }]), villagers: NV(6),
-      draws: [['carriere', 'tente', 'cabanon'], ['potager', 'carriere', 'pecheur'], ['digue', 'potager', 'cabanon'], ['digue', 'four', 'cabane'], ['cabane', 'four', 'potager'], ['maison', 'four', 'potager']],
+      draws: [['carriere', 'tente', 'cabanon'], ['potager', 'carriere', 'pecheur'], ['digue', 'potager', 'cabanon'], ['digue', 'four', 'auberge'], ['cabane', 'four', 'potager'], ['maison', 'four', 'potager']],
       events: [{ day: 3, type: 'storm' }, { day: 4, type: 'flood', lv: 2 }, { day: 5, type: 'arrivals', villagers: NV(2) }],
-      goals: [G.alive(6), G.never, G.stockOf(16)],
+      goals: [G.alive(6), G.never, G.stockOf(20)],
       endMsg: ['L’eau a tout repris.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'La rivière est montée. Le village n’a pas bougé.']
     },
     c19: {
@@ -1134,7 +1142,7 @@ const SIM = (() => {
       start: cab(3).concat([{ type: 'potager', workers: [0] }, { type: 'potager', workers: [1] }, { type: 'potager', workers: [2] }, { type: 'bucheron', workers: [3] }]), villagers: NV(6),
       draws: [['cueillette', 'etal', 'tente'], ['cueillette', 'etal', 'tente'], ['pecheur', 'potager', 'verger'], ['cabane', 'tente', 'potager'], ['potager', 'cueillette', 'cabanon'], ['potager', 'cabanon', 'gardemanger']],
       events: [{ day: 4, type: 'wind', lv: 9 }, { day: 5, type: 'arrivals', villagers: NV(2) }], // un vent qui emporte tout ce qui est léger : rien n'est laissé au hasard
-      goals: [G.alive(6), G.never, G.stockOf(10)],
+      goals: [G.alive(6), G.never, G.have({ food: 10, wood: 12 })],
       endMsg: ['Le vent a tout dispersé.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Le vent est passé. Rien ne manque.']
     },
     c20: {
@@ -1153,7 +1161,7 @@ const SIM = (() => {
       start: [], villagers: NV(4),
       draws: [['abri', 'dortoir', 'cueillette'], ['cueillette', 'cabane', 'bucheron'], ['cabane', 'potager', 'cabanon'], ['cabane', 'pecheur', 'potager'], ['potager', 'cabanon', 'bucher']],
       events: [],
-      goals: [G.alive(5), G.never, G.stockOf(16)],
+      goals: [G.alive(5), G.never, G.and(G.stockOf(14), G.built(4))],
       endMsg: ['Le pré est resté un pré.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Un pré, cinq jours, et déjà un village.']
     },
     c22: {
@@ -1162,7 +1170,7 @@ const SIM = (() => {
       start: [], villagers: NV(5),
       draws: [['abri', 'grange', 'dortoir'], ['pecheur', 'cueillette', 'bucheron'], ['cabane', 'pecheur', 'cabanon'], ['cabane', 'cueillette', 'potager'], ['cabane', 'cabanon', 'gardemanger'], ['pecheur', 'potager', 'cabanon']],
       events: [{ day: 4, type: 'storm' }, { day: 5, type: 'arrivals', villagers: NV(2) }],
-      goals: [G.alive(6), G.never, G.stockOf(16)],
+      goals: [G.alive(6), G.never, G.have({ food: 16, wood: 10 })],
       endMsg: ['La rive est restée vide.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Une rive nue, un orage, et sept couverts le soir.']
     },
     c23: {
@@ -1171,14 +1179,14 @@ const SIM = (() => {
       start: [], villagers: NV(5),
       draws: [['abri', 'grange', 'rubans'], ['cueillette', 'bucheron', 'rubans'], ['pecheur', 'potager', 'table'], ['carriere', 'table', 'potager'], ['maison', 'cabane', 'bains'], ['table', 'bains', 'cabanon'], ['rubans', 'jardin', 'cellier']],
       events: [{ day: 5, type: 'fog' }],
-      goals: [G.alive(7), G.never, G.joyOf(20)],
+      goals: [G.alive(7), G.never, G.have({ joy: 20, food: 7 })],
       endMsg: ['Personne n’a dansé.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Des murs, du pain, et l’on a dansé.']
     },
     c24: {
       id: 'c24', n: 24, season: 'spring', map: 'coude', title: 'Les jours heureux', days: 8, seed: 20261204, food: 20, wood: 10, stone: 3, joy: true,
       voice: { text: 'Nous voulions plus que tenir. Nous voulions que ce soit bon.', by: '' },
       start: [], villagers: NV(6),
-      draws: [['grange', 'abri', 'dortoir'], ['cueillette', 'pecheur', 'bucheron'], ['dortoir', 'cabane', 'table'], ['carriere', 'potager', 'rubans'], ['maison', 'table', 'cabane'], ['bains', 'maison', 'kiosque'], ['cabane', 'jardin', 'pressoir'], ['rubans', 'cellier', 'bains']],
+      draws: [['grange', 'abri', 'dortoir'], ['cueillette', 'pecheur', 'bucheron'], ['dortoir', 'cabane', 'table'], ['carriere', 'potager', 'rubans'], ['maison', 'table', 'cabane'], ['bains', 'chaumiere', 'kiosque'], ['cabane', 'jardin', 'pressoir'], ['rubans', 'cellier', 'bains']],
       events: [{ day: 3, type: 'fog' }, { day: 5, type: 'storm' }, { day: 6, type: 'arrivals', villagers: NV(2) }],
       goals: [G.alive(8), G.never, G.joyOf(14)],
       endMsg: ['Les jours heureux ne sont pas venus.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Huit jours, et le village sait déjà rire.']
@@ -1207,9 +1215,9 @@ const SIM = (() => {
       id: 'c27', n: 27, map: 'coude', title: 'Dix jours', days: 10, seed: 20261207, food: 22, wood: 12, stone: 4, joy: true,
       voice: { text: 'Dix jours pour faire d’un pré un endroit où l’on rit. Nous en avons eu besoin de neuf.', by: '' },
       start: [], villagers: NV(4).concat(NK(2)),
-      draws: [['grange', 'abri', 'dortoir'], ['cueillette', 'pecheur', 'ecole'], ['ecole', 'potager', 'carriere'], ['bucheron', 'table', 'chevre'], ['cabane', 'longere', 'jeux'], ['table', 'bassecour', 'cantine'], ['four', 'maison', 'marionnettes'], ['serre', 'brasero', 'bains'], ['poulailler', 'bergerie', 'rubans'], ['rubans', 'bains', 'cellier']],
-      events: [{ day: 3, type: 'fog' }, { day: 5, type: 'arrivals', villagers: [{}, KID] }, { day: 6, type: 'storm' }, { day: 9, type: 'frost' }],
-      goals: [G.alive(10), G.never, G.joyOf(21)],
+      draws: [['grange', 'abri', 'dortoir'], ['cueillette', 'pecheur', 'ecole'], ['ecole', 'potager', 'carriere'], ['bucheron', 'table', 'chevre'], ['ferme', 'longere', 'jeux'], ['table', 'bassecour', 'cantine'], ['four', 'maison', 'marionnettes'], ['serre', 'brasero', 'bains'], ['poulailler', 'bergerie', 'rubans'], ['rubans', 'bains', 'cellier']],
+      events: [{ day: 3, type: 'fog' }, { day: 5, type: 'arrivals', villagers: [{}, KID] }, { day: 6, type: 'storm' }, { day: 9, type: 'frost' }, { day: 8, type: 'wolves', lv: 1 }],
+      goals: [G.alive(10), G.never, G.have({ joy: 36, food: 5 })],
       endMsg: ['Dix jours n’ont pas suffi.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Dix jours, et le gel trouve un village qui chante.']
     },
     c28: {
@@ -1234,9 +1242,9 @@ const SIM = (() => {
       id: 'c30', n: 30, map: 'pont', title: 'Ce que nous leur laissons', days: 10, seed: 20261210, food: 24, wood: 12, stone: 4, joy: true,
       voice: { text: 'Nous n’avons pas bâti pour nous. Nous avons bâti pour qu’ils n’aient pas à recommencer.', by: '' },
       start: [], villagers: NV(4).concat(NK(2)),
-      draws: [['grange', 'abri', 'ecole'], ['cueillette', 'pecheur', 'chevre'], ['ecole', 'carriere', 'potager'], ['puits', 'bassecour', 'bucheron'], ['longere', 'cabane', 'tente'], ['foyer', 'table', 'jeux'], ['digue', 'four', 'cantine'], ['brasero', 'bergerie', 'marionnettes'], ['table', 'poulailler', 'bains'], ['rubans', 'cellier', 'bains']],
-      events: [{ day: 2, type: 'fog' }, { day: 4, type: 'drought', len: 2 }, { day: 5, type: 'arrivals', villagers: [{}, KID] }, { day: 6, type: 'wind', lv: 9 }, { day: 7, type: 'storm' }, { day: 8, type: 'flood', lv: 2 }, { day: 9, type: 'frost' }],
-      goals: [G.alive(10), G.never, G.joyOf(26)],
+      draws: [['grange', 'abri', 'ecole'], ['cueillette', 'pecheur', 'chevre'], ['ecole', 'carriere', 'potager'], ['puits', 'bassecour', 'bucheron'], ['longere', 'cabane', 'ferme'], ['foyer', 'table', 'jeux'], ['digue', 'four', 'cantine'], ['brasero', 'bergerie', 'marionnettes'], ['table', 'poulailler', 'bains'], ['rubans', 'cellier', 'bains']],
+      events: [{ day: 2, type: 'fog' }, { day: 4, type: 'drought', len: 2 }, { day: 5, type: 'arrivals', villagers: [{}, KID] }, { day: 6, type: 'wind', lv: 9 }, { day: 7, type: 'storm' }, { day: 8, type: 'flood', lv: 2 }, { day: 9, type: 'frost' }, { day: 5, type: 'fire', lv: 1 }],
+      goals: [G.alive(10), G.never, G.joyOf(33)],
       endMsg: ['Il ne leur est rien resté.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Un pré, dix jours, sept ciels contraires — et un village à leur laisser.']
     }
   });
@@ -1246,9 +1254,9 @@ const SIM = (() => {
       id: 'c31', n: 31, season: 'spring', endMsg: ['Dix habitants, et rien pour les garder.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Dix, puis quinze, et la réserve pleine : le bourg est né.'], rule: 'À dix habitants, le village devient un bourg : il peut mener deux chantiers par jour.', map: 'bourg', title: 'Nous étions dix', days: 8, seed: 20270101, food: 10, wood: 9, stone: 0,
       voice: { text: 'Un matin, nous étions dix. Les chemins n’ont plus suffi : on les a pavés.', by: '' },
       start: cab(3).concat([{ type: 'cueillette', workers: [0, 1] }, { type: 'bucheron', workers: [2, 3] }]), villagers: NV(6),
-      draws: [['cabane', 'potager', 'cueillette'], ['cabane', 'pecheur', 'carriere'], ['dortoir', 'cueillette', 'potager'], ['maison', 'four', 'bucheron'], ['grange', 'cabane', 'pecheur'], ['four', 'potager', 'verger'], ['dortoir', 'cabane', 'cueillette'], ['rucher', 'cabanon', 'potager']],
+      draws: [['cabane', 'potager', 'cueillette'], ['cabane', 'pecheur', 'carriere'], ['dortoir', 'cueillette', 'potager'], ['maison', 'four', 'bucheron'], ['grange', 'auberge', 'pecheur'], ['four', 'potager', 'fumoir'], ['dortoir', 'cabane', 'cueillette'], ['rucher', 'cabanon', 'potager']],
       events: [{ day: 2, type: 'arrivals', villagers: NV(2) }, { day: 3, type: 'arrivals', villagers: NV(2) }, { day: 5, type: 'arrivals', villagers: NV(3) }, { day: 7, type: 'arrivals', villagers: NV(2) }],
-      goals: [G.alive(8), G.never, G.stockOf(34)]
+      goals: [G.alive(8), G.never, G.stockOf(36)]
     },
     c32: {
       id: 'c32', n: 32, endMsg: ['La grand-rue ne mène plus nulle part.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Dix-huit à table, et du pain d’avance.'], rule: 'Un bourg bâtit vite, mais chaque nouveau poste demande un adulte libre.', map: 'plaine', title: 'La grand-rue', days: 9, seed: 20270102, food: 14, wood: 10, stone: 2,
@@ -1278,7 +1286,7 @@ const SIM = (() => {
       id: 'c35', n: 35, endMsg: ['La fièvre a fermé les portes une à une.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'La fièvre est passée, et la réserve est pleine.'], rule: 'Le médecin. Son cabinet se paie en ingéniosité. Tant qu’il est à son poste, personne ne meurt de maladie et elle ne se transmet plus ; lui-même ne tombe jamais malade.', map: 'plaine', title: 'La fièvre', days: 9, seed: 20270105, food: 14, wood: 9, stone: 4,
       voice: { text: 'Elle est entrée par une porte, et le soir elle dormait dans tous les lits.', by: '' },
       start: cab(4).concat(cab(1, 'cabanon'), [{ type: 'cueillette', workers: [0, 1] }, { type: 'bucheron', workers: [2, 3] }, { type: 'carriere', workers: [4] }, { type: 'lycee', workers: [5] }]), villagers: NV(9),
-      draws: [['universite', 'potager', 'cabane'], ['pecheur', 'maison', 'cueillette'], ['universite', 'cabanon', 'potager'], ['cabinet', 'four', 'maison'], ['cabinet', 'potager', 'cabane'], ['cabinet', 'pecheur', 'cabanon'], ['cabinet', 'cueillette', 'maison'], ['cabinet', 'potager', 'rucher'], ['verger', 'rucher', 'cabanon']],
+      draws: [['universite', 'potager', 'cabane'], ['pecheur', 'maison', 'cueillette'], ['universite', 'cabanon', 'potager'], ['cabinet', 'four', 'maison'], ['cabinet', 'potager', 'cabane'], ['cabinet', 'pecheur', 'cabanon'], ['cabinet', 'cueillette', 'chaumiere'], ['cabinet', 'potager', 'rucher'], ['verger', 'rucher', 'cabanon']],
       events: [{ day: 3, type: 'sick', n: 1 }, { day: 4, type: 'arrivals', villagers: NV(2) }, { day: 7, type: 'sick', n: 2, grave: true }],
       goals: [G.alive(9), G.never, G.stockOf(21)]
     },
@@ -1294,9 +1302,9 @@ const SIM = (() => {
       id: 'c37', n: 37, endMsg: ['Le bois n’a servi qu’au feu.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Des planches par piles, droites et sèches.'], rule: 'La planche. 2 bois en réserve le matin donnent 1 planche, une fois les chantiers payés. Avec un ingénieur à son poste, 1 bois suffit.', map: 'bourg', title: 'Le fil du bois', days: 9, seed: 20270107, food: 16, wood: 10, stone: 3, culture: 4,
       voice: { text: 'Un tronc fait un feu. Une planche fait un plancher, un toit, une halle.', by: '' },
       start: cab(5).concat([{ type: 'cueillette', workers: [0, 1] }, { type: 'cueillette', workers: [2, 3] }, { type: 'bucheron', workers: [4, 5] }, { type: 'carriere', workers: [6] }, { type: 'lycee', workers: [7] }, { type: 'universite', workers: [8] }]), villagers: NV(10),
-      draws: [['charpenterie', 'bucheron', 'potager'], ['charpenterie', 'scierie', 'pecheur'], ['ingenieur', 'cabane', 'cueillette'], ['fanal', 'halle', 'charpenterie'], ['halle', 'ingenieur', 'dortoir'], ['halle', 'bucheron', 'four'], ['digue', 'halle', 'cabane'], ['ingenieur', 'halle', 'potager'], ['halle', 'rucher', 'cabanon']],
-      events: [{ day: 3, type: 'arrivals', villagers: NV(2) }, { day: 4, type: 'fog' }, { day: 6, type: 'arrivals', villagers: NV(2) }, { day: 7, type: 'storm' }],
-      goals: [G.alive(9), G.never, G.have({ plank: 20 })]
+      draws: [['charpenterie', 'menuiserie', 'potager'], ['charpenterie', 'scierie', 'pecheur'], ['ingenieur', 'cabane', 'puits'], ['fanal', 'halle', 'charpenterie'], ['halle', 'ingenieur', 'dortoir'], ['halle', 'bucheron', 'four'], ['digue', 'halle', 'cabane'], ['ingenieur', 'halle', 'potager'], ['halle', 'rucher', 'cabanon']],
+      events: [{ day: 3, type: 'arrivals', villagers: NV(2) }, { day: 4, type: 'fog' }, { day: 6, type: 'arrivals', villagers: NV(2) }, { day: 7, type: 'storm' }, { day: 5, type: 'fire', lv: 1 }],
+      goals: [G.alive(9), G.never, G.have({ plank: 23 })]
     },
     c38: {
       id: 'c38', n: 38, season: 'spring', endMsg: ['Il n’est resté personne pour être heureux.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Ils étaient contents. Les voilà épanouis.'], rule: 'L’épanouissement. L’atelier des arts change 2 bonheurs en 1 épanouissement. Avec un psychologue à son poste, 1 bonheur suffit.', map: 'plaine', title: 'Ce qui nous dépasse', days: 9, seed: 20270108, food: 16, wood: 10, stone: 4, culture: 4, plank: 4, joy: true,
@@ -1324,14 +1332,14 @@ const SIM = (() => {
     },
     /* ---------- niveaux 14 et 15 : tout à la fois, puis les enfants, jusqu'au dernier hiver ---------- */
     c41: {
-      id: 'c41', n: 41, rule: 'Le repas. La cuisine change 2 nourritures en 1 repas, sur le surplus seulement. Le soir, on mange les repas d’abord : chacun nourrit une personne et donne 1 bonheur. Avec un cuisinier à son poste, 1 nourriture suffit. La canicule gâte la moitié de la nourriture crue ; les repas se gardent.',
+      id: 'c41', n: 41, rule: 'Le repas. La cuisine change 2 nourritures en 1 repas, sur le surplus seulement. Le soir, on mange les repas d’abord : chacun nourrit une personne et donne 1 bonheur. Avec un cuisinier à son poste, 1 nourriture suffit. La canicule gâte la moitié de la nourriture crue ; les repas se gardent, et un cellier garde tout au frais.',
       endMsg: ['Les fourneaux sont froids, et les bancs vides.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'On a mangé chaud tous les soirs, et l’on s’en souviendra.'],
       map: 'plaine', title: 'La table du chef', days: 9, seed: 20270201, food: 22, wood: 12, stone: 5, culture: 4, joy: true,
       voice: { text: 'Manger, nous savions. Dîner, c’est autre chose.', by: '' },
       start: cab(6).concat([{ type: 'cueillette', workers: [0, 1] }, { type: 'cueillette', workers: [2, 3] }, { type: 'cueillette', workers: [4, 5] }, { type: 'bucheron', workers: [6, 7] }, { type: 'carriere', workers: [8] }, { type: 'lycee', workers: [9] }, { type: 'universite', workers: [10] }]), villagers: NV(12),
-      draws: [['cuisine', 'four', 'cabane'], ['chef', 'potager', 'pecheur'], ['cuisine', 'dortoir', 'four'], ['chef', 'cueillette', 'pecheur'], ['cuisine', 'potager', 'rucher'], ['dortoir', 'four', 'cabane'], ['cuisine', 'moulin', 'chef'], ['potager', 'verger', 'four'], ['cuisine', 'rucher', 'cabanon']],
+      draws: [['cuisine', 'four', 'cabane'], ['chef', 'potager', 'pecheur'], ['cuisine', 'dortoir', 'four'], ['chef', 'cellier', 'pecheur'], ['cuisine', 'potager', 'rucher'], ['dortoir', 'four', 'cabane'], ['cuisine', 'moulin', 'chef'], ['potager', 'verger', 'four'], ['cuisine', 'rucher', 'cabanon']],
       events: [{ day: 3, type: 'arrivals', villagers: NV(2) }, { day: 5, type: 'heat' }, { day: 6, type: 'arrivals', villagers: NV(2) }, { day: 8, type: 'heat' }],
-      goals: [G.alive(9), G.never, G.have({ joy: 40 })]
+      goals: [G.alive(9), G.never, G.have({ joy: 78, food: 40 })]
     },
     c42: {
       id: 'c42', n: 42, rule: 'Trois bâtiments du savoir se paient en briques et en planches : le théâtre et l’observatoire donnent de la culture sans personne, l’académie en transforme deux fois plus que l’université.',
@@ -1344,14 +1352,14 @@ const SIM = (() => {
       goals: [G.alive(10), G.never, G.have({ ingen: 25 })]
     },
     c43: {
-      id: 'c43', n: 43, rule: 'Ce qui dort en réserve se perd : la canicule en gâte la moitié, les rats davantage. Un entrepôt arrête les rats. La cuisine, elle, change le surplus en repas avant la nuit.',
+      id: 'c43', n: 43, rule: 'Ce qui dort en réserve se perd : la canicule en gâte la moitié, les rats davantage. Un entrepôt arrête les rats, un cellier la canicule. La cuisine, elle, change le surplus en repas avant la nuit.',
       endMsg: ['Les greniers étaient pleins. Il n’y avait plus personne pour les ouvrir.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Ni la chaleur ni les rats n’ont eu grand-chose : tout était cuit, ou sous clef.'],
       map: 'bourg', title: 'Les greniers pleins', days: 10, seed: 20270203, food: 24, wood: 14, stone: 6, culture: 4, brick: 3, joy: true,
       voice: { text: 'Récolter n’est rien. C’est garder qui demande du métier.', by: '' },
       start: cab(7).concat([{ type: 'cueillette', workers: [0, 1] }, { type: 'cueillette', workers: [2, 3] }, { type: 'cueillette', workers: [4, 5] }, { type: 'bucheron', workers: [6, 7] }, { type: 'carriere', workers: [8] }, { type: 'lycee', workers: [9] }, { type: 'universite', workers: [10] }]), villagers: NV(13),
-      draws: [['charpenterie', 'four', 'cuisine'], ['cuisine', 'pecheur', 'potager'], ['chef', 'cabane', 'four'], ['entrepot', 'halle', 'dortoir'], ['outillerie', 'entrepot', 'cuisine'], ['halle', 'chef', 'cabane'], ['four', 'moulin', 'table'], ['cuisine', 'halle', 'potager'], ['entrepot', 'four', 'rucher'], ['table', 'verger', 'cabanon']],
+      draws: [['charpenterie', 'four', 'cuisine'], ['cuisine', 'pecheur', 'cellier'], ['chef', 'cabane', 'four'], ['entrepot', 'halle', 'dortoir'], ['outillerie', 'entrepot', 'cuisine'], ['halle', 'chef', 'cabane'], ['four', 'moulin', 'guinguette'], ['cuisine', 'halle', 'potager'], ['entrepot', 'four', 'rucher'], ['table', 'verger', 'cabanon']],
       events: [{ day: 3, type: 'arrivals', villagers: NV(2) }, { day: 3, type: 'heat' }, { day: 6, type: 'arrivals', villagers: NV(2) }, { day: 6, type: 'rats', lv: 4 }, { day: 7, type: 'heat' }, { day: 9, type: 'rats', lv: 5 }],
-      goals: [G.alive(10), G.never, G.have({ food: 58, joy: 46 })]
+      goals: [G.alive(10), G.never, G.have({ food: 72, joy: 76 })]
     },
     c44: {
       id: 'c44', n: 44,
@@ -1359,19 +1367,20 @@ const SIM = (() => {
       map: 'plaine', title: 'Deux fois le vent', days: 12, seed: 20270204, food: 26, wood: 16, stone: 6, culture: 4, brick: 6, plank: 3, clay: 4,
       voice: { text: 'La première fois, on a eu de la chance. La seconde, on avait des murs.', by: '' },
       start: cab(8).concat([{ type: 'cueillette', workers: [0, 1] }, { type: 'cueillette', workers: [2, 3] }, { type: 'cueillette', workers: [4, 5] }, { type: 'bucheron', workers: [6, 7] }, { type: 'carriere', workers: [8] }, { type: 'lycee', workers: [9] }, { type: 'universite', workers: [10] }]), villagers: NV(15),
-      draws: [['argiliere', 'briqueterie', 'four'], ['argiliere', 'charpenterie', 'maisonbrique'], ['geologue', 'maisonbrique', 'four'], ['maisonbrique', 'demeure', 'moulin'], ['maisonbrique', 'demeure', 'entrepot'], ['maisonbrique', 'four', 'demeure'], ['cueillette', 'argiliere', 'pecheur'], ['charpenterie', 'potager', 'cueillette'], ['entrepot', 'halle', 'bucheron'], ['demeure', 'outillerie', 'four'], ['maisonbrique', 'four', 'moulin'], ['brasero', 'four', 'maisonbrique']],
-      events: [{ day: 4, type: 'arrivals', villagers: NV(2) }, { day: 6, type: 'tornado' }, { day: 9, type: 'rats', lv: 3 }, { day: 11, type: 'tornado' }, { day: 12, type: 'frost' }],
-      goals: [G.alive(12), G.never, G.stockOf(82)]
+      draws: [['argiliere', 'briqueterie', 'four'], ['argiliere', 'charpenterie', 'maisonbrique'], ['geologue', 'maisonbrique', 'four'], ['maisonbrique', 'demeure', 'moulin'], ['maisonbrique', 'demeure', 'entrepot'], ['maisonbrique', 'four', 'demeure'], ['brasero', 'argiliere', 'pecheur'], ['charpenterie', 'potager', 'cueillette'], ['entrepot', 'halle', 'bucheron'], ['demeure', 'outillerie', 'four'], ['maisonbrique', 'four', 'moulin'], ['brasero', 'four', 'maisonbrique']],
+      events: [{ day: 4, type: 'arrivals', villagers: NV(2) }, { day: 6, type: 'tornado' }, { day: 9, type: 'rats', lv: 3 }, { day: 11, type: 'tornado' }, { day: 12, type: 'frost' }, { day: 8, type: 'wolves', lv: 2 }],
+      goals: [G.alive(12), G.never, G.stockOf(68)]
     },
     c45: {
       id: 'c45', n: 45,
       endMsg: ['L’âge d’or n’a pas eu lieu.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'De la brique, des planches, des idées, et des gens heureux : rien ne manque à cette ville.'],
       map: 'confluent', title: 'L’âge d’or', days: 12, seed: 20270205, food: 30, wood: 16, stone: 6, culture: 4, plank: 2, joy: true,
+      rule: 'La guinguette se bâtit de planches et donne 3 bonheurs par jour. Le cellier garde la réserve au frais pendant la canicule.',
       voice: { text: 'Un jour, on s’est aperçu qu’on ne manquait plus de rien. Il a fallu apprendre à ne rien perdre.', by: '' },
       start: cab(8).concat([{ type: 'cueillette', workers: [0, 1] }, { type: 'cueillette', workers: [2, 3] }, { type: 'four', workers: [4] }, { type: 'four', workers: [5] }, { type: 'bucheron', workers: [6, 7] }, { type: 'carriere', workers: [8] }, { type: 'lycee', workers: [9] }, { type: 'universite', workers: [10] }]), villagers: NV(15),
-      draws: [['argiliere', 'charpenterie', 'four'], ['briqueterie', 'table', 'pecheur'], ['fanal', 'cabane', 'potager'], ['cabinet', 'arts', 'dortoir'], ['cabinet', 'jardin', 'four'], ['cabinet', 'geologue', 'ingenieur'], ['entrepot', 'psy', 'kiosque'], ['maisonbrique', 'cuisine', 'dortoir'], ['chef', 'observatoire', 'potager'], ['digue', 'theatre', 'academie'], ['psy', 'bains', 'halle'], ['brasero', 'rubans', 'four']],
+      draws: [['argiliere', 'charpenterie', 'four'], ['briqueterie', 'table', 'pecheur'], ['fanal', 'cabane', 'potager'], ['cabinet', 'arts', 'dortoir'], ['cabinet', 'jardin', 'four'], ['cabinet', 'geologue', 'ingenieur'], ['entrepot', 'psy', 'guinguette'], ['maisonbrique', 'cuisine', 'dortoir'], ['chef', 'observatoire', 'cellier'], ['digue', 'theatre', 'academie'], ['psy', 'bains', 'halle'], ['brasero', 'rubans', 'four']],
       events: [{ day: 3, type: 'fog' }, { day: 4, type: 'arrivals', villagers: NV(3) }, { day: 5, type: 'sick', n: 2, grave: true }, { day: 7, type: 'rats', lv: 3 }, { day: 8, type: 'arrivals', villagers: NV(3) }, { day: 9, type: 'heat' }, { day: 10, type: 'storm' }, { day: 12, type: 'frost' }],
-      goals: [G.alive(12), G.never, G.have({ brick: 12, plank: 12, ingen: 9, bloom: 17 })]
+      goals: [G.alive(12), G.never, G.have({ brick: 14, plank: 14, ingen: 9, bloom: 17 })]
     },
     c46: {
       id: 'c46', n: 46, rule: 'Les enfants reviennent. Ils mangent, ne travaillent pas, et chaque poste demande un adulte : l’école en fait des adultes en 4 jours, 3 avec une bibliothèque.',
@@ -1379,8 +1388,8 @@ const SIM = (() => {
       map: 'bourg', title: 'Les enfants du bourg', days: 10, seed: 20270206, food: 24, wood: 14, stone: 6,
       voice: { text: 'On comptait les bras. Il a fallu compter aussi les bouches, et attendre qu’elles grandissent.', by: '' },
       start: cab(7).concat([{ type: 'cueillette', workers: [0, 1] }, { type: 'cueillette', workers: [2, 3] }, { type: 'cueillette', workers: [4, 5] }, { type: 'bucheron', workers: [6, 7] }, { type: 'carriere', workers: [8] }]), villagers: NV(10).concat(NK(4)),
-      draws: [['ecole', 'four', 'cabane'], ['bibliotheque', 'potager', 'cantine'], ['foyer', 'dortoir', 'chevre'], ['digue', 'ecole', 'pecheur'], ['bassecour', 'four', 'longere'], ['dortoir', 'ferme', 'cabane'], ['fanal', 'ecole', 'moulin'], ['serre', 'potager', 'pecheur'], ['brasero', 'four', 'cueillette'], ['rucher', 'cabanon', 'verger']],
-      events: [{ day: 3, type: 'arrivals', villagers: [{}, KID, KID] }, { day: 4, type: 'storm' }, { day: 6, type: 'arrivals', villagers: [{}, {}, KID] }, { day: 7, type: 'fog' }, { day: 10, type: 'frost' }],
+      draws: [['ecole', 'four', 'cabane'], ['bibliotheque', 'potager', 'cantine'], ['foyer', 'dortoir', 'chevre'], ['digue', 'ecole', 'pecheur'], ['bassecour', 'four', 'longere'], ['dortoir', 'ferme', 'cabane'], ['fanal', 'ecole', 'moulin'], ['brasero', 'potager', 'pecheur'], ['serre', 'four', 'cueillette'], ['rucher', 'cabanon', 'verger']],
+      events: [{ day: 3, type: 'arrivals', villagers: [{}, KID, KID] }, { day: 4, type: 'storm' }, { day: 6, type: 'arrivals', villagers: [{}, {}, KID] }, { day: 7, type: 'fog' }, { day: 10, type: 'frost' }, { day: 8, type: 'wolves', lv: 2 }],
       goals: [G.alive(10), G.never, G.grown(88)]
     },
     c47: {
@@ -1389,19 +1398,20 @@ const SIM = (() => {
       map: 'plaine', title: 'La relève', days: 11, seed: 20270207, food: 26, wood: 14, stone: 6, culture: 2,
       voice: { text: 'Tous les adultes avaient un métier. Les suivants étaient encore à l’école.', by: '' },
       start: cab(8).concat([{ type: 'cueillette', workers: [0, 1] }, { type: 'cueillette', workers: [2, 3] }, { type: 'cueillette', workers: [4, 5] }, { type: 'bucheron', workers: [6, 7] }, { type: 'carriere', workers: [8] }, { type: 'lycee', workers: [9] }, { type: 'ecole' }]), villagers: NV(10).concat(NK(5)),
-      draws: [['bibliotheque', 'universite', 'four'], ['ecole', 'cantine', 'argiliere'], ['argiliere', 'charpenterie', 'chevre'], ['briqueterie', 'potager', 'pecheur'], ['fanal', 'four', 'charpenterie'], ['dortoir', 'foyer', 'briqueterie'], ['cabinet', 'geologue', 'four'], ['cabinet', 'ingenieur', 'potager'], ['geologue', 'halle', 'digue'], ['ingenieur', 'four', 'cueillette'], ['rucher', 'verger', 'cabanon']],
-      events: [{ day: 5, type: 'fog' }, { day: 6, type: 'arrivals', villagers: [{}, KID, KID] }, { day: 7, type: 'sick', n: 2, grave: true }, { day: 9, type: 'storm' }],
+      draws: [['bibliotheque', 'universite', 'four'], ['ecole', 'cantine', 'argiliere'], ['argiliere', 'charpenterie', 'chevre'], ['briqueterie', 'potager', 'pecheur'], ['fanal', 'four', 'charpenterie'], ['dortoir', 'foyer', 'briqueterie'], ['cabinet', 'geologue', 'puits'], ['cabinet', 'ingenieur', 'potager'], ['geologue', 'academie', 'digue'], ['ingenieur', 'observatoire', 'cueillette'], ['rucher', 'verger', 'cabanon']],
+      events: [{ day: 5, type: 'fog' }, { day: 6, type: 'arrivals', villagers: [{}, KID, KID] }, { day: 7, type: 'sick', n: 2, grave: true }, { day: 9, type: 'storm' }, { day: 8, type: 'fire', lv: 1 }],
       goals: [G.alive(11), G.never, G.have({ brick: 9, plank: 9, ingen: 7 })]
     },
     c48: {
       id: 'c48', n: 48,
       endMsg: ['Les jeux sont restés dehors, sous la pluie.', 'Tous en vie, pas sans peine.', 'Personne n’a manqué de rien.', 'Ils ont grandi sans avoir eu peur. C’est tout ce qu’on voulait.'],
-      map: 'confluent', title: 'Grandir heureux', days: 11, seed: 20270208, food: 26, wood: 14, stone: 6, culture: 4, plank: 4, joy: true,
+      map: 'confluent', title: 'Grandir heureux', days: 11, seed: 20270208, food: 26, wood: 14, stone: 6, culture: 4, plank: 7, joy: true,
+      rule: 'Le manège donne 1 bonheur par enfant et par jour, jusqu’à 4 enfants, tant qu’ils sont enfants. Il se bâtit de planches, comme la guinguette et l’atelier des arts : il n’y en aura pas pour tout.',
       voice: { text: 'La fièvre revenait. Les enfants, eux, ne savaient qu’une chose : jouer.', by: '' },
       start: cab(8).concat([{ type: 'cueillette', workers: [0, 1] }, { type: 'cueillette', workers: [2, 3] }, { type: 'cueillette', workers: [4, 5] }, { type: 'bucheron', workers: [6, 7] }, { type: 'carriere', workers: [8] }, { type: 'lycee', workers: [9] }, { type: 'universite', workers: [10] }]), villagers: NV(11).concat(NK(4)),
-      draws: [['ecole', 'table', 'four'], ['arts', 'jeux', 'cantine'], ['marionnettes', 'potager', 'cabane'], ['cabinet', 'bibliotheque', 'pecheur'], ['arts', 'cabinet', 'foyer'], ['psy', 'jardin', 'chevre'], ['cabinet', 'kiosque', 'four'], ['cabinet', 'psy', 'bains'], ['psy', 'pressoir', 'dortoir'], ['rubans', 'jardin', 'potager'], ['bains', 'rucher', 'cabanon']],
+      draws: [['ecole', 'table', 'four'], ['arts', 'jeux', 'cantine'], ['marionnettes', 'manege', 'cabane'], ['cabinet', 'bibliotheque', 'pecheur'], ['arts', 'cabinet', 'foyer'], ['psy', 'jardin', 'chevre'], ['cabinet', 'guinguette', 'four'], ['cabinet', 'psy', 'bains'], ['psy', 'pressoir', 'chaumiere'], ['rubans', 'jardin', 'potager'], ['bains', 'rucher', 'cabanon']],
       events: [{ day: 4, type: 'sick', n: 2 }, { day: 5, type: 'arrivals', villagers: [{}, KID, KID] }, { day: 8, type: 'sick', n: 3, grave: true }],
-      goals: [G.alive(11), G.never, G.have({ bloom: 34 })]
+      goals: [G.alive(11), G.never, G.have({ bloom: 45 })]
     },
     c49: {
       id: 'c49', n: 49,
@@ -1415,13 +1425,14 @@ const SIM = (() => {
     },
     c50: {
       id: 'c50', n: 50,
-      endMsg: ['Il ne reste que les murs, et le vent dedans.', 'Tous en vie. Personne n’y croyait.', 'Personne n’a manqué de rien, pas un seul soir.', 'Tout est tombé sur cette ville. Elle est encore là, et les greniers sont pleins.'],
-      map: 'plaine', title: 'Le dernier hiver', days: 14, seed: 20270210, food: 30, wood: 16, stone: 6, culture: 6, brick: 4, plank: 4, clay: 2,
-      voice: { text: 'La brume, la fièvre, l’orage, la chaleur, les rats, le vent. Deux fois. Puis le gel. Nous avons tout compté, après.', by: '' },
+      endMsg: ['Il ne reste que les murs, et le vent dedans.', 'Tous en vie. Personne n’y croyait.', 'Personne n’a manqué de rien, pas un seul soir.', 'Tout est tombé sur cette ville. Elle est encore là : les enfants ont grandi, et l’on y rit.'],
+      map: 'plaine', title: 'Le dernier hiver', days: 14, seed: 20270210, food: 30, wood: 16, stone: 6, culture: 6, brick: 4, plank: 7, clay: 2, joy: true,
+      rule: 'Tant qu’ils sont enfants, l’aire de jeux, le manège et les marionnettes donnent du bonheur. Sortis de l’école, ils travaillent et ne jouent plus. La tornade emporte ce qui n’est ni de pierre ni de brique, et les loups ceux qui dorment dehors.',
+      voice: { text: 'La brume, la fièvre, l’orage, la chaleur, les rats, le vent. Deux fois. Puis le feu, les loups, le gel. Nous avons tout compté, après.', by: '' },
       start: cab(5).concat([{ type: 'maisonbrique' }, { type: 'maisonbrique' }, { type: 'maisonbrique' }, { type: 'cueillette', workers: [0, 1] }, { type: 'cueillette', workers: [2, 3] }, { type: 'cueillette', workers: [4, 5] }, { type: 'four', workers: [6] }, { type: 'bucheron', workers: [7, 8] }, { type: 'carriere', workers: [9] }, { type: 'lycee', workers: [10] }, { type: 'universite', workers: [11] }, { type: 'argiliere', workers: [12] }, { type: 'briqueterie', workers: [13] }]), villagers: NV(16).concat(NK(5)),
-      draws: [['four', 'ecole', 'fanal'], ['fanal', 'argiliere', 'charpenterie'], ['cabinet', 'geologue', 'maisonbrique'], ['digue', 'maisonbrique', 'four'], ['cuisine', 'entrepot', 'maisonbrique'], ['entrepot', 'demeure', 'four'], ['maisonbrique', 'demeure', 'cabinet'], ['cabinet', 'cueillette', 'bucheron'], ['cabinet', 'four', 'carriere'], ['four', 'moulin', 'charpenterie'], ['entrepot', 'halle', 'four'], ['maisonbrique', 'demeure', 'outillerie'], ['chef', 'four', 'cueillette'], ['brasero', 'maisonbrique', 'four']],
-      events: [{ day: 2, type: 'fog' }, { day: 3, type: 'sick', n: 2 }, { day: 4, type: 'storm' }, { day: 5, type: 'heat' }, { day: 5, type: 'arrivals', villagers: [{}, KID] }, { day: 6, type: 'rats', lv: 4 }, { day: 7, type: 'tornado' }, { day: 8, type: 'sick', n: 3, grave: true }, { day: 9, type: 'arrivals', villagers: [{}, {}] }, { day: 10, type: 'storm' }, { day: 11, type: 'rats', lv: 5 }, { day: 12, type: 'tornado' }, { day: 13, type: 'heat' }, { day: 14, type: 'frost' }],
-      goals: [G.alive(14), G.never, G.stockOf(45)]
+      draws: [['four', 'ecole', 'jeux'], ['fanal', 'charpenterie', 'marionnettes'], ['cabinet', 'geologue', 'maisonbrique'], ['four', 'maisonbrique', 'manege'], ['cuisine', 'cellier', 'maisonbrique'], ['four', 'entrepot', 'ecole'], ['demeure', 'maisonbrique', 'cabinet'], ['cabinet', 'cueillette', 'puits'], ['four', 'carriere', 'bibliotheque'], ['charpenterie', 'moulin', 'ecole'], ['four', 'entrepot', 'theatre'], ['maisonbrique', 'demeure', 'outillerie'], ['four', 'cueillette', 'brasero'], ['brasero', 'maisonbrique', 'guinguette']],
+      events: [{ day: 2, type: 'fog' }, { day: 3, type: 'sick', n: 2 }, { day: 4, type: 'storm' }, { day: 5, type: 'heat' }, { day: 5, type: 'arrivals', villagers: [{}, KID] }, { day: 6, type: 'rats', lv: 4 }, { day: 7, type: 'tornado' }, { day: 8, type: 'sick', n: 3, grave: true }, { day: 9, type: 'arrivals', villagers: [{}, {}] }, { day: 9, type: 'fire', lv: 1 }, { day: 10, type: 'storm' }, { day: 11, type: 'rats', lv: 5 }, { day: 12, type: 'tornado' }, { day: 13, type: 'heat' }, { day: 13, type: 'wolves', lv: 2 }, { day: 14, type: 'frost' }],
+      goals: [G.alive(14), G.never, G.and(G.grown(14), G.have({ joy: 58, ingen: 14 }))]
     }
   });
   CHALLENGES.survie = {
@@ -1450,6 +1461,6 @@ const SIM = (() => {
     { id: 'l15', name: 'Les derniers jours', sub: 'Avec les enfants, jusqu’au bout', ch: ['c46', 'c47', 'c48', 'c49', 'c50'] }
   ];
 
-  return { get W() { return W; }, get H() { return H; }, get EXT() { return EXT; }, world, CELL, T, SPEED, RES, RNAME, RATIO, maxBuilds, affordBoth, options, solid, BT, JOBNAME, LIGHT, SCHOOL_DAYS, SEATS, CHALLENGES, LEVELS, MAPDEF, rngOf, getMap, cast, popOf, costOf, newGame, planDay, survDraw, survJobs, sample, draw, capacity, door, buildNav, findPath, eventsOn, weather, season, beginDay, placeBuilding, afford, blocked };
+  return { get W() { return W; }, get H() { return H; }, get EXT() { return EXT; }, world, CELL, T, SPEED, RES, RNAME, RATIO, maxBuilds, affordBoth, options, solid, BT, JOBNAME, LIGHT, SCHOOL_DAYS, SEATS, CHALLENGES, G, LEVELS, MAPDEF, rngOf, getMap, cast, popOf, costOf, newGame, planDay, survDraw, survJobs, sample, draw, capacity, door, buildNav, findPath, eventsOn, weather, season, beginDay, placeBuilding, afford, blocked };
 })();
 if (typeof module !== 'undefined') module.exports = SIM;

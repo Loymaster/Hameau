@@ -8,9 +8,9 @@ Le jeu tient dans une seule page web. Il est pensé pour un écran de téléphon
 
 ## État
 
-Prototype 0.43.
+Prototype 0.44.
 
-- **Défis** : 50 défis en 15 niveaux, de 4 à 14 jours chacun, avec des événements annoncés (orage, brume, gel, sécheresse, crue, grand vent, rats, maladie, tornade, nouveaux venus) et jusqu'à 3 étoiles. Les défis 21 à 30 partent d'un pré nu ; les enfants et l'école y arrivent au défi 25. Les défis 31 à 40 se jouent sur de grandes cartes : le bourg, le savoir, la manufacture.
+- **Défis** : 50 défis en 15 niveaux, de 4 à 14 jours chacun, avec des événements annoncés (orage, brume, gel, sécheresse, crue, grand vent, incendie, loups, rats, maladie, canicule, tornade, nouveaux venus) et jusqu'à 3 étoiles. Les défis 21 à 30 partent d'un pré nu ; les enfants et l'école y arrivent au défi 25. Les défis 31 à 40 se jouent sur de grandes cartes : le bourg, le savoir, la manufacture.
 - **Survie** : 4 villageois, presque rien au départ, des jours sans fin et un ciel de plus en plus dur. On y choisit qui travaille où, et la partie se garde d'une visite à l'autre.
 - **Bac à sable** : pas encore.
 
@@ -43,11 +43,18 @@ Le script assemble `src/` en une seule page et l'écrit dans `out/` (copie de tr
 - **Mêmes choix, même partie.** Dans un défi, le hasard du jeu (qui tombe malade, qui prend quel poste, quel lit) est fixé une fois pour toutes ; seuls les visages, les noms et les caractères changent d'une partie à l'autre. La survie, elle, reste tirée au sort.
 - **Les saisons.** Le paysage suit ce qui est annoncé : le gel fait l'hiver (neige au sol et sur les toits, arbres nus, glace aux berges), la canicule et la sécheresse font l'été (herbe jaunie, terre fendillée, rivière basse). Entre deux, l'année suit son cours : l'automne après l'été, le printemps après l'hiver (fleurs, cerisiers) ; avant le premier, la saison qui le précède. Deux canicules à quatre jours ou moins font un seul été. Sans gel ni chaleur annoncés, le défi a sa saison à lui, choisie d'après son titre : le printemps pour 16 défis (`season: 'spring'`), l'automne pour 16 autres. En survie, on ne devance rien. On passe d'une saison à l'autre par un fondu, le matin. Rien ne change au jeu : `SIM.season(st)` ne fait que lire les événements.
 - **L'ordre des chantiers.** Quand on bâtit deux bâtiments le même jour, le premier choisi est bâti le premier : il reçoit d'abord les adultes libres. Les cartes choisies portent leur numéro.
+- **Les troisièmes étoiles.** Elles ne demandent plus toujours une réserve de nourriture : plusieurs choses à la fois (`G.have({ food: 14, stone: 4 })`), peu de chantiers (`G.built(5)` : « Pas plus de 5 chantiers »), et `G.and(…)` pour en réunir plusieurs. `G.solid` (tout le monde sous la pierre ou la brique le dernier soir) existe aussi, sans défi qui s’en serve encore.
+- **Les loups et l'incendie** entrent dans les défis (ils n'existaient qu'en survie). Les loups emportent quelqu'un qui dort dehors, sinon ils pillent la réserve ; un braséro les tient loin. L'incendie emporte un bâtiment de bois ; un puits l'éteint.
+- **Le cellier** garde la réserve au frais : avec lui, la canicule ne gâte rien.
+- **La guinguette et le manège** se bâtissent de planches. La guinguette donne 3 bonheurs par jour (la tornade l'emporte) ; le manège 1 bonheur par enfant et par jour, jusqu'à 4 enfants (il tient).
+- **Le tutoriel de la manufacture.** Chaque élément de production est expliqué le premier matin où il se présente, une seule fois : la culture, les ateliers, l'ingéniosité, le médecin, la brique, les maîtres, la planche, l'épanouissement, l'entrepôt, le repas, le cellier.
+- **La révision des défis (0.44).** 28 défis retouchés. Bâtiments remis en jeu : atelier de taille (4), fumoir (6, 31), champignonnière (8), auberge (18, 31), chaumière (24, 35, 48), ferme familiale (27, 30), menuiserie et puits (37), puits, académie et observatoire (47), cellier (41, 43, 45, 50), guinguette (43, 45, 48, 50), manège (48, 50). Loups : défis 14, 27, 44, 46, 50. Incendie : défis 17, 30, 37, 47, 50 ; la brique ne brûle pas. La troisième étoile ne demande plus une simple réserve que dans 17 défis sur 50 (26 auparavant). Petits défis (un chantier par jour) : toutes les parties sont comptées par `test/retune.js`, et le nombre de lignes à 3 étoiles ne monte jamais (défi 4 : 27 → 23, défi 6 : 18 → 15, défi 8 : 12 → 10, défi 18 : 4 → 3, etc.). Grands défis : le seuil est recalé sur la meilleure partie trouvée par `test/beam2.js` puis `test/climb.js` (environ 90 % ; ce qui n'est pas trouvé n'est pas prouvé impossible). Les défis 36, 40, 42 et 49 n'ont pas bougé.
+- **Le défi 50** est refait : bonheur en jeu, six enfants, une école qui n'a que 3 places par jour. Troisième étoile : tous les enfants ont fini l'école, 14 nourritures, 58 de bonheur et 14 d'ingéniosité. L'aire de jeux, le manège et les marionnettes ne donnent du bonheur que tant qu'il reste des enfants : l'école bâtie le premier jour ne suffit plus. La ligne relevée attend le jour 6 pour la première école et le jour 10 pour la seconde, ne bâtit qu'un chantier les jours 2, 6 et 7, et rien les jours 11, 12 et 14.
 - **Les défis 41 à 50.** Le niveau 14 (« La cité ») mêle tous les ateliers et tous les maîtres, cuisinier compris ; le niveau 15 (« Les derniers jours ») ramène les enfants, jusqu'au défi 50 où tout arrive à la fois. L'objectif « Tous les enfants ont fini l'école » y fait son entrée.
 
 ## Essais
 
-Les essais des règles ne demandent que Node :
+Les essais des règles ne demandent que Node (`test/retune.js <défi>` compte toutes les parties d'un petit défi pour recaler sa troisième étoile ; `python3 test/tuto.py` vérifie le tutoriel de la manufacture dans un navigateur) :
 
 ```
 node test/sim.test.js              # toutes les parties possibles de chaque défi

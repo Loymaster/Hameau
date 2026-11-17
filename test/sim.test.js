@@ -31,8 +31,8 @@ function check(st, p, pick) {
   const wrecked = new Set(p.events.filter(e => e.type === 'fire').map(e => e.bid)), cap = p.end.buildings.reduce((n, b) => n + (wrecked.has(b.id) ? 0 : SIM.BT[b.type].beds), 0), aliveN = Object.keys(p.tracks).length;
   if (outN.length && slept.size < Math.min(cap, aliveN) - p.end.buildings.filter(b => b.owners && !wrecked.has(b.id)).reduce((n, b) => n + SIM.BT[b.type].beds - b.owners.length, 0)) bad('lit libre alors que quelqu’un dort dehors', 'jour', st.day);
   for (const v of st.villagers) if (v.alive && v.home == null && v.roofless > 0 && !slept.has(v.id)) { if (st.villagers.some(o => o.alive && o.home == null && o.roofless === 0 && slept.has(o.id) && !o.child && !v.child)) bad('priorité au toit non respectée', v.name); }
-  /* les enfants passent d'abord : aucun adulte sans maison ne dort dans un lit tant qu'un enfant n'en a pas */
-  for (const v of st.villagers) if (v.alive && v.child && v.home == null && !slept.has(v.id) && st.villagers.some(o => o.alive && !o.child && o.home == null && slept.has(o.id))) bad('un adulte a pris le lit d’un enfant', v.name);
+  /* les enfants passent d'abord : aucun adulte sans maison ne dort dans un lit tant qu'un enfant n'en a pas (celui qui vient de recevoir une place dans une maison de famille dort chez lui : ce n'est pas un lit pris) */
+  for (const v of st.villagers) if (v.alive && v.child && v.home == null && !slept.has(v.id) && st.villagers.some(o => o.alive && !o.child && o.home == null && p.end.villagers[o.id].home == null && slept.has(o.id))) bad('un adulte a pris le lit d’un enfant', v.name);
   for (const v of st.villagers) if (v.alive && v.home != null && p.end.villagers[v.id].alive && p.end.villagers[v.id].home !== v.home && !wrecked.has(v.home)) bad('a perdu sa maison', v.name); // sauf si elle a été détruite
   const map = SIM.getMap(st.map);
   /* orage : personne ne passe la rivière, sauf si une digue la retient */

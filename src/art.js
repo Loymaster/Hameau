@@ -361,7 +361,7 @@ const ART = (() => {
     cabane: { beds: [[7, 7], [29, 7]], win: [8], lights: [[12, 37], [24, 40]] },
     foyer: { beds: [[5, 8], [19, 8], [35, 8], [49, 8]], win: [8, 46], lights: [[12, 41], [52, 41], [32, 44]] }, longere: { beds: [[6, 7], [28, 7], [50, 7]], win: [8, 48], lights: [[12, 35], [54, 35], [33, 38]] },
     ferme: { beds: [[5, 8], [21, 8], [37, 8]], win: [8, 46], lights: [[12, 41], [52, 41]] }, ecole: { win: [8, 38], lights: [[12, 39], [44, 39], [28, 42]], seats: [[14, 24], [28, 24], [42, 24]] }, bibliotheque: { win: [6, 32], lights: [[10, 37], [38, 37]] },
-    cantine: { win: [8, 36], lights: [[12, 37], [42, 37], [27, 40]] }, chevre: { win: [], lights: [[22, 35]] }, bassecour: { win: [], lights: [[24, 37]] }, marionnettes: { win: [], lights: [[22, 37]], lamp: true }, jeux: { win: [], lights: [] },
+    cantine: { win: [8, 36], lights: [[12, 37], [42, 37], [27, 40]] }, chevre: { win: [], lights: [[22, 35]] }, bassecour: { win: [], lights: [[24, 37]] }, marionnettes: { win: [], lights: [[22, 37]], lamp: true }, jeux: { win: [], lights: [] }, guinguette: { win: [], lights: [[14, 16], [28, 22], [42, 16]], lamp: true }, manege: { win: [], lights: [[23, 22]], lamp: true },
     cabanon: { beds: [[5, 6]], win: [4], lights: [[8, 33], [18, 36]] },
     maison: { beds: [[7, 8], [29, 8]], win: [8, 32], lights: [[12, 39], [36, 39], [24, 42]] },
     cueillette: { win: [9, 47], lights: [[13, 41], [51, 41], [32, 44]] },
@@ -395,6 +395,28 @@ const ART = (() => {
   };
   /* ---------- dix bâtiments de plus ---------- */
   const OPEN = {
+    guinguette(g, w, h) { /* un plancher de bal sous des lampions, une estrade, deux tables */
+      g.fillStyle = 'rgba(30,22,14,.22)'; rr(g, 3, 5, w - 4, h - 6, 4); g.fill();
+      rr(g, 1, 2, w - 4, h - 6, 4); FS(g, '#D2A76C', 1.3);
+      g.strokeStyle = 'rgba(96,62,30,.45)'; g.lineWidth = 0.7; for (let y = 7; y < h - 6; y += 4.5) { g.beginPath(); g.moveTo(3, y); g.lineTo(w - 5, y); g.stroke(); }
+      for (let i = 0; i < 9; i++) { g.beginPath(); g.moveTo(6 + i * 5.6, 3 + (i % 2) * 4.5); g.lineTo(6 + i * 5.6, 7.5 + (i % 2) * 4.5); g.stroke(); }
+      rr(g, w - 22, 4, 16, 10, 2); FS(g, '#8C5A78', 1.1); g.fillStyle = 'rgba(255,255,255,.2)'; g.fillRect(w - 20, 5.5, 12, 2.5);
+      for (const [x, y] of [[9, h - 13], [24, h - 11]]) { g.fillStyle = 'rgba(30,22,14,.25)'; ell(g, x + 1, y + 1.5, 5, 3.4); g.fill(); ell(g, x, y, 5, 3.4); FS(g, '#EFE3C8', 0.9); g.fillStyle = '#C8384A'; circ(g, x - 1, y - 0.4, 1); g.fill(); }
+      for (const [x, y] of [[2.5, 3.5], [w - 5.5, 3.5], [2.5, h - 6], [w - 5.5, h - 6]]) { circ(g, x, y, 2); FS(g, '#7A5636', 0.9); }
+      g.strokeStyle = '#4A3A2C'; g.lineWidth = 0.7; const L = ['#E9C85A', '#C8384A', '#6FA8C8', '#8DBE5A', '#E08A3C'];
+      for (const [x0, y0, x1, y1] of [[2.5, 3.5, w - 5.5, h - 6], [w - 5.5, 3.5, 2.5, h - 6]]) { g.beginPath(); g.moveTo(x0, y0); g.quadraticCurveTo((x0 + x1) / 2, (y0 + y1) / 2 + 5, x1, y1); g.stroke(); for (let k = 1; k < 7; k++) { const q = k / 7, x = (1 - q) * (1 - q) * x0 + 2 * q * (1 - q) * (x0 + x1) / 2 + q * q * x1, y = (1 - q) * (1 - q) * y0 + 2 * q * (1 - q) * ((y0 + y1) / 2 + 5) + q * q * y1; g.fillStyle = L[(k + (x0 < x1 ? 0 : 2)) % 5]; circ(g, x, y + 1, 1.5); g.fill(); } }
+    },
+    manege(g, w, h) { /* vu de dessus : un toit de toile rayé, festonné, sur son plateau de planches */
+      const cx = w / 2, cy = h / 2 - 1, R0 = 19;
+      g.fillStyle = 'rgba(30,22,14,.26)'; ell(g, cx + 2, cy + 4, R0 + 2, (R0 + 2) * 0.92); g.fill();
+      ell(g, cx, cy + 1, R0 + 2, (R0 + 2) * 0.92); FS(g, '#B98A56', 1.2);
+      for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4 + 0.2; g.fillStyle = k % 2 ? '#F2E8D0' : '#8FB8D8'; circ(g, cx + Math.cos(a) * (R0 - 1), cy + 1 + Math.sin(a) * (R0 - 1) * 0.92, 2.6); g.fill(); g.strokeStyle = '#4A3A2C'; g.lineWidth = 0.7; g.stroke(); }
+      for (let k = 0; k < 12; k++) { const a0 = k * Math.PI / 6, a1 = (k + 1) * Math.PI / 6; g.beginPath(); g.moveTo(cx, cy - 1); g.lineTo(cx + Math.cos(a0) * (R0 - 3), cy - 1 + Math.sin(a0) * (R0 - 3) * 0.92); g.lineTo(cx + Math.cos(a1) * (R0 - 3), cy - 1 + Math.sin(a1) * (R0 - 3) * 0.92); g.closePath(); g.fillStyle = k % 2 ? '#F4EAD2' : '#C8384A'; g.fill(); }
+      g.fillStyle = 'rgba(40,20,20,.16)'; g.beginPath(); g.moveTo(cx, cy - 1); g.arc(cx, cy - 1, R0 - 3, 0.2, 2.2); g.closePath(); g.fill();
+      for (let k = 0; k < 12; k++) { const a = (k + 0.5) * Math.PI / 6; g.fillStyle = k % 2 ? '#F4EAD2' : '#C8384A'; circ(g, cx + Math.cos(a) * (R0 - 3), cy - 1 + Math.sin(a) * (R0 - 3) * 0.92, 2.5); g.fill(); }
+      ell(g, cx, cy - 1, R0 - 3, (R0 - 3) * 0.92); g.strokeStyle = '#4A3A2C'; g.lineWidth = 1.1; g.stroke();
+      circ(g, cx, cy - 1, 2.6); FS(g, '#E9C85A', 1); g.fillStyle = 'rgba(255,255,255,.5)'; circ(g, cx - 0.8, cy - 1.8, 0.9); g.fill();
+    },
     jeux(g, w, h) {
       rr(g, 0, 0, w, h, 6); g.fillStyle = 'rgba(150,168,96,.55)'; g.fill();
       ell(g, w - 13, h - 10, 10, 6.5); FS(g, '#E8D29A', 1); g.fillStyle = '#C8384A'; circ(g, w - 15, h - 11, 1.8); g.fill(); g.fillStyle = '#4E6E80'; g.fillRect(w - 11, h - 10, 3, 2.4);

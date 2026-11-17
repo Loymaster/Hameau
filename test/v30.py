@@ -7,7 +7,7 @@ with sync_playwright() as p:
     b=p.chromium.launch(executable_path='/usr/bin/google-chrome',args=['--no-sandbox','--allow-file-access-from-files']); logs=[]
     pg=b.new_page(viewport={'width':390,'height':844},device_scale_factor=2)
     pg.on('pageerror',lambda e: logs.append((e.stack or str(e))[:300])); pg.on('console',lambda m: logs.append(m.text[:200]) if m.type=='error' and 'ERR_' not in m.text else None)
-    pg.add_init_script("window.HQ_LOCK=1;try{localStorage.setItem('hameau.v2',JSON.stringify({stars:{c1:3},tuto:{c1:1,c2:1}}))}catch(e){}")
+    pg.add_init_script("window.HQ_LOCK=1;try{localStorage.setItem('hameau.v2',JSON.stringify({stars:{c1:3},tuto:{c1:1,c2:1,m_culture:1,m_atelier:1,m_ingen:1,m_medecin:1,m_brique:1,m_maitre:1,m_planche:1,m_epanoui:1,m_entrepot:1,m_repas:1,m_cellier:1}}))}catch(e){}")
     pg.goto('file://'+OUT+'index.html'); (os.path.exists('/tmp/fonts/fonts.css') and pg.add_style_tag(path='/tmp/fonts/fonts.css')); pg.wait_for_timeout(1500)
     W=lambda t=1000: pg.wait_for_timeout(t); S=lambda n: pg.screenshot(path=OUT+'v30_'+cid+'_'+n+'.png')
     lvl=pg.evaluate(f"SIM.LEVELS.findIndex(l=>l.ch.includes('{cid}'))")

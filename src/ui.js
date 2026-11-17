@@ -40,7 +40,7 @@ const UI = (() => {
     arrivals: { icon: 'ppl2', ic: e => e.villagers.length > 1 ? I.ppl2 : I.ppl, name: e => { const n = e.villagers.length, k = e.villagers.filter(x => x && x.child).length; return (n > 1 ? n + ' nouveaux venus' : 'Un nouveau venu') + (k === n ? (n > 1 ? ' (des enfants)' : ' (un enfant)') : k ? ', dont ' + (k > 1 ? k + ' enfants' : 'un enfant') : ''); } },
     storm: { icon: 'storm', name: () => 'Orage', tip: 'la rivière ne se passe plus, on ne pêche pas' },
     frost: { icon: 'frost', name: e => e.len ? 'Gel de ' + e.len + ' jours' : 'Gel', tip: 'plus de récoltes, et une nuit dehors tue' },
-    heat: { icon: 'sun', name: () => 'Canicule', tip: 'cette nuit, la moitié de la nourriture crue se gâte ; les repas se gardent' },
+    heat: { icon: 'sun', name: () => 'Canicule', tip: 'cette nuit, la moitié de la nourriture crue se gâte ; un cellier la garde au frais' },
     tornado: { icon: 'tornado', name: () => 'Tornade', tip: 'ce soir, elle emporte tout ce qui est bâti sans pierre ni brique' },
     sick: { icon: 'malade', name: () => 'Maladie', tip: 'un villageois alité deux jours ; elle passe à qui dort sous le même toit' },
     fire: { icon: 'fire', name: () => 'Incendie', tip: 'un bâtiment de bois brûle ce soir, sauf si un puits l’éteint' },
@@ -64,7 +64,7 @@ const UI = (() => {
     fire: () => 'Le soir, un bâtiment en bois brûle. Un puits l’empêche.',
     rats: () => 'La nuit, ils mangent une partie de la réserve. Un garde-manger ou un cellier réduit la perte à presque rien ; un entrepôt l’annule.',
     wolves: () => 'La nuit, ils tuent quelqu’un qui dort dehors. Si tout le monde est à l’abri, ils volent de la nourriture. Un braséro les éloigne.',
-    heat: () => 'La nuit, la moitié de la nourriture en réserve se gâte. Les repas cuisinés se conservent.',
+    heat: () => 'La nuit, la moitié de la nourriture en réserve se gâte. Un cellier garde tout au frais. Les repas cuisinés, eux, se conservent sans lui.',
     tornado: () => 'Le soir, elle emporte tous les bâtiments dont le coût ne compte ni pierre ni brique. Ceux qui y dormaient se retrouvent dehors.',
     sick: (e, c) => c && !c.survival ? (e.n > 1 ? e.n + ' villageois tombent malades' : 'Un villageois tombe malade') + ' ce matin, pour deux jours : on ne sait pas qui. Un malade ne travaille pas. Chaque nuit, sous un toit partagé, il contamine un voisin de chambrée. Un malade qui a faim ou dort dehors meurt.' + (e.grave ? ' <b>Fièvre grave :</b> sans médecin, le malade meurt au second soir.' : '') + ' Avec un médecin à son poste, personne ne meurt de maladie et elle ne se transmet plus. Le médecin, lui, ne tombe jamais malade.'
       : 'Des villageois sont malades deux jours et ne travaillent pas. La maladie passe à ceux qui dorment sous le même toit ; des bains la freinent. Un malade qui a faim ou dort dehors meurt, et la fièvre peut tuer. Un médecin à son poste empêche l’une et l’autre, et ne tombe jamais malade.'
@@ -76,12 +76,12 @@ const UI = (() => {
   const evDefs = (ev, c) => ev.map(e => '<div class="evd"><span class="evc">' + evIcon(e) + '</span><div><b>' + evName(e) + '</b>' + (evDur(e, c) ? '<small>' + evDur(e, c) + '</small>' : '') + '<p>' + rich(EVD[e.type](e, c)) + '</p></div></div>').join('');
   const pile = ev => '<span class="pile">' + ev.map((e, k) => '<span class="evc" style="z-index:' + (9 - k) + '">' + evIcon(e) + '</span>').join('') + '</span>';
   const INFO = { foyer: 'Quatre places, pour de bon.', longere: 'Trois places en dur, à qui en a besoin.', ferme: 'Trois places, pour de bon, et une nourriture par jour.', ecole: 'Trois enfants y vont chaque jour. Au bout de quatre jours, ils sont adultes.', bibliotheque: 'L’école ne prend plus que trois jours.',
-    cantine: 'Trois enfants y mangent chaque soir sans toucher à la réserve.', chevre: 'Un enfant y boit son lait chaque soir, sans toucher à la réserve.', bassecour: 'Chaque enfant qui n’est pas à l’école rapporte un œuf par jour, deux au plus.', jeux: 'Un bonheur par enfant chaque jour, trois au plus.', marionnettes: 'Deux bonheurs chaque soir, tant qu’il reste un enfant.', cabane: 'Deux places, à qui en a besoin.', cabanon: 'Une place, à qui en a besoin.', maison: 'Deux places, pour de bon.', cueillette: 'Baies de l’autre rive.', potager: 'Légumes du village.', bucheron: 'Arbres de la lisière.', pecheur: 'Poisson de la rivière.', carriere: 'Pierre des rochers.', four: 'Pain cuit sur place.', table: 'Si tous mangent, la joie monte.', abri: 'Quatre places, pour deux nuits seulement.', dortoir: 'Quatre places, à qui en a besoin.', poulailler: 'Des œufs, par tous les temps.', champi: 'Peu de chose, sauf dans la brume ou après la pluie.', rucher: 'Du miel, sans personne. Craint le gel.', serre: 'Garde du gel potagers, ruches et fleurs.', fanal: 'Dans la brume, il guide vers la forêt et les rochers.', jardin: 'Un peu de joie chaque jour. Craint le gel.', kiosque: 'De la musique, et de la joie chaque soir.', moulin: 'Chaque four donne deux pains de plus.', cloche: 'On la sonne : dans deux jours, quelqu’un l’aura entendue.',
+    cantine: 'Trois enfants y mangent chaque soir sans toucher à la réserve.', chevre: 'Un enfant y boit son lait chaque soir, sans toucher à la réserve.', bassecour: 'Chaque enfant qui n’est pas à l’école rapporte un œuf par jour, deux au plus.', guinguette: 'Un plancher de bal en planches. Trois bonheurs par jour, sans personne.', manege: 'Un bonheur par enfant chaque jour, quatre au plus. Tient sous la tornade.', jeux: 'Un bonheur par enfant chaque jour, trois au plus.', marionnettes: 'Deux bonheurs chaque soir, tant qu’il reste un enfant.', cabane: 'Deux places, à qui en a besoin.', cabanon: 'Une place, à qui en a besoin.', maison: 'Deux places, pour de bon.', cueillette: 'Baies de l’autre rive.', potager: 'Légumes du village.', bucheron: 'Arbres de la lisière.', pecheur: 'Poisson de la rivière.', carriere: 'Pierre des rochers.', four: 'Pain cuit sur place.', table: 'Si tous mangent, la joie monte.', abri: 'Quatre places, pour deux nuits seulement.', dortoir: 'Quatre places, à qui en a besoin.', poulailler: 'Des œufs, par tous les temps.', champi: 'Peu de chose, sauf dans la brume ou après la pluie.', rucher: 'Du miel, sans personne. Craint le gel.', serre: 'Garde du gel potagers, ruches et fleurs.', fanal: 'Dans la brume, il guide vers la forêt et les rochers.', jardin: 'Un peu de joie chaque jour. Craint le gel.', kiosque: 'De la musique, et de la joie chaque soir.', moulin: 'Chaque four donne deux pains de plus.', cloche: 'On la sonne : dans deux jours, quelqu’un l’aura entendue.',
     grange: 'Six places dans le foin, à qui en a besoin.', chaumiere: 'Trois places, pour de bon.', tente: 'Deux places, pour trois nuits seulement.', auberge: 'Deux places. Chaque nouveau venu y laisse deux provisions.',
     verger: 'Deux fruits par jour, à partir du surlendemain. Craint le gel.', bergerie: 'Du lait et du fromage, par tous les temps.', fumoir: 'Chaque pêcheur rapporte un poisson de plus.', puits: 'Chaque potager donne un légume de plus.',
     etal: 'Chaque jour, deux bois contre deux nourritures.', gardemanger: 'Quand la réserve est vide, il reste un repas.', scierie: 'Trois bois par jour, même dans la brume.', menuiserie: 'Chaque chantier coûte un bois de moins.',
     taillerie: 'Chaque chantier coûte une pierre de moins.', bucher: 'Qui glane rapporte un bois de plus.', digue: 'Sous l’orage, le pont tient et la rivière se laisse approcher.', brasero: 'Une nuit de gel dehors n’est plus mortelle.',
-    rubans: 'Un peu de joie chaque jour, même sous le gel.', bains: 'Chaque jour, un bois contre deux joies.', pressoir: 'Du cidre, et de la joie chaque soir.', cellier: 'Une joie par soir, tant que la réserve est pleine.',
+    rubans: 'Un peu de joie chaque jour, même sous le gel.', bains: 'Chaque jour, un bois contre deux joies.', pressoir: 'Du cidre, et de la joie chaque soir.', cellier: 'Garde la réserve au frais : la canicule n’y gâte rien. Une joie par soir, tant que la réserve est pleine.',
     argiliere: 'Deux argiles par jour, par tous les temps.', briqueterie: 'Deux argiles en réserve le matin donnent une brique. Quatre argiles par jour au plus.', charpenterie: 'Deux bois en réserve le matin donnent une planche. Quatre bois par jour au plus.',
     cuisine: 'Deux nourritures donnent un repas : il nourrit une personne et donne un bonheur. Elle ne prend que ce qui dépasse le repas du soir.', lycee: 'Trois cultures par jour, tant qu’un professeur y enseigne.', universite: 'Deux cultures en réserve le matin donnent une ingéniosité. Quatre cultures par jour au plus.',
     theatre: 'Une culture et deux bonheurs par jour.', observatoire: 'Deux cultures par jour.', academie: 'Comme l’université, mais jusqu’à huit cultures par jour.', arts: 'Deux bonheurs donnent un épanouissement. Quatre bonheurs par jour au plus.',
@@ -130,7 +130,7 @@ const UI = (() => {
   const stars = (n, big) => { let s = ''; for (let i = 0; i < 3; i++) s += i < n ? I.star : I.star0; return '<span class="' + (big ? 'bigstars' : 'stars') + '" role="img" aria-label="' + n + ' étoile' + (n > 1 ? 's' : '') + ' sur 3">' + s + '</span>'; };
   /* ce que fait un bâtiment, en un chiffre, une icône et quelques mots */
   const FAM = [['Dormir', ['cabane', 'cabanon', 'maison', 'dortoir', 'chaumiere', 'grange', 'auberge', 'abri', 'tente']], ['Manger', ['cueillette', 'potager', 'pecheur', 'four', 'poulailler', 'bergerie', 'champi', 'rucher', 'verger', 'moulin', 'fumoir', 'puits', 'etal', 'gardemanger']],
-    ['Bâtir', ['bucheron', 'carriere', 'scierie', 'bucher', 'menuiserie', 'taillerie']], ['Se réjouir', ['table', 'jardin', 'rubans', 'kiosque', 'pressoir', 'bains', 'cellier']], ['Tenir tête au ciel', ['serre', 'fanal', 'digue', 'brasero', 'cloche']], ['Vie de famille', ['foyer', 'longere', 'ferme', 'ecole', 'bibliotheque', 'cantine', 'chevre', 'bassecour', 'jeux', 'marionnettes']],
+    ['Bâtir', ['bucheron', 'carriere', 'scierie', 'bucher', 'menuiserie', 'taillerie']], ['Se réjouir', ['table', 'jardin', 'rubans', 'kiosque', 'pressoir', 'bains', 'cellier', 'guinguette']], ['Tenir tête au ciel', ['serre', 'fanal', 'digue', 'brasero', 'cloche']], ['Vie de famille', ['foyer', 'longere', 'ferme', 'ecole', 'bibliotheque', 'cantine', 'chevre', 'bassecour', 'jeux', 'manege', 'marionnettes']],
     ['Manufacture', ['argiliere', 'briqueterie', 'charpenterie', 'cuisine', 'maisonbrique', 'demeure', 'entrepot', 'halle', 'outillerie']], ['Savoir', ['lycee', 'universite', 'theatre', 'observatoire', 'academie', 'arts']], ['Maîtres de leur art', ['cabinet', 'geologue', 'ingenieur', 'chef', 'psy']]];
   const BOOSTL = { four: 'par boulanger', pecheur: 'par pêcheur', potager: 'par jardinier', glean: 'par glaneur' }, ANTIL = { frost: ['frost', 'abrite les jardins'], fog: ['fog', 'guide dans la brume'], storm: ['storm', 'retient la rivière'], cold: ['frost', 'le gel ne tue plus'] };
   const CONVOF = {}; for (const t in SIM.BT) if (SIM.BT[t].conv) CONVOF[SIM.BT[t].conv.to] = SIM.BT[t].conv.from;
@@ -304,7 +304,7 @@ const UI = (() => {
             return cap(d.name.toLowerCase()) + ' : ' + (d.conv ? 'change ' + SIM.RATIO + ' ' + RESN[d.conv.from].toLowerCase() + ' en 1 ' + RESN[d.conv.to].toLowerCase() + ', ' + d.conv.cap + ' ' + RESN[d.conv.from].toLowerCase() + ' par jour au plus' : d.expert ? 'tant qu’il est à son poste, 1 ' + RESN[CONVOF[d.expert]].toLowerCase() + ' suffit pour 1 ' + RESN[d.expert].toLowerCase() : d.medic ? 'tant qu’il est à son poste, personne ne meurt de maladie et elle ne se transmet plus ; lui-même ne tombe jamais malade' : d.out ? d.per + ' ' + RESN[d.out].toLowerCase() + ' par jour et par personne' : d.play ? 'de la joie chaque soir' : 'un poste') + (d.posts > 1 ? ', ' + d.posts + ' postes' : '') + '.' + (st.length ? ' Arrêté par ' + names(st) + '.' : ''); }).join(' ')); }).join('') + '</div>'; },
     options: () => back + '<h2>Options</h2><div class="h3">Son</div>' + volsHtml() +
       '<div class="h3">Bulles des villageois</div><div class="segs">' + BUBS.map(b => '<button class="seg" data-bub="' + b[0] + '" aria-pressed="' + (save.bub === b[0]) + '">' + b[1] + '</button>').join('') + '</div>' +
-      '<div class="h3">Progression</div><p class="note">' + Object.values(save.stars).reduce((a, b) => a + b, 0) + ' étoiles sur ' + ORDER.length * 3 + '</p><div class="pfoot">Prototype 0.43</div>'
+      '<div class="h3">Progression</div><p class="note">' + Object.values(save.stars).reduce((a, b) => a + b, 0) + ' étoiles sur ' + ORDER.length * 3 + '</p><div class="pfoot">Prototype 0.44</div>'
   };
   function bindPage(name, arg) {
     paint(pageEl);
@@ -454,8 +454,8 @@ const UI = (() => {
     R.setView('plan', bottom.offsetHeight - 26, planY());
     $('#bbuild').onclick = () => { if (selCard) { SFX.play('go'); GAME.choose(selCard); } };
     $('#bskip').onclick = () => GAME.choose(null); if (surv) $('#bjobs').onclick = () => openJobs();
-    const steps = tuto && TUTO[chId] && TUTO[chId].morning(st);
-    if (steps) runCoach(steps); else dayTitle(st);
+    const steps = tuto && TUTO[chId] && TUTO[chId].morning(st), manu = !steps && manuSteps(st);
+    if (steps) runCoach(steps); else if (manu) runCoach(manu, () => dayTitle(st)); else dayTitle(st);
   }
 
   /* ---------- journée : la frise du jour, avec ses jalons ---------- */
@@ -602,7 +602,7 @@ const UI = (() => {
     coachEl.innerHTML = (r ? '<div class="spot"></div>' : '<div class="dim"></div>') + '<div class="bub" role="dialog" aria-live="polite"' + (r ? '' : ' style="top:50%;transform:translateY(-50%)"') + '><p>' + s.t + '</p><div class="r"><button class="skip" id="cskip">Passer</button>' + (n > 1 ? '<span class="dots">' + coach.steps.map((_, i) => '<i class="' + (i === coach.i ? 'on' : '') + '"></i>').join('') + '</span>' : '') + '<button class="tlink" id="cnext">' + (s.btn || (lastStep ? 'Compris' : 'Suivant')) + '</button></div></div>';
     coachEl.hidden = false; posCoach();
     $('#cnext').onclick = () => { if (coach.i < n - 1) { coach.i++; drawCoach(); } else { const d = coach.done; endCoach(); if (d) d(); } };
-    $('#cskip').onclick = () => { tuto = false; endCoach(); };
+    $('#cskip').onclick = () => { const d = coach.done; tuto = false; endCoach(); if (d) d(); };
   }
   const TUTO = {
     c1: {
@@ -637,6 +637,42 @@ const UI = (() => {
       tick() { return null; }
     }
   };
+  /* la manufacture : chaque élément de production est expliqué le premier matin où il se présente, une seule fois */
+  const MANU = [
+    { k: 'culture', has: (c, T) => xres.includes('culture'), steps: [
+      { el: '#res .rrow.x', t: 'Une réserve nouvelle : la <b>culture</b>. Elle ne se mange pas et ne bâtit rien. Elle s’amasse, jour après jour.' },
+      { el: '.fan', t: 'La <b>bibliothèque</b> en donne 1 par jour, sans personne. Le <b>lycée</b> en donne 3, s’il reste un adulte libre pour y faire la classe.' }] },
+    { k: 'atelier', has: (c, T) => T.some(t => SIM.BT[t].conv), steps: [
+      { t: '<b>Les ateliers.</b> Un atelier ne produit rien de lui-même : il <b>transforme</b> ce que le village a déjà en réserve.' },
+      { el: '#res', t: 'Il prend ce qui est en réserve <b>le matin, une fois les chantiers payés</b>, et en change <b>deux pour un</b>. Chaque atelier a son plafond par jour.' },
+      { el: '#vbar', t: 'Il lui faut <b>un adulte à son poste</b>. Chacun garde le sien : un atelier bâti quand tout le monde est pris reste à l’arrêt, et sans matière aussi.' }] },
+    { k: 'ingen', has: (c, T) => xres.includes('ingen'), steps: [
+      { el: '#res .rrow.x', t: 'L’université change 2 cultures en 1 <b>ingéniosité</b>. C’est elle qui paie les bâtiments des maîtres, <b>une fois</b>, à la construction.' }] },
+    { k: 'medecin', has: (c, T) => T.includes('cabinet'), steps: [
+      { el: '.fan', t: 'Le <b>cabinet du médecin</b> se paie en ingéniosité. Tant que le médecin est à son poste, personne ne meurt de maladie et la contagion s’arrête.' }] },
+    { k: 'brique', has: (c, T) => xres.includes('brick'), steps: [
+      { el: '#res .rrow.x', t: 'Deux ateliers à la suite : l’<b>argilière</b> tire 2 argiles par jour, la <b>briqueterie</b> en cuit 2 pour 1 <b>brique</b>. Deux postes à tenir, et un jour d’écart entre l’argile et la brique.' },
+      { t: 'Ce qui est bâti de brique ou de pierre <b>tient</b> : la tornade emporte tout le reste.' }] },
+    { k: 'maitre', has: (c, T) => T.some(t => SIM.BT[t].expert), steps: [
+      { el: '.fan', t: '<b>Les maîtres.</b> Tant qu’un maître est à son poste, l’atelier de son domaine transforme à <b>un pour un</b> au lieu de deux pour un. Un maître sans atelier ne sert à rien, et il prend un adulte.' }] },
+    { k: 'planche', has: (c, T) => xres.includes('plank'), steps: [
+      { el: '#res .rrow.x', t: 'La <b>charpenterie</b> débite 2 bois pour 1 <b>planche</b>. Elle prend son bois le matin, après les chantiers : ce qu’elle scie ne servira plus à bâtir en bois.' },
+      { t: 'Les planches bâtissent ce que le bois brut ne peut pas : le théâtre, la halle, la guinguette, le manège.' }] },
+    { k: 'epanoui', has: (c, T) => xres.includes('bloom'), steps: [
+      { el: '#res .rrow.x', t: 'L’<b>atelier des arts</b> change 2 bonheurs en 1 <b>épanouissement</b>. Le bonheur qu’il prend quitte la réserve : il faut en avoir d’avance.' }] },
+    { k: 'entrepot', has: (c, T) => T.includes('entrepot'), steps: [
+      { el: '.fan', t: 'L’<b>entrepôt</b> se bâtit de planches et de brique. Sous son toit, la réserve est hors d’atteinte des rats.' }] },
+    { k: 'repas', has: (c, T) => xres.includes('meal'), steps: [
+      { el: '#res .rrow.x', t: 'La <b>cuisine</b> change 2 nourritures en 1 <b>repas</b>, sans toucher à ce qu’il faut pour le soir. Un repas nourrit comme une part, se mange en premier, et la canicule ne le gâte pas.' }] },
+    { k: 'cellier', has: (c, T) => T.includes('cellier') && (c.events || []).some(e => e.type === 'heat'), steps: [
+      { el: '.fan', t: 'La canicule gâte la moitié de la nourriture crue. Un <b>cellier</b> la garde au frais : avec lui, rien ne se perd.' }] }
+  ];
+  function manuSteps(st) {
+    const c = SIM.CHALLENGES[chId]; if (c.survival || st.day !== 1) return null;
+    const T = [...new Set(c.deck.concat((c.start || []).map(b => b.type)))], out = [];
+    for (const m of MANU) if (!save.tuto['m_' + m.k] && m.has(c, T)) { save.tuto['m_' + m.k] = true; out.push(...m.steps); }
+    if (!out.length) return null; persist(); return out.map(s => s.el && !$(s.el) ? { t: s.t } : s);
+  }
   function tutoTick() {
     if (!tuto || coach || GAME.phase !== 'day' || !TUTO[chId]) return;
     const steps = TUTO[chId].tick(GAME.t, GAME.plan); if (steps) runCoach(steps);

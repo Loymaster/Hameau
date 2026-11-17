@@ -2,15 +2,17 @@
    La valeur d'une partie en cours suit les objectifs du défi : ce qu'il demande au dernier soir pèse le plus lourd.
    Ce qu'il trouve existe ; ce qu'il ne trouve pas n'est pas prouvé impossible.
    Variables : SEED (graine : sans effet sur un défi, dont le hasard est fixé), TOP (lignes montrées), W='brick:4,ingen:6' (poids en plus), RAND=n (n parties au hasard en plus du faisceau). */
-const SIM = require('../src/sim.js');
+const SIM = require(process.env.SIMJS || '../src/sim.js');
 const id = process.argv[2], K = +(process.argv[3] || 120), ov = process.argv[4] ? eval('(' + process.argv[4] + ')') : {};
 const ch = Object.assign({}, SIM.CHALLENGES[id], ov); SIM.CHALLENGES[id] = ch; if (ov.draws) ch.deck = Array.from(new Set([].concat.apply([], ch.draws)));
 const BT = SIM.BT, need = Object.assign({}, ...ch.goals.map(g => g.need || {})), XW = {}; (process.env.W || '').split(',').filter(Boolean).forEach(s => { const [k, v] = s.split(':'); XW[k] = +v; });
 const BASE = { food: 1, wood: 0.6, stone: 0.7, clay: 0.9, brick: 2.2, plank: 1.6, meal: 1.6, culture: 1.2, ingen: 3, bloom: 3, joy: ch.joy ? 2 : 0 };
 const CH = +(process.env.CH || 24), NEEDW = +(process.env.NEEDW || 40);
+const HARD = [].concat(...ch.goals.map(g => g.parts || [g])).some(g => g.hard); // « chacun dort sous la pierre ou la brique » : les lits qui tiennent comptent
 const val = st => {
   const al = st.villagers.filter(v => v.alive); let v = (st.villagers.length - al.length) * -1000 + (st.everLacked ? -(+process.env.LACK || 300) : 0);
   for (const k in BASE) v += (BASE[k] + (XW[k] || 0)) * (st[k] || 0);
+  if (HARD) { let sb = 0; for (const b of st.buildings) if (!b.gone && SIM.solid(b.type)) sb += BT[b.type].beds || 0; v += 12 * Math.min(1, sb / al.length); }
   for (const k in need) v += NEEDW * Math.min(1, (st[k] || 0) / need[k]) + (st[k] >= need[k] ? 15 : 0);
   v += Math.min(0, SIM.capacity(st) - al.length) * 5 + Math.min(0, st.food - al.length) * 3;
   for (const b of st.buildings) { if (b.gone) continue; const d = BT[b.type], w = b.workers.filter(i => st.villagers[i].alive).length;
@@ -29,7 +31,12 @@ const val = st => {
   if (tor) { const pop = al.length + ch.events.filter(e => e.type === 'arrivals' && e.day >= st.day && e.day <= tor.day + 1).reduce((n, e) => n + e.villagers.length, 0), sb = st.buildings.reduce((n, b) => n + (!b.gone && SIM.solid(b.type) ? BT[b.type].beds || 0 : 0), 0);
     v += Math.min(0, sb - pop) * 9 * (1 + (st.day / tor.day)); for (const b of st.buildings) if (!b.gone && !SIM.solid(b.type)) v -= ((BT[b.type].per || 0) * b.workers.length * 1.2 + (BT[b.type].conv ? 3 : 0)) * (st.day / tor.day); }
   v += al.filter(x => x.sick > 0).length * -6 + al.filter(x => x.child).reduce((n, x) => n + (x.school || 0) * 2, 0);
-  if (ch.goals.some(g => g.grown)) v += al.filter(x => x.child).reduce((n, x) => n - 26 + (x.school || 0) * 6, 0);
+  if (ch.goals.some(g => g.grown)) { const kids = al.filter(x => x.child);
+    if (process.env.GROW === 'late') { /* l'école peut attendre : seul compte ce qui ne pourra plus être rattrapé (3 places par école et par jour) */
+      const need = SIM.SCHOOL_DAYS - (st.buildings.some(b => !b.gone && BT[b.type].fast) ? 1 : 0), R = kids.reduce((n, x) => n + Math.max(0, need - (x.school || 0)), 0), E = st.buildings.filter(b => !b.gone && BT[b.type].school).length;
+      let dn = st.day; if (!E) { dn = 0; for (let d = st.day; d <= ch.days; d++) if (ch.draws && ch.draws[d - 1] && ch.draws[d - 1].includes('ecole')) { dn = d; break; } }
+      const cap = dn ? 3 * Math.max(E, 1) * (ch.days - dn + 1) : 0; v -= 400 * Math.max(0, R - cap + 3) + (st.day > ch.days ? 2000 * kids.length : 0); }
+    else v += kids.reduce((n, x) => n - 26 + (x.school || 0) * 6, 0); }
   return v;
 };
 const key = st => st.buildings.map(b => (b.gone ? '!' : '') + b.type + b.workers.length).sort().join() + '|' + SIM.RES.map(r => st[r]).join() + '|' + st.joy + '|' + st.everLacked + '|' + st.villagers.map(v => v.alive ? (v.sick || 0) : 'x').join('');
